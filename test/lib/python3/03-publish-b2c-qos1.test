@@ -1,0 +1,45 @@
+#!/usr/bin/python3
+
+import os
+import subprocess
+import socket
+import sys
+import time
+from struct import *
+
+import mosquitto
+
+def on_message(mosq, obj, msg):
+    if msg.mid != 123:
+        print("Invalid mid: ("+str(msg.mid)+")")
+        exit(1)
+    if msg.topic != "pub/qos1/receive":
+        print("Invalid topic: ("+str(msg.topic)+")")
+        exit(1)
+    if msg.payload != b"message":
+        print("Invalid payload: ("+str(msg.payload)+")")
+        exit(1)
+    if msg.qos != 1:
+        print("Invalid qos: ("+str(msg.qos)+")")
+        exit(1)
+    if msg.retain != False:
+        print("Invalid retain: ("+str(msg.retain)+")")
+        exit(1)
+    exit(0)
+
+def on_connect(mosq, obj, rc):
+    if rc != 0:
+        print("Connect failed ("+str(rc)+")")
+        exit(rc)
+
+mosq = mosquitto.Mosquitto("publish-qos1-test")
+mosq.message_retry_set(3)
+mosq.on_connect = on_connect
+mosq.on_message = on_message
+
+mosq.connect("localhost", 1888)
+rc = 0
+while rc == 0:
+    rc = mosq.loop()
+print("rc: "+str(rc))
+exit(1)

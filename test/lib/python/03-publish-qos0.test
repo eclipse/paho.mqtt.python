@@ -1,0 +1,36 @@
+#!/usr/bin/python
+
+import os
+import subprocess
+import socket
+import sys
+import time
+from struct import *
+
+import mosquitto
+
+sent_mid = -1
+
+def on_connect(mosq, obj, rc):
+    global sent_mid
+    if rc != 0:
+        exit(rc)
+    else:
+        res = mosq.publish("pub/qos0/test", "message")
+        sent_mid = res[1]
+
+def on_publish(mosq, obj, mid):
+    global sent_mid, run
+    if sent_mid == mid:
+        mosq.disconnect()
+
+run = -1
+mosq = mosquitto.Mosquitto("publish-qos0-test", run)
+mosq.on_connect = on_connect
+mosq.on_publish = on_publish
+
+mosq.connect("localhost", 1888)
+while run == -1:
+    mosq.loop()
+
+exit(run)

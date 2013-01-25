@@ -1,0 +1,14 @@
+[patterns]
+**.c = native
+**.h = native
+**.pl = native
+**.py = native
+**.txt = native
+**.svg = native
+**.png = BIN
+**.xml = native
+**.nsi = native
+Makefile = LF
+config.mk = LF
+mosquitto.conf = native
+

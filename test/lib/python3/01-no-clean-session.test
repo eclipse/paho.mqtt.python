@@ -1,0 +1,12 @@
+#!/usr/bin/python3
+
+import mosquitto
+
+mosq = mosquitto.Mosquitto("01-no-clean-session", False)
+
+run = -1
+mosq.connect("localhost", 1888)
+while run == -1:
+    mosq.loop()
+
+exit(run)

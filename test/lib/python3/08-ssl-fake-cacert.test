@@ -1,0 +1,32 @@
+#!/usr/bin/python3
+
+import os
+import subprocess
+import socket
+import sys
+import time
+from struct import *
+import ssl
+
+import mosquitto
+
+if sys.version < '2.7':
+    print("WARNING: SSL/TLS not supported on Python 2.6")
+    exit(0)
+
+def on_connect(mosq, obj, rc):
+    exit(1)
+
+mosq = mosquitto.Mosquitto("08-ssl-fake-cacert")
+mosq.tls_set("../ssl/fake-ca.crt", "../ssl/client.crt", "../ssl/client.key")
+mosq.on_connect = on_connect
+
+try:
+    mosq.connect("localhost", 1888)
+except ssl.SSLError as msg:
+    if msg.errno == 1 and "certificate verify failed" in msg.strerror:
+        exit(0)
+    else:
+        exit(1)
+else:
+    exit(1)
