@@ -11,7 +11,7 @@
 # "pub/qos1/test", payload "message" and QoS=1.
 # The test will not respond to the first PUBLISH message, so the client must
 # resend the PUBLISH message with dup=1. Note that to keep test durations low, a
-# message retry timeout of less than 10 seconds is required for this test.
+# message retry timeout of less than 5 seconds is required for this test.
 # On receiving the second PUBLISH message, the test will send the correct
 # PUBACK response. On receiving the correct PUBACK response, the client should
 # send a DISCONNECT message.
@@ -60,7 +60,7 @@ client = subprocess.Popen(client_args, env=env)
 
 try:
     (conn, address) = sock.accept()
-    conn.settimeout(10)
+    conn.settimeout(5)
 
     if mosq_test.expect_packet(conn, "connect", connect_packet):
         conn.send(connack_packet)

@@ -24,6 +24,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
+#
+# This product includes software developed by the OpenSSL Project for use in
+# the OpenSSL Toolkit. (http://www.openssl.org/)
+# This product includes cryptographic software written by Eric Young
+# (eay@cryptsoft.com)
+# This product includes software written by Tim Hudson (tjh@cryptsoft.com)
 
 """
 This is an MQTT v3.1 client module. MQTT is a lightweight pub/sub messaging
@@ -597,12 +604,9 @@ class Mosquitto:
         # Put messages in progress in a valid state.
         self._messages_reconnect_reset()
 
-        try:
-            self._sock = socket.create_connection((self._host, self._port))
-        except socket.error as err:
-            (msg) = err
-            if msg.errno != errno.EINPROGRESS:
-                raise
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # FIXME use create_connection here
+
 
         if self._tls_ca_certs != None:
             self._ssl = ssl.wrap_socket(self._sock,
@@ -612,6 +616,14 @@ class Mosquitto:
                     cert_reqs=self._tls_cert_reqs,
                     ssl_version=self._tls_version,
                     ciphers=self._tls_ciphers)
+
+        try:
+            self.socket().connect((self._host, self._port))
+        except socket.error as err:
+            (msg) = err
+            if msg.errno != errno.EINPROGRESS:
+                print(msg)
+                return 1
 
         self._sock.setblocking(0)
 
@@ -1077,7 +1089,8 @@ class Mosquitto:
                     return MOSQ_ERR_AGAIN
                 if msg.errno == errno.EAGAIN:
                     return MOSQ_ERR_AGAIN
-                raise
+                print(msg)
+                return 1
             else:
                 if len(command) == 0:
                     return 1
@@ -1100,7 +1113,8 @@ class Mosquitto:
                         return MOSQ_ERR_AGAIN
                     if msg.errno == errno.EAGAIN:
                         return MOSQ_ERR_AGAIN
-                    raise
+                    print(msg)
+                    return 1
                 else:
                     byte = struct.unpack("!B", byte)
                     byte = byte[0]
@@ -1131,7 +1145,8 @@ class Mosquitto:
                     return MOSQ_ERR_AGAIN
                 if msg.errno == errno.EAGAIN:
                     return MOSQ_ERR_AGAIN
-                raise
+                print(msg)
+                return 1
             else:
                 self._in_packet.to_process = self._in_packet.to_process - len(data)
                 self._in_packet.packet = self._in_packet.packet + data
@@ -1169,7 +1184,8 @@ class Mosquitto:
                     return MOSQ_ERR_AGAIN
                 if msg.errno == errno.EAGAIN:
                     return MOSQ_ERR_AGAIN
-                raise
+                print(msg)
+                return 1
 
             if write_length > 0:
                 packet.to_process = packet.to_process - write_length

@@ -11,7 +11,7 @@
 # should handle this as per the spec by sending a PUBREC message.
 # The test will not respond to the first PUBREC message, so the client must
 # resend the PUBREC message with dup=1. Note that to keep test durations low, a
-# message retry timeout of less than 10 seconds is required for this test.
+# message retry timeout of less than 5 seconds is required for this test.
 # On receiving the second PUBREC with dup==1, the test will send the correct
 # PUBREL message. The client should respond to this with the correct PUBCOMP
 # message and then exit with return code=0.
@@ -45,7 +45,7 @@ pubcomp_packet = mosq_test.gen_pubcomp(mid)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.settimeout(10)
+sock.settimeout(5)
 sock.bind(('', 1888))
 sock.listen(5)
 

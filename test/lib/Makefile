@@ -1,21 +1,11 @@
-.PHONY: all test test-compile test-compile-c test-compile-cpp c cpp python python3
+.PHONY: all test python python3
 .NOTPARALLEL:
-
-LD_LIBRARY_PATH=../../lib
 
 all :
 
-test : c cpp python python3
+test : python python3
 
-test-compile : test-compile-c test-compile-cpp
-
-test-compile-c : 
-	$(MAKE) -C c
-
-test-compile-cpp : 
-	$(MAKE) -C cpp
-
-c cpp python python3 : test-compile
+python python3 :
 	./01-con-discon-success.py $@/01-con-discon-success.test
 	./01-will-set.py $@/01-will-set.test
 	./01-unpwd-set.py $@/01-unpwd-set.test
@@ -40,6 +30,3 @@ c cpp python python3 : test-compile
 	./08-ssl-bad-cacert.py $@/08-ssl-bad-cacert.test
 	./09-util-topic-matching.py $@/09-util-topic-matching.test
 
-clean : 
-	$(MAKE) -C c clean
-	$(MAKE) -C cpp clean

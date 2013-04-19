@@ -36,4 +36,3 @@ lib/libmosquitto.so*
 lib/libmosquitto.a
 
 build/
-dist/

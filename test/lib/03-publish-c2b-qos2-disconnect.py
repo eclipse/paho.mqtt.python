@@ -49,7 +49,7 @@ client = subprocess.Popen(client_args, env=env)
 
 try:
     (conn, address) = sock.accept()
-    conn.settimeout(10)
+    conn.settimeout(5)
 
     if mosq_test.expect_packet(conn, "connect", connect_packet):
         conn.send(connack_packet)
