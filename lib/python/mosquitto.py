@@ -1447,7 +1447,6 @@ class Mosquitto:
         packet.extend(struct.pack("!B", command))
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
-        pack_format = "!HH" + str(len(topic)) + "sB"
         packet.extend(struct.pack("!H", local_mid))
         self._pack_str16(packet, topic)
         packet.extend(struct.pack("B", topic_qos))
@@ -1460,7 +1459,6 @@ class Mosquitto:
         packet.extend(struct.pack("!B", command))
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
-        pack_format = "!HH" + str(len(topic)) + "sB"
         packet.extend(struct.pack("!H", local_mid))
         self._pack_str16(packet, topic)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
