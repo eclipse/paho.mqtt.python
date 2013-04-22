@@ -232,7 +232,7 @@ def topic_matches_sub(sub, topic):
                 multilevel_wildcard = True
                 break
 
-    if multilevel_wildcard == False and (tpos < tlen or spos < slen):
+    if not multilevel_wildcard and (tpos < tlen or spos < slen):
         result = False
 
     return result
@@ -388,7 +388,7 @@ class Mosquitto:
         parameter to callbacks. It may be updated at a later point with the
         user_data_set() function.
         """
-        if clean_session == False and (client_id == "" or client_id == None):
+        if not clean_session and (client_id == "" or client_id == None):
             raise ValueError('A client id must be provided if clean session is False.')
 
         self._userdata = userdata
@@ -712,9 +712,9 @@ class Mosquitto:
             raise ValueError('Invalid topic.')
         if qos<0 or qos>2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str) == True or isinstance(payload, bytearray) == True:
+        if isinstance(payload, str) or isinstance(payload, bytearray):
             local_payload = payload
-        elif isinstance(payload, int) == True or isinstance(payload, float) == True:
+        elif isinstance(payload, int) or isinstance(payload, float):
             local_payload = str(payload)
         elif payload == None:
             local_payload = None
@@ -956,9 +956,9 @@ class Mosquitto:
             raise ValueError('Invalid topic.')
         if qos<0 or qos>2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str) == True or isinstance(payload, bytearray) == True:
+        if isinstance(payload, str) or isinstance(payload, bytearray):
             self._will_payload = payload
-        elif isinstance(payload, int) == True or isinstance(payload, float) == True:
+        elif isinstance(payload, int) or isinstance(payload, float):
             self._will_payload = str(payload)
         elif payload == None:
             self._will_payload = None
@@ -999,7 +999,7 @@ class Mosquitto:
         if self._state == mosq_cs_connect_async:
             self.reconnect()
 
-        while run == True:
+        while run:
             rc = MOSQ_ERR_SUCCESS
             while rc == MOSQ_ERR_SUCCESS:
                 rc = self.loop(timeout, max_packets)
@@ -1507,13 +1507,13 @@ class Mosquitto:
 
         self._out_packet_mutex.acquire()
         self._out_packet.append(mpkt)
-        if self._current_out_packet_mutex.acquire(False) == True:
+        if self._current_out_packet_mutex.acquire(False):
             if self._current_out_packet == None and len(self._out_packet) > 0:
                 self._current_out_packet = self._out_packet.pop(0)
             self._current_out_packet_mutex.release()
         self._out_packet_mutex.release()
 
-        if self._in_callback == False:
+        if not self._in_callback:
             return self.loop_write()
         else:
             return MOSQ_ERR_SUCCESS
@@ -1764,11 +1764,11 @@ class Mosquitto:
         else:
             self._state_mutex.release()
 
-        while run == True:
+        while run:
             rc = MOSQ_ERR_SUCCESS
             while rc == MOSQ_ERR_SUCCESS:
                 rc = self.loop()
-                if self._thread_terminate == True:
+                if self._thread_terminate:
                     rc = 1
                     run = False
 
