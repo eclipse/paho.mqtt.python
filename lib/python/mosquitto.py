@@ -1511,7 +1511,7 @@ class Mosquitto:
             self._current_out_packet_mutex.release()
         self._out_packet_mutex.release()
 
-        if not self._in_callback:
+        if not self._in_callback and self._thread == None:
             return self.loop_write()
         else:
             return MOSQ_ERR_SUCCESS
