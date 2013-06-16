@@ -7,19 +7,19 @@ import sys
 import time
 from struct import *
 
-import mosquitto
+import paho.mqtt.client as mqtt
 
 
-def on_connect(mosq, obj, rc):
+def on_connect(mqttc, obj, rc):
     if rc != 0:
         exit(rc)
 
 run = -1
-mosq = mosquitto.Mosquitto("01-keepalive-pingreq")
-mosq.on_connect = on_connect
+mqttc = mqtt.Client("01-keepalive-pingreq")
+mqttc.on_connect = on_connect
 
-mosq.connect("localhost", 1888, 4)
+mqttc.connect("localhost", 1888, 4)
 while run == -1:
-    mosq.loop()
+    mqttc.loop()
 
 exit(run)

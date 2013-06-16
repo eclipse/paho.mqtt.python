@@ -7,28 +7,28 @@ import sys
 import time
 from struct import *
 
-import mosquitto
+import paho.mqtt.client as mqtt
 
 
-def on_connect(mosq, obj, rc):
+def on_connect(mqttc, obj, rc):
     if rc != 0:
         exit(rc)
     else:
-        mosq.disconnect()
+        mqttc.disconnect()
 
-def on_disconnect(mosq, obj, rc):
-    mosq.loop()
+def on_disconnect(mqttc, obj, rc):
+    mqttc.loop()
     obj = rc
 
 
 run = -1
-mosq = mosquitto.Mosquitto("08-ssl-connect-crt-auth", run)
-mosq.tls_set("../ssl/test-ca.crt", "../ssl/client.crt", "../ssl/client.key")
-mosq.on_connect = on_connect
-mosq.on_disconnect = on_disconnect
+mqttc = mqtt.Client("08-ssl-connect-crt-auth", run)
+mqttc.tls_set("../ssl/test-ca.crt", "../ssl/client.crt", "../ssl/client.key")
+mqttc.on_connect = on_connect
+mqttc.on_disconnect = on_disconnect
 
-mosq.connect("localhost", 1888)
+mqttc.connect("localhost", 1888)
 while run == -1:
-    mosq.loop()
+    mqttc.loop()
 
 exit(run)

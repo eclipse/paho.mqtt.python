@@ -7,10 +7,10 @@ import sys
 import time
 from struct import *
 
-import mosquitto
+import paho.mqtt.client as mqtt
 
 
-def on_message(mosq, obj, msg):
+def on_message(mqttc, obj, msg):
     global run
     if msg.mid != 13423:
         print("Invalid mid ("+str(msg.mid)+")")
@@ -30,19 +30,19 @@ def on_message(mosq, obj, msg):
 
     run = 0
 
-def on_connect(mosq, obj, rc):
+def on_connect(mqttc, obj, rc):
     if rc != 0:
         exit(rc)
 
 run = -1
-mosq = mosquitto.Mosquitto("publish-qos2-test", run)
-mosq.message_retry_set(3)
-mosq.on_connect = on_connect
-mosq.on_message = on_message
+mqttc = mqtt.Client("publish-qos2-test", run)
+mqttc.message_retry_set(3)
+mqttc.on_connect = on_connect
+mqttc.on_message = on_message
 
-mosq.connect("localhost", 1888)
+mqttc.connect("localhost", 1888)
 rc = 0
 while run == -1 and rc == 0:
-    rc = mosq.loop(0.3)
+    rc = mqttc.loop(0.3)
 
 exit(run)

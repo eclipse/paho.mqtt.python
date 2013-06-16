@@ -19,15 +19,15 @@ cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(insp
 if cmd_subfolder not in sys.path:
     sys.path.insert(0, cmd_subfolder)
 
-import mosq_test
+import paho_test
 
 rc = 1
 keepalive = 4
-connect_packet = mosq_test.gen_connect("01-keepalive-pingreq", keepalive=keepalive)
-connack_packet = mosq_test.gen_connack(rc=0)
+connect_packet = paho_test.gen_connect("01-keepalive-pingreq", keepalive=keepalive)
+connack_packet = paho_test.gen_connack(rc=0)
 
-pingreq_packet = mosq_test.gen_pingreq()
-pingresp_packet = mosq_test.gen_pingresp()
+pingreq_packet = paho_test.gen_pingreq()
+pingresp_packet = paho_test.gen_pingresp()
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -37,26 +37,25 @@ sock.listen(5)
 
 client_args = sys.argv[1:]
 env = dict(os.environ)
-env['LD_LIBRARY_PATH'] = '../../lib:../../lib/cpp'
 try:
     pp = env['PYTHONPATH']
 except KeyError:
     pp = ''
-env['PYTHONPATH'] = '../../lib/python:'+pp
+env['PYTHONPATH'] = '../../src:'+pp
 client = subprocess.Popen(client_args, env=env)
 
 try:
     (conn, address) = sock.accept()
     conn.settimeout(keepalive+10)
 
-    if mosq_test.expect_packet(conn, "connect", connect_packet):
+    if paho_test.expect_packet(conn, "connect", connect_packet):
         conn.send(connack_packet)
 
-        if mosq_test.expect_packet(conn, "pingreq", pingreq_packet):
+        if paho_test.expect_packet(conn, "pingreq", pingreq_packet):
             time.sleep(1.0)
             conn.send(pingresp_packet)
 
-            if mosq_test.expect_packet(conn, "pingreq", pingreq_packet):
+            if paho_test.expect_packet(conn, "pingreq", pingreq_packet):
                 rc = 0
 
     conn.close()

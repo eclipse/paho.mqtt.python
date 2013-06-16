@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
-import mosquitto
+import paho.mqtt.client as mqtt
 
-mosq = mosquitto.Mosquitto("01-no-clean-session", False)
+mqttc = mqtt.Client("01-no-clean-session", False)
 
 run = -1
-mosq.connect("localhost", 1888)
+mqttc.connect("localhost", 1888)
 while run == -1:
-    mosq.loop()
+    mqttc.loop()
 
 exit(run)

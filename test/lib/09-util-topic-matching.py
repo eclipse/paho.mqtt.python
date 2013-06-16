@@ -15,12 +15,11 @@ rc = 1
 
 client_args = sys.argv[1:]
 env = dict(os.environ)
-env['LD_LIBRARY_PATH'] = '../../lib:../../lib/cpp'
 try:
     pp = env['PYTHONPATH']
 except KeyError:
     pp = ''
-env['PYTHONPATH'] = '../../lib/python:'+pp
+env['PYTHONPATH'] = '../../src:'+pp
 
 client = subprocess.Popen(client_args, env=env)
 client.wait()

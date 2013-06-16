@@ -7,16 +7,16 @@ import sys
 import time
 from struct import *
 
-import mosquitto
+import paho.mqtt.client as mqtt
 
 if sys.version < '2.7':
     print("WARNING: SSL/TLS not supported on Python 2.6")
     exit(0)
 
 rc = 1
-mosq = mosquitto.Mosquitto("08-ssl-bad-cacert")
+mqttc = mqtt.Client("08-ssl-bad-cacert")
 try:
-    mosq.tls_set("this/file/doesnt/exist")
+    mqttc.tls_set("this/file/doesnt/exist")
 except IOError as err:
     rc = 0
 

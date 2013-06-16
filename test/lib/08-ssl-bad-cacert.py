@@ -13,7 +13,7 @@ cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(insp
 if cmd_subfolder not in sys.path:
     sys.path.insert(0, cmd_subfolder)
 
-import mosq_test
+import paho_test
 
 if sys.version < '2.7':
     print("WARNING: SSL not supported on Python 2.6")
@@ -23,12 +23,11 @@ rc = 1
 
 client_args = sys.argv[1:]
 env = dict(os.environ)
-env['LD_LIBRARY_PATH'] = '../../lib:../../lib/cpp'
 try:
     pp = env['PYTHONPATH']
 except KeyError:
     pp = ''
-env['PYTHONPATH'] = '../../lib/python:'+pp
+env['PYTHONPATH'] = '../../src:'+pp
 
 client = subprocess.Popen(client_args, env=env)
 client.wait()
