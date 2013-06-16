@@ -1,20 +1,19 @@
 from sys import version
 
 from distutils.core import setup
-setup(name='mosquitto',
-	version='1.1.1',
+setup(name='paho`',
+	version='0.9.0',
 	description='MQTT version 3.1 client class',
 	author='Roger Light',
 	author_email='roger@atchoo.org',
-	url='http://mosquitto.org/',
-	download_url='http://mosquitto.org/files/',
-	license='BSD License',
-	py_modules=['mosquitto'],
-
+	url='http://eclipse.org/paho',
+	# FIXME license='Eclipse Public License',
+    package_dir={'': 'src'},
+    packages=['paho', 'paho.mqtt'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        # FIXME 'License :: OSI Approved :: BSD License',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
