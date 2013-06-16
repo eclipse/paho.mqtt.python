@@ -27,7 +27,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import mosquitto
+# ==========================================================================
+# This part is only required to run the example from within the examples
+# directory when the module itself is not installed.
+import sys
+import os
+import inspect
+cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"../src")))
+if cmd_subfolder not in sys.path:
+    sys.path.insert(0, cmd_subfolder)
+# ==========================================================================
+
+import paho.mqtt.client as mqtt
 
 def on_connect(mosq, obj, rc):
     print("rc: "+str(rc))
@@ -44,14 +55,18 @@ def on_subscribe(mosq, obj, mid, granted_qos):
 def on_log(mosq, obj, level, string):
     print(string)
 
-mqttc = mosquitto.Mosquitto()
+# If you want to use a specific client id, use
+# mqttc = mosquitto.Mosquitto("client-id")
+# but note that the client id must be unique on the broker. Leaving the client
+# id parameter empty will generate a random id for you.
+mqttc = mqtt.Client()
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 mqttc.on_publish = on_publish
 mqttc.on_subscribe = on_subscribe
 # Uncomment to enable debug messages
 #mqttc.on_log = on_log
-mqttc.connect("test.mosquitto.org", 1883, 60)
+mqttc.connect("m2m.eclipse.org", 1883, 60)
 mqttc.subscribe("$SYS/#", 0)
 
 
