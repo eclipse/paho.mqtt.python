@@ -1,26 +1,16 @@
-DIRS=lib
-DOCDIRS=
-DISTDIRS=
+# Set DESTDIR if it isn't given
+DESTDIR?=/
 
-.PHONY : all docs clean reallyclean test
+.PHONY : all clean install test
 
-all : docs
-	for d in ${DIRS}; do $(MAKE) -C $${d}; done
+all :
+	python ./setup.py build
 
-docs :
-	for d in ${DOCDIRS}; do $(MAKE) -C $${d}; done
+install : all
+	python ./setup.py install --root=${DESTDIR}
 
 clean :
-	for d in ${DIRS}; do $(MAKE) -C $${d} clean; done
-	for d in ${DOCDIRS}; do $(MAKE) -C $${d} clean; done
-	$(MAKE) -C test clean
+	-rm -rf build/ src/paho/mqtt/__pycache__ src/paho/mqtt/*.pyc src/paho/__pycache__ src/paho/*.pyc
 
-reallyclean : 
-	for d in ${DIRS}; do $(MAKE) -C $${d} reallyclean; done
-	for d in ${DOCDIRS}; do $(MAKE) -C $${d} reallyclean; done
-	$(MAKE) -C test reallyclean
-	-rm -f *.orig
-
-test :
+test : 
 	$(MAKE) -C test test
-
