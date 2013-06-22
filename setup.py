@@ -2,7 +2,7 @@ from sys import version
 
 from distutils.core import setup
 setup(name='paho',
-	version='0.7.0',
+	version='0.5.0',
 	description='MQTT version 3.1 client class',
 	author='Roger Light',
 	author_email='roger@atchoo.org',
