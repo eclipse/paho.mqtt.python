@@ -377,7 +377,7 @@ class Client:
         self._message_retry = 20
         self._last_retry_check = 0
         self._clean_session = clean_session
-        if client_id == "":
+        if client_id == "" or client_id == None:
             self._client_id = "paho/" + "".join(random.choice("0123456789ADCDEF") for x in range(23-5))
         else:
             self._client_id = client_id
