@@ -1,35 +1,26 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import paho.mqtt.client as mqtt
 import sys
 
-if mqtt.topic_matches_sub("foo/bar", "foo/bar") == False:
-    print("ERROR: foo/bar : foo/bar")
-    sys.exit(1)
-if mqtt.topic_matches_sub("foo/+", "foo/bar") == False:
-    print("ERROR: foo/+ : foo/bar")
-    sys.exit(1)
-if mqtt.topic_matches_sub("foo/+/baz", "foo/bar/baz") == False:
-    print("ERROR: foo/+/baz : foo/bar/baz")
-    sys.exit(1)
-if mqtt.topic_matches_sub("foo/+/#", "foo/bar/baz") == False:
-    print("ERROR: foo/+/# : foo/bar/baz")
-    sys.exit(1)
-if mqtt.topic_matches_sub("#", "foo/bar/baz") == False:
-    print("ERROR: # : foo/bar/baz")
-    sys.exit(1)
+def do_check(sub, topic, bad_res):
+    if mqtt.topic_matches_sub(sub, topic) == bad_res:
+        print("ERROR: "+sub+" "+topic)
+        sys.exit(1)
 
-if mqtt.topic_matches_sub("foo/bar", "foo") == True:
-    print("ERROR: foo/bar : foo")
-    sys.exit(1)
-if mqtt.topic_matches_sub("foo/+", "foo/bar/baz") == True:
-    print("ERROR: foo/+ : foo/bar/baz")
-    sys.exit(1)
-if mqtt.topic_matches_sub("foo/+/baz", "foo/bar/bar") == True:
-    print("ERROR: foo/+/baz : foo/bar/bar")
-    sys.exit(1)
-if mqtt.topic_matches_sub("foo/+/#", "fo2/bar/baz") == True:
-    print("ERROR: foo/+/# : foo/bar/baz")
-    sys.exit(1)
+do_check("foo/bar", "foo/bar", False)
+do_check("foo/+", "foo/bar", False)
+do_check("foo/+/baz", "foo/bar/baz", False)
+do_check("foo/+/#", "foo/bar/baz", False)
+do_check("#", "foo/bar/baz", False)
+
+do_check("foo/bar", "foo", True)
+do_check("foo/+", "foo/bar/baz", True)
+do_check("foo/+/baz", "foo/bar/bar", True)
+do_check("foo/+/#", "fo2/bar/baz", True)
+
+do_check("#", "/foo/bar", False)
+do_check("/#", "/foo/bar", False)
+do_check("/#", "foo/bar", True)
 
 sys.exit(0)
