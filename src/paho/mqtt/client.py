@@ -983,10 +983,16 @@ class Client:
             rc = MQTT_ERR_SUCCESS
             while rc == MQTT_ERR_SUCCESS:
                 rc = self.loop(timeout, max_packets)
+                if self._thread_terminate == True:
+                    rc = 1
+                    run = False
 
+            self._state_mutex_acquire()
             if self._state == mqtt_cs_disconnecting:
                 run = False
+                self._state_mutex.release()
             else:
+                self._state_mutex.release()
                 time.sleep(1)
                 self.reconnect()
         return rc
@@ -1742,20 +1748,5 @@ class Client:
         else:
             self._state_mutex.release()
 
-        while run:
-            rc = MQTT_ERR_SUCCESS
-            while rc == MQTT_ERR_SUCCESS:
-                rc = self.loop()
-                if self._thread_terminate:
-                    rc = 1
-                    run = False
-
-            self._state_mutex.acquire()
-            if self._state == mqtt_cs_disconnecting:
-                run = False
-                self._state_mutex.release()
-            else:
-                self._state_mutex.release()
-                time.sleep(1)
-                self.reconnect()
+        self.loop_forever()
 
