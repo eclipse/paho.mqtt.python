@@ -1431,10 +1431,10 @@ class Client:
 
         if self._will:
             self._pack_str16(packet, self._will_topic)
-            if len(self._will_payload) > 0:
-                self._pack_str16(packet, self._will_payload)
-            else:
+            if self._will_payload == None or len(self._will_payload) == 0:
                 packet.extend(struct.pack("!H", 0))
+            else:
+                self._pack_str16(packet, self._will_payload)
 
         if self._username:
             self._pack_str16(packet, self._username)
