@@ -14,12 +14,16 @@
 # Copyright (c) 2010,2011 Roger Light <roger@atchoo.org>
 # All rights reserved.
 
+# This shows a simple example of an MQTT subscriber.
+
 import sys
 try:
     import paho.mqtt.client as mqtt
 except ImportError:
     # This part is only required to run the example from within the examples
     # directory when the module itself is not installed.
+    #
+    # If you have the module installed, just use "import paho.mqtt.client"
     import os
     import inspect
     cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"../src")))
