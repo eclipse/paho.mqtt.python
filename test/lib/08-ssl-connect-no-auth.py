@@ -4,7 +4,7 @@
 
 # The client should connect to port 1888 with keepalive=60, clean session set,
 # and client id 08-ssl-connect-no-auth
-# It should use the CA certificate ssl/test-ca.crt for verifying the server.
+# It should use the CA certificate ssl/all-ca.crt for verifying the server.
 # The test will send a CONNACK message to the client with rc=0. Upon receiving
 # the CONNACK and verifying that rc=0, the client should send a DISCONNECT
 # message. If rc!=0, the client should exit with an error.
@@ -36,7 +36,7 @@ disconnect_packet = paho_test.gen_disconnect()
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-ssock = ssl.wrap_socket(sock, ca_certs="../ssl/test-ca.crt", keyfile="../ssl/server.key", certfile="../ssl/server.crt", server_side=True, ssl_version=ssl.PROTOCOL_TLSv1)
+ssock = ssl.wrap_socket(sock, ca_certs="../ssl/all-ca.crt", keyfile="../ssl/server.key", certfile="../ssl/server.crt", server_side=True, ssl_version=ssl.PROTOCOL_TLSv1)
 ssock.settimeout(10)
 ssock.bind(('', 1888))
 ssock.listen(5)

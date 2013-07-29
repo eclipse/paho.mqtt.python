@@ -18,7 +18,7 @@ def on_connect(mqttc, obj, rc):
     exit(1)
 
 mqttc = mqtt.Client("08-ssl-fake-cacert")
-mqttc.tls_set("../ssl/fake-ca.crt", "../ssl/client.crt", "../ssl/client.key")
+mqttc.tls_set("../ssl/test-fake-root-ca.crt", "../ssl/client.crt", "../ssl/client.key")
 mqttc.on_connect = on_connect
 
 try:

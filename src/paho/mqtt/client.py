@@ -426,6 +426,7 @@ class Client:
         self._tls_ca_certs = None
         self._tls_cert_reqs = None
         self._tls_ciphers = None
+        self._tls_insecure = False
 
     def __del__(self):
         pass
@@ -508,6 +509,22 @@ class Client:
         self._tls_cert_reqs = cert_reqs
         self._tls_version = tls_version
         self._tls_ciphers = ciphers
+
+    def tls_insecure_set(self, value):
+        """Configure verification of the server hostname in the server certificate.
+
+        If value is set to true, it is impossible to guarantee that the host
+        you are connecting to is not impersonating your server. This can be
+        useful in initial server testing, but makes it possible for a malicious
+        third party to impersonate your server through DNS spoofing, for
+        example.
+
+        Do not use this function in a real system. Setting value to true means
+        there is no point using encryption.
+        
+        Must be called before connect()."""
+        self._tls_insecure = value
+
 
     def connect(self, host, port=1883, keepalive=60, bind_address=""):
         """Connect to a remote broker.
@@ -605,14 +622,12 @@ class Client:
                     ssl_version=self._tls_version,
                     ciphers=self._tls_ciphers)
 
-        try:
-            self.socket().connect((self._host, self._port))
-        except socket.error as err:
-            (msg) = err
-            if msg.errno != errno.EINPROGRESS:
-                print(msg)
-                return 1
-
+            if self._tls_insecure == False:
+                if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
+                    self._tls_match_hostname()
+                else:
+                    ssl.match_hostname(self._ssl.getpeercert(), self._host)
+            
         self._sock.setblocking(0)
 
         return self._send_connect(self._keepalive, self._clean_session)
@@ -1827,4 +1842,27 @@ class Client:
             self._state_mutex.release()
 
         self.loop_forever()
+
+    def _tls_match_hostname(self):
+        cert = self._ssl.getpeercert()
+        san = cert.get('subjectAltName')
+        if san:
+            have_san_dns = False
+            for ((key,value),) in san:
+                if key == 'DNS':
+                    have_san_dns = True
+                    if value == self._host:
+                        return
+
+            if have_san_dns:
+                # Only check subject if subjectAltName dns not found.
+                raise ssl.SSLError('Certificate subject does not match remote hostname.')
+        subject = cert.get('subject')
+        if subject:
+            for ((key,value),) in subject:
+                if key == 'commonName':
+                    if value == self._host:
+                        return
+
+        raise ssl.SSLError('Certificate subject does not match remote hostname.')
 
