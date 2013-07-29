@@ -1511,11 +1511,16 @@ class Client:
                     if m.qos == 1:
                         m.state = mqtt_ms_wait_puback
                     elif m.qos == 2:
-                        m.state = mqtt_ms_wait_pubrec
+                        # Preserve current state
+                        pass
                 else:
                     m.state = mqtt_ms_invalid
             else:
-                self._messages.pop(self._messages.index(m))
+                if m.qos != 2:
+                    self._messages.pop(self._messages.index(m))
+                else:
+                    # Preserve current state
+                    pass
         self._message_mutex.release()
 
     def _packet_queue(self, command, packet, mid, qos):
