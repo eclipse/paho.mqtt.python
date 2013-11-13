@@ -25,6 +25,11 @@ import struct
 import sys
 import threading
 import time
+HAVE_DNS = True
+try:
+    import dns.resolver
+except ImportError:
+    HAVE_DNS = False
 
 if sys.version_info[0] < 3:
     PROTOCOL_NAME = "MQIsdp"
@@ -539,6 +544,44 @@ class Client:
         """
         self.connect_async(host, port, keepalive, bind_address)
         return self.reconnect()
+
+    def connect_srv(self, domain=None, keepalive=60, bind_address=""):
+        """Connect to a remote broker.
+
+        domain is the DNS domain to search for SRV records; if None,
+        try to determine local domain name.
+        keepalive and bind_address are as for connect()
+        """
+
+        if HAVE_DNS == False:
+            raise ValueError('No DNS resolver library found.')
+
+        if domain is None:
+            domain = socket.getfqdn()
+            domain = domain[domain.find('.') + 1:]
+
+        try:
+            rr = '_mqtt._tcp.%s' % domain
+            if self._ssl is not None:
+                # IANA specifies secure-mqtt (not mqtts) for port 8883
+                rr = '_secure-mqtt._tcp.%s' % domain
+            answers = []
+            for answer in dns.resolver.query(rr, dns.rdatatype.SRV):
+                addr = answer.target.to_text()[:-1]
+                answers.append((addr, answer.port, answer.priority, answer.weight))
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
+            raise ValueError("No answer/NXDOMAIN for SRV in %s" % (domain))
+
+        # FIXME: doesn't account for weight
+        for answer in answers:
+            host, port, prio, weight = answer
+
+            try:
+                return self.connect(host, port, keepalive, bind_address)
+            except:
+                pass
+
+        raise ValueError("No SRV hosts responded")
 
     def connect_async(self, host, port=1883, keepalive=60, bind_address=""):
         """Connect to a remote broker asynchronously. This is a non-blocking
