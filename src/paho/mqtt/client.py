@@ -20,7 +20,15 @@ import errno
 import random
 import select
 import socket
-import ssl
+HAVE_SSL = True
+try:
+    import ssl
+    cert_reqs = ssl.CERT_REQUIRED
+    tls_version = ssl.PROTOCOL_TLSv1
+except:
+    HAVE_SSL = False
+    cert_reqs = None
+    tls_version = None
 import struct
 import sys
 import threading
@@ -446,7 +454,7 @@ class Client:
             self._sock = None
         self.__init__(client_id, clean_session, userdata)
 
-    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1, ciphers=None):
+    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=cert_reqs, tls_version=tls_version, ciphers=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -481,6 +489,9 @@ class Client:
         more information.
 
         Must be called before connect() or connect_async()."""
+        if HAVE_SSL == False:
+            raise ValueError('This platform has no SSL/TLS.')
+
         if sys.version < '2.7':
             raise ValueError('Python 2.7 is the minimum supported version for TLS.')
 
@@ -528,6 +539,9 @@ class Client:
         there is no point using encryption.
         
         Must be called before connect()."""
+        if HAVE_SSL == False:
+            raise ValueError('This platform has no SSL/TLS.')
+
         self._tls_insecure = value
 
 
