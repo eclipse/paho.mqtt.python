@@ -1174,9 +1174,11 @@ class Client:
                     self._state_mutex.release()
                 else:
                     self._state_mutex.release()
-                    self.reconnect()
+                    try:
+                        self.reconnect()
+                    except socket.error as err:
+                        pass
 
-                self.reconnect()
         return rc
 
     def loop_start(self):
