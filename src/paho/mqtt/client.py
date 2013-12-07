@@ -45,6 +45,11 @@ if platform.system() == 'Windows':
 else:
     EAGAIN = errno.EAGAIN
 
+VERSION_MAJOR=0
+VERSION_MINOR=4
+VERSION_REVISION=0
+VERSION_NUMBER=(VERSION_MAJOR*1000000+VERSION_MINOR*1000+VERSION_REVISION)
+
 if sys.version_info[0] < 3:
     PROTOCOL_NAME = "MQIsdp"
 else:
