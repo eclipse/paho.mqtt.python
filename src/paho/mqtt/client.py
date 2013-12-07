@@ -2008,7 +2008,11 @@ class Client:
             for ((key,value),) in san:
                 if key == 'DNS':
                     have_san_dns = True
-                    if value == self._host:
+                    if value.lower() == self._host.lower():
+                        return
+                if key == 'IP Address':
+                    have_san_dns = True
+                    if value.lower() == self._host.lower():
                         return
 
             if have_san_dns:
@@ -2018,7 +2022,7 @@ class Client:
         if subject:
             for ((key,value),) in subject:
                 if key == 'commonName':
-                    if value == self._host:
+                    if value.lower() == self._host.lower():
                         return
 
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
