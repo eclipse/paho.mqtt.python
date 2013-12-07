@@ -668,9 +668,9 @@ class Client:
 
         try:
             if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
-                self._sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
-            else:
                 self._sock = socket.create_connection((self._host, self._port))
+            else:
+                self._sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
         except socket.error as err:
             (msg) = err
             if msg.errno != errno.EINPROGRESS:
