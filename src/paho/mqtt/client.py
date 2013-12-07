@@ -1598,7 +1598,11 @@ class Client:
             connect_flags = connect_flags | 0x02
 
         if self._will:
-            remaining_length = remaining_length + 2+len(self._will_topic) + 2+len(self._will_payload)
+            if self._will_payload is not None:
+                remaining_length = remaining_length + 2+len(self._will_topic) + 2+len(self._will_payload)
+            else:
+                remaining_length = remaining_length + 2+len(self._will_topic) + 2
+
             connect_flags = connect_flags | 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
         if self._username:
