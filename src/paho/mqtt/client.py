@@ -200,6 +200,11 @@ def topic_matches_sub(sub, topic):
         if sub[spos] == topic[tpos]:
             spos += 1
             tpos += 1
+
+            if tpos == tlen and spos == slen-1 and sub[spos] == '+':
+                spos += 1
+                result = True
+                break
         else:
             if sub[spos] == '+':
                 spos += 1
