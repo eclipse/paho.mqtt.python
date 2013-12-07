@@ -17,6 +17,7 @@ This is an MQTT v3.1 client module. MQTT is a lightweight pub/sub messaging
 protocol that is easy to implement and suitable for low powered devices.
 """
 import errno
+import platform
 import random
 import select
 import socket
@@ -38,6 +39,11 @@ try:
     import dns.resolver
 except ImportError:
     HAVE_DNS = False
+
+if platform.system() == 'Windows':
+    EAGAIN = errno.WSAEWOULDBLOCK
+else:
+    EAGAIN = errno.EAGAIN
 
 if sys.version_info[0] < 3:
     PROTOCOL_NAME = "MQIsdp"
@@ -1244,7 +1250,7 @@ class Client:
                 (msg) = err
                 if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
                     return MQTT_ERR_AGAIN
-                if msg.errno == errno.EAGAIN:
+                if msg.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
                 print(msg)
                 return 1
@@ -1268,7 +1274,7 @@ class Client:
                     (msg) = err
                     if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
                         return MQTT_ERR_AGAIN
-                    if msg.errno == errno.EAGAIN:
+                    if msg.errno == EAGAIN:
                         return MQTT_ERR_AGAIN
                     print(msg)
                     return 1
@@ -1300,7 +1306,7 @@ class Client:
                 (msg) = err
                 if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
                     return MQTT_ERR_AGAIN
-                if msg.errno == errno.EAGAIN:
+                if msg.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
                 print(msg)
                 return 1
@@ -1339,7 +1345,7 @@ class Client:
                 (msg) = err
                 if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
                     return MQTT_ERR_AGAIN
-                if msg.errno == errno.EAGAIN:
+                if msg.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
                 print(msg)
                 return 1
