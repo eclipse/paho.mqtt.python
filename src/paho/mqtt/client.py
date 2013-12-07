@@ -1394,7 +1394,7 @@ class Client:
                             self.on_disconnect(self, self._userdata, 0)
                             self._in_callback = False
                         self._callback_mutex.release()
-                        return MOSQ_ERR_SUCCESS
+                        return MQTT_ERR_SUCCESS
 
                     self._out_packet_mutex.acquire()
                     if len(self._out_packet) > 0:
