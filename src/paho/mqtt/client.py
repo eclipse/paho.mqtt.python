@@ -1358,6 +1358,21 @@ class Client:
 
                         self._callback_mutex.release()
 
+                    if (packet.command & 0xF0) == DISCONNECT:
+                        self._current_out_packet_mutex.release()
+
+                        self._msgtime_mutex.acquire()
+                        self._last_msg_out = time.time()
+                        self._msgtime_mutex.release()
+
+                        self._callback_mutex.acquire()
+                        if self.on_disconnect:
+                            self._in_callback = True
+                            self.on_disconnect(self, self._userdata, 0)
+                            self._in_callback = False
+                        self._callback_mutex.release()
+                        return MOSQ_ERR_SUCCESS
+
                     self._out_packet_mutex.acquire()
                     if len(self._out_packet) > 0:
                         self._current_out_packet = self._out_packet.pop(0)
