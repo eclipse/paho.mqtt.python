@@ -1152,7 +1152,16 @@ class Client:
             rc = MQTT_ERR_SUCCESS
             while rc == MQTT_ERR_SUCCESS:
                 rc = self.loop(timeout, max_packets)
-                if self._thread_terminate is True:
+                # We don't need to worry about locking here, because we've
+                # either called loop_forever() when in single threaded mode, or
+                # in multi threaded mode when loop_stop() has been called and
+                # so no other threads can access _current_out_packet,
+                # _out_packet or _messages.
+                if (self._thread_terminate is True
+                        and self._current_out_packet is None
+                        and len(self._out_packet) == 0
+                        and len(self._messages) == 0):
+
                     rc = 1
                     run = False
 
