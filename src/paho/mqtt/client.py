@@ -264,17 +264,6 @@ class MQTTMessage:
         self.retain = False
 
 
-class MQTTPacket:
-    """Internal datatype."""
-    def __init__(self, command, packet, mid, qos):
-        self.command = command
-        self.mid = mid
-        self.qos = qos
-        self.pos = 0
-        self.to_process = len(packet)
-        self.packet = packet
-
-
 class Client:
     """MQTT version 3.1 client class.
 
@@ -1360,9 +1349,9 @@ class Client:
 
             try:
                 if self._ssl:
-                    write_length = self._ssl.write(packet.packet[packet.pos:])
+                    write_length = self._ssl.write(packet['packet'][packet['pos']:])
                 else:
-                    write_length = self._sock.send(packet.packet[packet.pos:])
+                    write_length = self._sock.send(packet['packet'][packet['pos']:])
             except AttributeError:
                 self._current_out_packet_mutex.release()
                 return MQTT_ERR_SUCCESS
@@ -1377,20 +1366,20 @@ class Client:
                 return 1
 
             if write_length > 0:
-                packet.to_process = packet.to_process - write_length
-                packet.pos = packet.pos + write_length
+                packet['to_process'] = packet['to_process'] - write_length
+                packet['pos'] = packet['pos'] + write_length
 
-                if packet.to_process == 0:
-                    if (packet.command & 0xF0) == PUBLISH and packet.qos == 0:
+                if packet['to_process'] == 0:
+                    if (packet['command'] & 0xF0) == PUBLISH and packet['qos'] == 0:
                         self._callback_mutex.acquire()
                         if self.on_publish:
                             self._in_callback = True
-                            self.on_publish(self, self._userdata, packet.mid)
+                            self.on_publish(self, self._userdata, packet['mid'])
                             self._in_callback = False
 
                         self._callback_mutex.release()
 
-                    if (packet.command & 0xF0) == DISCONNECT:
+                    if (packet['command'] & 0xF0) == DISCONNECT:
                         self._current_out_packet_mutex.release()
 
                         self._msgtime_mutex.acquire()
@@ -1732,7 +1721,13 @@ class Client:
         self._message_mutex.release()
 
     def _packet_queue(self, command, packet, mid, qos):
-        mpkt = MQTTPacket(command, packet, mid, qos)
+        mpkt = dict(
+            command = command,
+            mid = mid,
+            qos = qos,
+            pos = 0,
+            to_process = len(packet),
+            packet = packet)
 
         self._out_packet_mutex.acquire()
         self._out_packet.append(mpkt)
