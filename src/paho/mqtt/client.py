@@ -2055,3 +2055,8 @@ class Client(object):
 
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
 
+
+# Compatibility class for easy porting from mosquitto.py. 
+class Mosquitto(Client):
+    def __init__(self, client_id="", clean_session=True, userdata=None):
+        super(Mosquitto, self).__init__(client_id, clean_session, userdata)
