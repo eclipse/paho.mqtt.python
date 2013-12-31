@@ -883,11 +883,11 @@ class Client(object):
         qos: Not used.
 
         The function returns a tuple (result, mid), where result is
-        MQTT_ERR_SUCCESS to indicate success or MQTT_ERR_NO_CONN if the client
-        is not currently connected.  mid is the message ID for the subscribe
-        request. The mid value can be used to track the subscribe request by
-        checking against the mid argument in the on_subscribe() callback if it
-        is defined.
+        MQTT_ERR_SUCCESS to indicate success or (MQTT_ERR_NO_CONN, None) if the
+        client is not currently connected.  mid is the message ID for the
+        subscribe request. The mid value can be used to track the subscribe
+        request by checking against the mid argument in the on_subscribe()
+        callback if it is defined.
 
         Raises a ValueError if qos is not 0, 1 or 2, or if topic is None or has
         zero string length, or if topic is not a string, tuple or list.
@@ -917,7 +917,7 @@ class Client(object):
             raise ValueError("No topic specified, or incorrect topic type.")
 
         if self._sock is None and self._ssl is None:
-            return MQTT_ERR_NO_CONN
+            return (MQTT_ERR_NO_CONN, None)
 
         return self._send_subscribe(False, topic_qos_list)
 
@@ -928,8 +928,8 @@ class Client(object):
                topics to unsubscribe from.
 
         Returns a tuple (result, mid), where result is MQTT_ERR_SUCCESS
-        to indicate success or MQTT_ERR_NO_CONN if the client is not currently
-        connected.
+        to indicate success or (MQTT_ERR_NO_CONN, None) if the client is not
+        currently connected.
         mid is the message ID for the unsubscribe request. The mid value can be
         used to track the unsubscribe request by checking against the mid
         argument in the on_unsubscribe() callback if it is defined.
@@ -954,7 +954,7 @@ class Client(object):
             raise ValueError("No topic specified, or incorrect topic type.")
 
         if self._sock is None and self._ssl is None:
-            return MQTT_ERR_NO_CONN
+            return (MQTT_ERR_NO_CONN, None)
 
         return self._send_unsubscribe(False, topic_list)
 
