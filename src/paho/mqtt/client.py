@@ -1155,7 +1155,7 @@ class Client(object):
                     rc = 1
                     run = False
 
-            self._state_mutex_acquire()
+            self._state_mutex.acquire()
             if self._state == mqtt_cs_disconnecting:
                 run = False
                 self._state_mutex.release()
