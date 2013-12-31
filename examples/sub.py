@@ -61,8 +61,5 @@ mqttc.connect("m2m.eclipse.org", 1883, 60)
 mqttc.subscribe("$SYS/#", 0)
 
 
-rc = 0
-while rc == 0:
-    rc = mqttc.loop()
+mqttc.loop_forever()
 
-print("rc: "+str(rc))
