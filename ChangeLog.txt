@@ -6,6 +6,8 @@ v1.1 - 2015-01-30
   v3.1.1. There is as yet insufficient support for v3.1.1 to rely on, and
   current v3.1 implementations do not return the correct CONNACK code to allow
   detection of the fault. Closes #451735.
+- Fix incorrect handling of queued messages after reconnecting. Closes
+  #452672.
 
 
 v1.0.2 - 2014-09-13
