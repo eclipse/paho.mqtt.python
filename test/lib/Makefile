@@ -7,6 +7,7 @@ test : python python3
 
 python python3 :
 	./01-con-discon-success.py $@/01-con-discon-success.test
+	./01-con-discon-success-mqtt311.py $@/01-con-discon-success-mqtt311.test
 	./01-will-set.py $@/01-will-set.test
 	./01-unpwd-set.py $@/01-unpwd-set.test
 	./01-will-unpwd-set.py $@/01-will-unpwd-set.test
