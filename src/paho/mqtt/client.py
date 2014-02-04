@@ -1387,6 +1387,13 @@ class Client(object):
                             self.on_disconnect(self, self._userdata, 0)
                             self._in_callback = False
                         self._callback_mutex.release()
+
+                        if self._ssl:
+                            self._ssl.close()
+                            self._ssl = None
+                        elif self._sock:
+                            self._sock.close()
+                            self._sock = None
                         return MQTT_ERR_SUCCESS
 
                     self._out_packet_mutex.acquire()
