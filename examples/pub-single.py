@@ -16,7 +16,7 @@
 
 import sys
 try:
-    import paho.mqtt.publish as mqtt
+    import paho.mqtt.publish as publish
 except ImportError:
     # This part is only required to run the example from within the examples
     # directory when the module itself is not installed.
