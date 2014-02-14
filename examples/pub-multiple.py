@@ -12,7 +12,7 @@
 # Contributors:
 #    Roger Light - initial implementation
 
-# This shows an example of using the publish.single helper function.
+# This shows an example of using the publish.multiple helper function.
 
 import sys
 try:
@@ -29,4 +29,5 @@ except ImportError:
         sys.path.insert(0, cmd_subfolder)
     import paho.mqtt.publish as publish
 
-publish.single("paho/test/single", "boo", hostname="test.mosquitto.org")
+msgs = [{'topic':"paho/test/multiple", 'payload':"multiple 1"}, ("paho/test/multiple", "multiple 2", 0, False)]
+publish.multiple(msgs, hostname="test.mosquitto.org")
