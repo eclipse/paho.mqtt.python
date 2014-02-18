@@ -63,7 +63,7 @@ def _on_publish(c, userdata, mid):
 
 
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None):
+             will=None, auth=None, tls=None, protocol=mqtt.MQTTv31):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -117,7 +117,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
         raise ValueError('msgs must be a list')
 
     client = mqtt.Client(client_id=client_id,
-                         userdata=msgs)
+                         userdata=msgs, protocol=protocol)
     client.on_publish = _on_publish
     client.on_connect = _on_connect
 
@@ -173,7 +173,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
 def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None):
+           tls=None, protocol=mqtt.MQTTv31):
     """Publish a single message to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a

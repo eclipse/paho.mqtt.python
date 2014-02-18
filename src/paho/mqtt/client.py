@@ -50,10 +50,15 @@ VERSION_MINOR=4
 VERSION_REVISION=93
 VERSION_NUMBER=(VERSION_MAJOR*1000000+VERSION_MINOR*1000+VERSION_REVISION)
 
+MQTTv31 = 3
+MQTTv311 = 4
+
 if sys.version_info[0] < 3:
-    PROTOCOL_NAME = "MQIsdp"
+    PROTOCOL_NAMEv31 = "MQIsdp"
+    PROTOCOL_NAMEv311 = "MQTT"
 else:
-    PROTOCOL_NAME = b"MQIsdp"
+    PROTOCOL_NAMEv31 = b"MQIsdp"
+    PROTOCOL_NAMEv311 = b"MQTT"
 
 PROTOCOL_VERSION = 3
 
@@ -367,7 +372,7 @@ class Client(object):
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
-    def __init__(self, client_id="", clean_session=True, userdata=None):
+    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then one will be randomly
         generated. In this case, clean_session must be True. If this is not the
@@ -389,6 +394,7 @@ class Client(object):
         if not clean_session and (client_id == "" or client_id is None):
             raise ValueError('A client id must be provided if clean session is False.')
 
+        self._protocol = protocol
         self._userdata = userdata
         self._sock = None
         self._sockpairR, self._sockpairW = _socketpair_compat()
@@ -1654,7 +1660,14 @@ class Client(object):
         packet = bytearray()
         packet.extend(struct.pack("!B", command))
         self._pack_remaining_length(packet, remaining_length)
-        packet.extend(struct.pack("!H6sBBH", len(PROTOCOL_NAME), PROTOCOL_NAME, PROTOCOL_VERSION, connect_flags, keepalive))
+        if self._protocol == MQTTv31:
+            protocol = PROTOCOL_NAMEv31
+            proto_ver = 3
+        else:
+            protocol = PROTOCOL_NAMEv311
+            proto_ver = 4
+
+        packet.extend(struct.pack("!H"+str(len(protocol))+"sBBH", len(protocol), protocol, proto_ver, connect_flags, keepalive))
 
         self._pack_str16(packet, self._client_id)
 
