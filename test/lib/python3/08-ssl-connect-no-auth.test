@@ -17,7 +17,6 @@ def on_connect(mqttc, obj, rc):
         mqttc.disconnect()
 
 def on_disconnect(mqttc, obj, rc):
-    mqttc.loop()
     obj = rc
 
 
