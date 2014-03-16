@@ -197,6 +197,10 @@ def topic_matches_sub(sub, topic):
     slen = len(sub)
     tlen = len(topic)
 
+    if slen > 0 and tlen > 0:
+        if (sub[0] == '$' and topic[0] != '$') or (topic[0] == '$' and sub[0] != '$'):
+            return False
+
     spos = 0
     tpos = 0
 

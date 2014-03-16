@@ -23,4 +23,8 @@ do_check("#", "/foo/bar", False)
 do_check("/#", "/foo/bar", False)
 do_check("/#", "foo/bar", True)
 
+do_check("$SYS/bar", "$SYS/bar", False)
+do_check("#", "$SYS/bar", True)
+do_check("$BOB/bar", "$SYS/bar", True)
+
 sys.exit(0)
