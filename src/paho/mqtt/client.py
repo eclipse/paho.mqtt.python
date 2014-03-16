@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2013 Roger Light <roger@atchoo.org>
+# Copyright (c) 2012-2014 Roger Light <roger@atchoo.org>
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -290,7 +290,7 @@ class MQTTMessage:
 
 
 class Client(object):
-    """MQTT version 3.1 client class.
+    """MQTT version 3.1/3.1.1 client class.
 
     This is the main class for use communicating with an MQTT broker.
 
@@ -782,12 +782,21 @@ class Client(object):
             if rc or (self._ssl is None and self._sock is None):
                 return rc
 
-        if self.socket() in socklist[1] or self._sockpairR in socklist[0]:
+        if self._sockpairR in socklist[0]:
+            # Stimulate output write even though we didn't ask for it, because
+            # at that point the publish or other command wasn't present.
+            socklist[1].insert(0, self.socket())
+            # Clear sockpairR - only ever a single byte written.
+            try:
+                self._sockpairR.recv(1)
+            except socket.error as err:
+                if err.errno != errno.EAGAIN:
+                    raise
+
+        if self.socket() in socklist[1]:
             rc = self.loop_write(max_packets)
             if rc or (self._ssl is None and self._sock is None):
                 return rc
-            # Clear sockpairR - only ever a single byte written.
-            self._sockpairR.recv(1)
 
         return self.loop_misc()
 
@@ -1792,7 +1801,11 @@ class Client(object):
 
         # Write a single byte to sockpairW (connected to sockpairR) to break
         # out of select() if in threaded mode.
-        self._sockpairW.send(sockpair_data)
+        try:
+            self._sockpairW.send(sockpair_data)
+        except socket.error as err:
+            if err.errno != errno.EAGAIN:
+                raise
 
         if not self._in_callback and self._thread is None:
             return self.loop_write()
