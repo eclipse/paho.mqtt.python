@@ -2149,7 +2149,7 @@ class Client(object):
         san = cert.get('subjectAltName')
         if san:
             have_san_dns = False
-            for ((key, value),) in san:
+            for (key, value) in san:
                 if key == 'DNS':
                     have_san_dns = True
                     if value.lower() == self._host.lower():
