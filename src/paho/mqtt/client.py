@@ -261,8 +261,7 @@ def _socketpair_compat():
     try:
         sock1.connect(("localhost", port))
     except socket.error as err:
-        (msg) = err
-        if msg.errno != errno.EINPROGRESS:
+        if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
             raise
     sock2, address = listensock.accept()
     sock2.setblocking(0)
@@ -713,8 +712,7 @@ class Client(object):
             else:
                 self._sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
         except socket.error as err:
-            (msg) = err
-            if msg.errno != errno.EINPROGRESS:
+            if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
                 raise
 
         if self._tls_ca_certs is not None:
@@ -794,7 +792,7 @@ class Client(object):
             try:
                 self._sockpairR.recv(1)
             except socket.error as err:
-                if err.errno != errno.EAGAIN:
+                if err.errno != EAGAIN:
                     raise
 
         if self.socket() in socklist[1]:
@@ -1306,12 +1304,11 @@ class Client(object):
                 else:
                     command = self._sock.recv(1)
             except socket.error as err:
-                (msg) = err
-                if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
+                if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
                     return MQTT_ERR_AGAIN
-                if msg.errno == EAGAIN:
+                if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(msg)
+                print(err)
                 return 1
             else:
                 if len(command) == 0:
@@ -1330,12 +1327,11 @@ class Client(object):
                     else:
                         byte = self._sock.recv(1)
                 except socket.error as err:
-                    (msg) = err
-                    if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
+                    if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
                         return MQTT_ERR_AGAIN
-                    if msg.errno == EAGAIN:
+                    if err.errno == EAGAIN:
                         return MQTT_ERR_AGAIN
-                    print(msg)
+                    print(err)
                     return 1
                 else:
                     byte = struct.unpack("!B", byte)
@@ -1362,12 +1358,11 @@ class Client(object):
                 else:
                     data = self._sock.recv(self._in_packet['to_process'])
             except socket.error as err:
-                (msg) = err
-                if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
+                if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
                     return MQTT_ERR_AGAIN
-                if msg.errno == EAGAIN:
+                if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(msg)
+                print(err)
                 return 1
             else:
                 self._in_packet['to_process'] = self._in_packet['to_process'] - len(data)
@@ -1409,12 +1404,11 @@ class Client(object):
                 return MQTT_ERR_SUCCESS
             except socket.error as err:
                 self._current_out_packet_mutex.release()
-                (msg) = err
-                if self._ssl and (msg.errno == ssl.SSL_ERROR_WANT_READ or msg.errno == ssl.SSL_ERROR_WANT_WRITE):
+                if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
                     return MQTT_ERR_AGAIN
-                if msg.errno == EAGAIN:
+                if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(msg)
+                print(err)
                 return 1
 
             if write_length > 0:
@@ -1808,7 +1802,7 @@ class Client(object):
         try:
             self._sockpairW.send(sockpair_data)
         except socket.error as err:
-            if err.errno != errno.EAGAIN:
+            if err.errno != EAGAIN:
                 raise
 
         if not self._in_callback and self._thread is None:
