@@ -1,0 +1,15 @@
+include edl-v10 epl-v10
+include README.md
+include CONTRIBUTING.md
+include setup.py
+include notice.html
+include LICENSE.txt
+include about.html
+include Makefile
+
+recursive-include src *.py
+recursive-include examples *.py
+
+graft test/ssl
+
+recursive-include test *.py *.test Makefile
