@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Test whether a client responds correctly to a PUBLISH with QoS 1.
 

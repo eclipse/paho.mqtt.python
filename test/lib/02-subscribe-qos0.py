@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Test whether a client sends a correct SUBSCRIBE to a topic with QoS 0.
 
