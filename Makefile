@@ -1,7 +1,7 @@
 # Set DESTDIR if it isn't given
 DESTDIR?=/
 
-.PHONY : all clean install test
+.PHONY : all clean install test python python3
 
 all :
 	python ./setup.py build
@@ -12,5 +12,10 @@ install : all
 clean :
 	-rm -rf build/ src/paho/mqtt/__pycache__ src/paho/mqtt/*.pyc src/paho/__pycache__ src/paho/*.pyc
 
-test : 
-	$(MAKE) -C test test
+python :
+	$(MAKE) -C test python
+
+python3 :
+	$(MAKE) -C test python3
+
+test : python python3
