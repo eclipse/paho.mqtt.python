@@ -46,8 +46,8 @@ else:
     EAGAIN = errno.EAGAIN
 
 VERSION_MAJOR=0
-VERSION_MINOR=4
-VERSION_REVISION=93
+VERSION_MINOR=9
+VERSION_REVISION=0
 VERSION_NUMBER=(VERSION_MAJOR*1000000+VERSION_MINOR*1000+VERSION_REVISION)
 
 MQTTv31 = 3
@@ -464,6 +464,7 @@ class Client(object):
         self._tls_ca_certs = None
         self._tls_cert_reqs = None
         self._tls_ciphers = None
+        self._tls_version = tls_version
         self._tls_insecure = False
 
     def __del__(self):
