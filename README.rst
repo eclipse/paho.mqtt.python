@@ -15,7 +15,6 @@ Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ proje
 Contents
 --------
 
-* Source_
 * Installation_
 * `Usage and API`_
     * `Client`_
