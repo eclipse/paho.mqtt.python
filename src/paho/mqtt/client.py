@@ -206,6 +206,13 @@ def topic_matches_sub(sub, topic):
 
     while spos < slen and tpos < tlen:
         if sub[spos] == topic[tpos]:
+            if tpos == tlen-1:
+                # Check for e.g. foo matching foo/#
+                if spos == slen-3 and sub[spos+1] == '/' and sub[spos+2] == '#':
+                    result = True
+                    multilevel_wildcard = True
+                    break
+
             spos += 1
             tpos += 1
 
@@ -233,13 +240,6 @@ def topic_matches_sub(sub, topic):
 
             else:
                 result = False
-                break
-
-        if tpos == tlen-1:
-            # Check for e.g. foo matching foo/#
-            if spos == slen-3 and sub[spos+1] == '/' and sub[spos+2] == '#':
-                result = True
-                multilevel_wildcard = True
                 break
 
     if not multilevel_wildcard and (tpos < tlen or spos < slen):
