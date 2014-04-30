@@ -441,6 +441,7 @@ class Client(object):
         self.on_connect = None
         self.on_publish = None
         self.on_message = None
+        self.on_message_filtered = []
         self.on_subscribe = None
         self.on_unsubscribe = None
         self.on_log = None
@@ -1257,6 +1258,45 @@ class Client(object):
         self._thread_terminate = True
         self._thread.join()
         self._thread = None
+
+    def message_callback_add(self, sub, callback):
+        """Register a message callback for a specific topic.
+        Messages that match 'sub' will be passed to 'callback'. Any
+        non-matching messages will be passed to the default on_message
+        callback.
+        
+        Call multiple times with different 'sub' to define multiple topic
+        specific callbacks.
+        
+        Topic specific callbacks may be removed with
+        message_callback_remove()."""
+        if callback is None or sub is None:
+            raise ValueError("sub and callback must both be defined.")
+
+        self._callback_mutex.acquire()
+
+        for i in range(0, len(self.on_message_filtered)):
+            if self.on_message_filtered[i][0] == sub:
+                self.on_message_filtered[i] = (sub, callback)
+                self._callback_mutex.release()
+                return
+
+        self.on_message_filtered.append((sub, callback))
+        self._callback_mutex.release()
+
+    def message_callback_remove(self, sub):
+        """Remove a message callback previously registered with
+        message_callback_add()."""
+        if sub is None:
+            raise ValueError("sub must defined.")
+
+        self._callback_mutex.acquire()
+        for i in range(0, len(self.on_message_filtered)):
+            if self.on_message_filtered[i][0] == sub:
+                self.on_message_filtered.pop(i)
+                self._callback_mutex.release()
+                return
+        self._callback_mutex.release()
 
     # ============================================================
     # Private functions
@@ -2075,7 +2115,15 @@ class Client(object):
 
     def _handle_on_message(self, message):
         self._callback_mutex.acquire()
-        if self.on_message:
+        matched = False
+        for t in self.on_message_filtered:
+            if topic_matches_sub(t[0], message.topic):
+                self._in_callback = True
+                t[1](self, self._userdata, message)
+                self._in_callback = False
+                matched = True
+
+        if matched == False and self.on_message:
             self._in_callback = True
             self.on_message(self, self._userdata, message)
             self._in_callback = False

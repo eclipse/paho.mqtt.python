@@ -639,7 +639,10 @@ on_message()
 
     on_message(client, userdata, message)
     
-Called when a message has been received on a topic that the client subscribes to.
+Called when a message has been received on a topic that the client subscribes
+to. This callback will be called for every message received. Use
+``message_callback_add()`` to define multiple callbacks that will be called for
+specific topic filters.
 
 client
     the client instance for this callback
@@ -661,6 +664,35 @@ Example
         
     mqttc.on_message = on_message
     ...
+
+message_callback_add()
+''''''''''''''''''''''
+
+This function allows you to define callbacks that handle incoming messages for specific subscription filters, including with wildcards. This lets you, for example, subscribe to ``sensors/#`` and have one callback to handle ``sensors/temperature`` and another to handle ``sensors/humidity``.
+
+::
+
+    message_callback_add(sub, callback)
+
+sub
+    the subscription filter to match against for this callback. Only one callback may be defined per literal sub string
+
+callback
+    the callback to be used. Takes the same form as the ``on_message`` callback.
+
+If using ``message_callback_add()`` and ``on_message``, only messages that do not match a subscription specific filter will be passed to the ``on_message`` callback.
+
+message_callback_remove()
+'''''''''''''''''''''''''
+
+Remove a topic/subscription specific callback previously registered using ``message_callback_add()``.
+
+::
+
+    message_callback_remove(sub)
+
+sub
+    the subscription filter to remove
 
 on_publish()
 ''''''''''''
