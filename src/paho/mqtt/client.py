@@ -2005,7 +2005,7 @@ class Client(object):
 
                 # Only pass the message on if we have removed it from the queue - this
                 # prevents multiple callbacks for the same message.
-                self._handle_on_message(message)
+                self._handle_on_message(self._in_messages[i])
                 self._in_messages.pop(i)
                 self._inflight_messages = self._inflight_messages - 1
                 if self._max_inflight_messages > 0:
