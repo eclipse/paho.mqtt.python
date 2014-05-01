@@ -1,7 +1,7 @@
 # Set DESTDIR if it isn't given
 DESTDIR?=/
 
-.PHONY : all clean install test python python3
+.PHONY : all clean install test python python3 upload
 
 all :
 	python ./setup.py build
@@ -19,3 +19,6 @@ python3 :
 	$(MAKE) -C test python3
 
 test : python python3
+
+upload : test
+	python ./setup.py sdist upload
