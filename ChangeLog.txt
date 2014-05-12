@@ -1,3 +1,10 @@
+v1.0
+====
+
+- Default protocol is now MQTT v3.1.1.
+- Client will reconnect using MQTT v3.1 if a v3.1.1 connection fails due to
+  the incorrect protocol version number.
+
 v0.9.1
 ======
 

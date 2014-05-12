@@ -127,7 +127,7 @@ Client()
 
 ::
 
-    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv31)
+    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv311)
 
 The ``Client()`` constructor takes the following arguments:
 
@@ -815,7 +815,7 @@ Publish a single message to a broker, then disconnect cleanly.
 
     single(topic, payload=None, qos=0, retain=False, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv31)
+        protocol=mqtt.MQTTv311)
            
 
 Function arguments
@@ -892,7 +892,7 @@ Publish multiple messages to a broker, then disconnect cleanly.
 ::
 
     multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-        will=None, auth=None, tls=None, protocol=mqtt.MQTTv31)
+        will=None, auth=None, tls=None, protocol=mqtt.MQTTv311)
 
 Function arguments
 ''''''''''''''''''
