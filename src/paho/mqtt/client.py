@@ -1684,7 +1684,13 @@ class Client(object):
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_connect(self, keepalive, clean_session):
-        remaining_length = 12 + 2+len(self._client_id)
+        if self._protocol == MQTTv31:
+            protocol = PROTOCOL_NAMEv31
+            proto_ver = 3
+        else:
+            protocol = PROTOCOL_NAMEv311
+            proto_ver = 4
+        remaining_length = 2+len(protocol) + 1+1+2 + 2+len(self._client_id)
         connect_flags = 0
         if clean_session:
             connect_flags = connect_flags | 0x02
@@ -1708,12 +1714,6 @@ class Client(object):
         packet = bytearray()
         packet.extend(struct.pack("!B", command))
         self._pack_remaining_length(packet, remaining_length)
-        if self._protocol == MQTTv31:
-            protocol = PROTOCOL_NAMEv31
-            proto_ver = 3
-        else:
-            protocol = PROTOCOL_NAMEv311
-            proto_ver = 4
 
         packet.extend(struct.pack("!H"+str(len(protocol))+"sBBH", len(protocol), protocol, proto_ver, connect_flags, keepalive))
 

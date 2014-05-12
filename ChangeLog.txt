@@ -1,0 +1,4 @@
+v0.9.1
+======
+
+- Fix CONNECT packet for MQTT v3.1.1.
