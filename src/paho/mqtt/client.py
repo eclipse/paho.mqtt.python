@@ -1460,11 +1460,9 @@ class Client(object):
                     if (packet['command'] & 0xF0) == PUBLISH and packet['qos'] == 0:
                         self._callback_mutex.acquire()
                         if self.on_publish:
-                            self._out_message_mutex.release()
                             self._in_callback = True
                             self.on_publish(self, self._userdata, packet['mid'])
                             self._in_callback = False
-                            self._out_message_mutex.acquire()
 
                         self._callback_mutex.release()
 
