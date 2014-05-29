@@ -2,3 +2,5 @@ v0.9.1
 ======
 
 - Fix CONNECT packet for MQTT v3.1.1.
+- Fix potential lockup when publishing from on_publish callback.
+- Add version information to paho.mqtt.__version__
