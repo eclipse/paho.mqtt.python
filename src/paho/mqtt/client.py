@@ -1483,7 +1483,7 @@ class Client(object):
                         if self._ssl:
                             self._ssl.close()
                             self._ssl = None
-                        elif self._sock:
+                        if self._sock:
                             self._sock.close()
                             self._sock = None
                         return MQTT_ERR_SUCCESS
