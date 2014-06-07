@@ -31,7 +31,7 @@ except ImportError:
         sys.path.insert(0, cmd_subfolder)
     import paho.mqtt.client as mqtt
 
-def on_connect(mqttc, obj, rc):
+def on_connect(mqttc, obj, flags, rc):
     print("rc: "+str(rc))
 
 def on_message(mqttc, obj, msg):

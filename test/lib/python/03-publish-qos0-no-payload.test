@@ -11,7 +11,7 @@ import paho.mqtt.client as mqtt
 
 sent_mid = -1
 
-def on_connect(mqttc, obj, rc):
+def on_connect(mqttc, obj, flags, rc):
     global sent_mid
     if rc != 0:
         exit(rc)

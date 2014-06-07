@@ -318,7 +318,7 @@ class Client(object):
     broker. To use a callback, define a function and then assign it to the
     client:
 
-    def on_connect(client, userdata, rc):
+    def on_connect(client, userdata, flags, rc):
         print("Connection returned " + str(rc))
 
     client.on_connect = on_connect
@@ -330,15 +330,22 @@ class Client(object):
 
     The callbacks:
 
-    on_connect(client, userdata, rc): called when the broker responds to our connection
-      request. The value of rc determines success or not:
-      0: Connection successful
-      1: Connection refused - incorrect protocol version
-      2: Connection refused - invalid client identifier
-      3: Connection refused - server unavailable
-      4: Connection refused - bad username or password
-      5: Connection refused - not authorised
-      6-255: Currently unused.
+    on_connect(client, userdata, flags, rc): called when the broker responds to our connection
+      request.
+      flags is a dict that contains response flags from the broker:
+        flags['session present'] - this flag is useful for clients that are
+            using clean session set to 0 only. If a client with clean
+            session=0, that reconnects to a broker that it has previously
+            connected to, this flag indicates whether the broker still has the
+            session information for the client. If 1, the session still exists.
+      The value of rc determines success or not:
+        0: Connection successful
+        1: Connection refused - incorrect protocol version
+        2: Connection refused - invalid client identifier
+        3: Connection refused - server unavailable
+        4: Connection refused - bad username or password
+        5: Connection refused - not authorised
+        6-255: Currently unused.
 
     on_disconnect(client, userdata, rc): called when the client disconnects from the broker.
       The rc parameter indicates the disconnection state. If MQTT_ERR_SUCCESS
@@ -1904,22 +1911,35 @@ class Client(object):
         if len(self._in_packet['packet']) != 2:
             return MQTT_ERR_PROTOCOL
 
-        (resvd, result) = struct.unpack("!BB", self._in_packet['packet'])
+        (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
         if result == CONNACK_REFUSED_PROTOCOL_VERSION and self._protocol == MQTTv311:
-            self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(resvd)+", "+str(result)+"), attempting downgrade to MQTT v3.1.")
+            self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(flags)+", "+str(result)+"), attempting downgrade to MQTT v3.1.")
             # Downgrade to MQTT v3.1
             self._protocol = MQTTv31
             return self.reconnect()
 
-        self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(resvd)+", "+str(result)+")")
+        if result == 0:
+            self._state = mqtt_cs_connected
+
+        self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(flags)+", "+str(result)+")")
         self._callback_mutex.acquire()
         if self.on_connect:
             self._in_callback = True
-            self.on_connect(self, self._userdata, result)
+
+            if sys.version_info[0] < 3:
+                argcount = self.on_connect.func_code.co_argcount
+            else:
+                argcount = self.on_connect.__code__.co_argcount
+
+            if argcount == 3:
+                self.on_connect(self, self._userdata, result)
+            else:
+                flags_dict = dict()
+                flags_dict['session present'] = flags & 0x01
+                self.on_connect(self, self._userdata, flags_dict, result)
             self._in_callback = False
         self._callback_mutex.release()
         if result == 0:
-            self._state = mqtt_cs_connected
             return MQTT_ERR_SUCCESS
         elif result > 0 and result < 6:
             return MQTT_ERR_CONN_REFUSED

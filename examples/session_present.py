@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2010-2013 Roger Light <roger@atchoo.org>
+# Copyright (c) 2014 Roger Light <roger@atchoo.org>
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Distribution License v1.0
@@ -11,10 +11,10 @@
 #
 # Contributors:
 #    Roger Light - initial implementation
-# Copyright (c) 2010,2011 Roger Light <roger@atchoo.org>
+# Copyright (c) 2014 Roger Light <roger@atchoo.org>
 # All rights reserved.
 
-# This shows a simple example of an MQTT subscriber.
+# This demonstrates the session present flag when connecting.
 
 import sys
 try:
@@ -32,37 +32,37 @@ except ImportError:
     import paho.mqtt.client as mqtt
 
 def on_connect(mqttc, obj, flags, rc):
-    print "Connected to %s:%s" % (mqttc._host, mqttc._port)
+    if obj == 0:
+        print("First connection:")
+    elif obj == 1:
+        print("Second connection:")
+    elif obj == 2:
+        print("Third connection (with clean session=True):")
+    print("    Session present: "+str(flags['session present']))
+    print("    Connection result: "+str(rc))
+    mqttc.disconnect()
 
-def on_message(mqttc, obj, msg):
-    print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
-
-def on_publish(mqttc, obj, mid):
-    print("mid: "+str(mid))
-
-def on_subscribe(mqttc, obj, mid, granted_qos):
-    print("Subscribed: "+str(mid)+" "+str(granted_qos))
+def on_disconnect(mqttc, obj, rc):
+    mqttc.user_data_set(obj+1)
+    if obj == 0:
+        mqttc.reconnect()
 
 def on_log(mqttc, obj, level, string):
     print(string)
 
-# If you want to use a specific client id, use
-# mqttc = mqtt.Client("client-id")
-# but note that the client id must be unique on the broker. Leaving the client
-# id parameter empty will generate a random id for you.
-mqttc = mqtt.Client()
-mqttc.on_message = on_message
+mqttc = mqtt.Client(client_id="asdfj", clean_session=False)
 mqttc.on_connect = on_connect
-mqttc.on_publish = on_publish
-mqttc.on_subscribe = on_subscribe
+mqttc.on_disconnect = on_disconnect
 # Uncomment to enable debug messages
 #mqttc.on_log = on_log
-mqttc.connect_srv("mosquitto.org", 60)
-mqttc.subscribe("$SYS/broker/version", 0)
+mqttc.user_data_set(0)
+mqttc.connect("test.mosquitto.org", 1883, 60)
 
+mqttc.loop_forever()
 
-rc = 0
-while rc == 0:
-    rc = mqttc.loop()
-
-print("rc: "+str(rc))
+# Clear session
+mqttc = mqtt.Client(client_id="asdfj", clean_session=True)
+mqttc.on_connect = on_connect
+mqttc.user_data_set(2)
+mqttc.connect("test.mosquitto.org", 1883, 60)
+mqttc.loop_forever()

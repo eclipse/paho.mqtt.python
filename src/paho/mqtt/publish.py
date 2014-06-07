@@ -49,7 +49,7 @@ def _do_publish(c):
     c.publish(topic, payload, qos, retain)
 
 
-def _on_connect(c, userdata, rc):
+def _on_connect(c, userdata, flags, rc):
     """Internal callback"""
     _do_publish(c)
 
