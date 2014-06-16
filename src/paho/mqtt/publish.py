@@ -24,7 +24,6 @@ import paho.mqtt.client as mqtt
 
 def _do_publish(c):
     """Internal function"""
-    print(len(c._userdata))
     m = c._userdata[0]
     c._userdata = c._userdata[1:]
     if type(m) is dict:
