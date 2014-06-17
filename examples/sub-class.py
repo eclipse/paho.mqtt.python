@@ -37,7 +37,7 @@ class MyMQTTClass:
         self._mqttc.on_publish = self.mqtt_on_publish
         self._mqttc.on_subscribe = self.mqtt_on_subscribe
 
-    def mqtt_on_connect(self, mqttc, obj, rc):
+    def mqtt_on_connect(self, mqttc, obj, flags, rc):
         print("rc: "+str(rc))
 
     def mqtt_on_message(self, mqttc, obj, msg):

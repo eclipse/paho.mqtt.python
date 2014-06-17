@@ -14,7 +14,7 @@ if sys.version < '2.7':
     print("WARNING: SSL/TLS not supported on Python 2.6")
     exit(0)
 
-def on_connect(mqttc, obj, rc):
+def on_connect(mqttc, obj, flags, rc):
     exit(1)
 
 mqttc = mqtt.Client("08-ssl-fake-cacert")

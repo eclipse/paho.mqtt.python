@@ -31,7 +31,7 @@ except ImportError:
 
 final_mid = 0
 
-def on_connect(mqttc, userdata, rc):
+def on_connect(mqttc, userdata, flags, rc):
     if userdata == True:
         print("rc: "+str(rc))
 

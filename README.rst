@@ -82,7 +82,7 @@ Here is a very simple example that subscribes to the broker $SYS topic tree and 
     import paho.mqtt.client as mqtt
     
     # The callback for when the client receives a CONNACK response from the server.
-    def on_connect(client, userdata, rc):
+    def on_connect(client, userdata, flags, rc):
         print("Connected with result code "+str(rc))
 
         # Subscribing in on_connect() means that if we lose the connection and
@@ -127,7 +127,7 @@ Client()
 
 ::
 
-    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv31)
+    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv311)
 
 The ``Client()`` constructor takes the following arguments:
 
@@ -566,7 +566,7 @@ on_connect()
 
 ::
 
-    on_connect(client, userdata, rc)
+    on_connect(client, userdata, flags, rc)
     
 Called when the broker responds to our connection request.
 
@@ -576,8 +576,18 @@ client
 userdata
     the private user data as set in ``Client()`` or ``userdata_set()``
 
+flags
+    response flags sent by the broker
 rc
     the connection result
+
+
+flags is a dict that contains response flags from the broker:
+    flags['session present'] - this flag is useful for clients that are
+        using clean session set to 0 only. If a client with clean
+        session=0, that reconnects to a broker that it has previously
+        connected to, this flag indicates whether the broker still has the
+        session information for the client. If 1, the session still exists.
 
 The value of rc indicates success or not: 
 
@@ -594,7 +604,7 @@ Example
 
 ::
 
-    def on_connect(client, userdata, rc):
+    def on_connect(client, userdata, flags, rc):
         print("Connection returned result: "+connack_string(rc))
         
     mqttc.on_connect = on_connect
@@ -815,7 +825,7 @@ Publish a single message to a broker, then disconnect cleanly.
 
     single(topic, payload=None, qos=0, retain=False, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv31)
+        protocol=mqtt.MQTTv311)
            
 
 Function arguments
@@ -892,7 +902,7 @@ Publish multiple messages to a broker, then disconnect cleanly.
 ::
 
     multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-        will=None, auth=None, tls=None, protocol=mqtt.MQTTv31)
+        will=None, auth=None, tls=None, protocol=mqtt.MQTTv311)
 
 Function arguments
 ''''''''''''''''''

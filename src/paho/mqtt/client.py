@@ -47,7 +47,7 @@ else:
 
 VERSION_MAJOR=0
 VERSION_MINOR=9
-VERSION_REVISION=1
+VERSION_REVISION=100
 VERSION_NUMBER=(VERSION_MAJOR*1000000+VERSION_MINOR*1000+VERSION_REVISION)
 
 MQTTv31 = 3
@@ -318,7 +318,7 @@ class Client(object):
     broker. To use a callback, define a function and then assign it to the
     client:
 
-    def on_connect(client, userdata, rc):
+    def on_connect(client, userdata, flags, rc):
         print("Connection returned " + str(rc))
 
     client.on_connect = on_connect
@@ -330,15 +330,22 @@ class Client(object):
 
     The callbacks:
 
-    on_connect(client, userdata, rc): called when the broker responds to our connection
-      request. The value of rc determines success or not:
-      0: Connection successful
-      1: Connection refused - incorrect protocol version
-      2: Connection refused - invalid client identifier
-      3: Connection refused - server unavailable
-      4: Connection refused - bad username or password
-      5: Connection refused - not authorised
-      6-255: Currently unused.
+    on_connect(client, userdata, flags, rc): called when the broker responds to our connection
+      request.
+      flags is a dict that contains response flags from the broker:
+        flags['session present'] - this flag is useful for clients that are
+            using clean session set to 0 only. If a client with clean
+            session=0, that reconnects to a broker that it has previously
+            connected to, this flag indicates whether the broker still has the
+            session information for the client. If 1, the session still exists.
+      The value of rc determines success or not:
+        0: Connection successful
+        1: Connection refused - incorrect protocol version
+        2: Connection refused - invalid client identifier
+        3: Connection refused - server unavailable
+        4: Connection refused - bad username or password
+        5: Connection refused - not authorised
+        6-255: Currently unused.
 
     on_disconnect(client, userdata, rc): called when the client disconnects from the broker.
       The rc parameter indicates the disconnection state. If MQTT_ERR_SUCCESS
@@ -375,7 +382,7 @@ class Client(object):
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
-    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31):
+    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv311):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then one will be randomly
         generated. In this case, clean_session must be True. If this is not the
@@ -892,7 +899,7 @@ class Client(object):
         username: The username to authenticate with. Need have no relationship to the client id.
         password: The password to authenticate with. Optional, set to None if not required.
         """
-        self._username = username
+        self._username = username.encode('utf-8')
         self._password = password
 
     def disconnect(self):
@@ -955,20 +962,21 @@ class Client(object):
                 raise ValueError('Invalid QoS level.')
             if topic is None or len(topic) == 0:
                 raise ValueError('Invalid topic.')
-            topic_qos_list = [(topic, qos)]
+            topic_qos_list = [(topic.encode('utf-8'), qos)]
         elif isinstance(topic, tuple):
             if topic[1]<0 or topic[1]>2:
                 raise ValueError('Invalid QoS level.')
             if topic[0] is None or len(topic[0]) == 0 or not isinstance(topic[0], str):
                 raise ValueError('Invalid topic.')
-            topic_qos_list = [topic]
+            topic_qos_list = [(topic[0].encode('utf-8'), topic[1])]
         elif isinstance(topic, list):
+            topic_qos_list = []
             for t in topic:
                 if t[1]<0 or t[1]>2:
                     raise ValueError('Invalid QoS level.')
                 if t[0] is None or len(t[0]) == 0 or not isinstance(t[0], str):
                     raise ValueError('Invalid topic.')
-            topic_qos_list = topic
+                topic_qos_list.append((t[0].encode('utf-8'), t[1]))
 
         if topic_qos_list is None:
             raise ValueError("No topic specified, or incorrect topic type.")
@@ -1000,12 +1008,13 @@ class Client(object):
         if isinstance(topic, str):
             if len(topic) == 0:
                 raise ValueError('Invalid topic.')
-            topic_list = [topic]
+            topic_list = [topic.encode('utf-8')]
         elif isinstance(topic, list):
+            topic_list = []
             for t in topic:
                 if len(t) == 0 or not isinstance(t, str):
                     raise ValueError('Invalid topic.')
-            topic_list = topic
+                topic_list.append(t.encode('utf-8'))
 
         if topic_list is None:
             raise ValueError("No topic specified, or incorrect topic type.")
@@ -1152,7 +1161,9 @@ class Client(object):
             raise ValueError('Invalid topic.')
         if qos<0 or qos>2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str) or isinstance(payload, bytearray):
+        if isinstance(payload, str):
+            self._will_payload = payload.encode('utf-8')
+        elif isinstance(payload, bytearray):
             self._will_payload = payload
         elif isinstance(payload, int) or isinstance(payload, float):
             self._will_payload = str(payload)
@@ -1162,7 +1173,7 @@ class Client(object):
             raise TypeError('payload must be a string, bytearray, int, float or None.')
 
         self._will = True
-        self._will_topic = topic
+        self._will_topic = topic.encode('utf-8')
         self._will_qos = qos
         self._will_retain = retain
 
@@ -1596,8 +1607,9 @@ class Client(object):
                 packet.extend(struct.pack("!H", len(data)))
                 packet.extend(data)
             elif isinstance(data, str):
-                pack_format = "!H" + str(len(data)) + "s"
-                packet.extend(struct.pack(pack_format, len(data), data))
+                udata = data.encode('utf-8')
+                pack_format = "!H" + str(len(udata)) + "s"
+                packet.extend(struct.pack(pack_format, len(udata), udata))
             elif isinstance(data, unicode):
                 udata = data.encode('utf-8')
                 pack_format = "!H" + str(len(udata)) + "s"
@@ -1605,7 +1617,7 @@ class Client(object):
             else:
                 raise TypeError
         else:
-            if isinstance(data, bytearray):
+            if isinstance(data, bytearray) or isinstance(data, bytes):
                 packet.extend(struct.pack("!H", len(data)))
                 packet.extend(data)
             elif isinstance(data, str):
@@ -1619,22 +1631,32 @@ class Client(object):
         if self._sock is None and self._ssl is None:
             return MQTT_ERR_NO_CONN
 
+        utopic = topic.encode('utf-8')
         command = PUBLISH | ((dup&0x1)<<3) | (qos<<1) | retain
         packet = bytearray()
         packet.extend(struct.pack("!B", command))
         if payload is None:
-            remaining_length = 2+len(topic)
+            remaining_length = 2+len(utopic)
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
         else:
-            remaining_length = 2+len(topic) + len(payload)
-            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(len(payload))+" bytes)")
+            if isinstance(payload, str):
+                upayload = payload.encode('utf-8')
+                payloadlen = len(upayload)
+            elif isinstance(payload, bytearray):
+                payloadlen = len(payload)
+            elif isinstance(payload, unicode):
+                upayload = payload.encode('utf-8')
+                payloadlen = len(upayload)
+
+            remaining_length = 2+len(utopic) + payloadlen
+            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(payloadlen)+" bytes)")
 
         if qos > 0:
             # For message id
             remaining_length = remaining_length + 2
 
         self._pack_remaining_length(packet, remaining_length)
-        self._pack_str16(packet, topic)
+        self._pack_str16(packet, utopic)
 
         if qos > 0:
             # For message id
@@ -1642,19 +1664,13 @@ class Client(object):
 
         if payload is not None:
             if isinstance(payload, str):
-                if sys.version_info[0] < 3:
-                    pack_format = str(len(payload)) + "s"
-                    packet.extend(struct.pack(pack_format, payload))
-                else:
-                    upayload = payload.encode('utf-8')
-                    pack_format = str(len(upayload)) + "s"
-                    packet.extend(struct.pack(pack_format, upayload))
+                pack_format = str(payloadlen) + "s"
+                packet.extend(struct.pack(pack_format, upayload))
             elif isinstance(payload, bytearray):
                 packet.extend(payload)
             elif isinstance(payload, unicode):
-                    upayload = payload.encode('utf-8')
-                    pack_format = str(len(upayload)) + "s"
-                    packet.extend(struct.pack(pack_format, upayload))
+                pack_format = str(payloadlen) + "s"
+                packet.extend(struct.pack(pack_format, upayload))
             else:
                 raise TypeError('payload must be a string, unicode or a bytearray.')
 
@@ -1713,8 +1729,8 @@ class Client(object):
         command = CONNECT
         packet = bytearray()
         packet.extend(struct.pack("!B", command))
-        self._pack_remaining_length(packet, remaining_length)
 
+        self._pack_remaining_length(packet, remaining_length)
         packet.extend(struct.pack("!H"+str(len(protocol))+"sBBH", len(protocol), protocol, proto_ver, connect_flags, keepalive))
 
         self._pack_str16(packet, self._client_id)
@@ -1904,16 +1920,35 @@ class Client(object):
         if len(self._in_packet['packet']) != 2:
             return MQTT_ERR_PROTOCOL
 
-        (resvd, result) = struct.unpack("!BB", self._in_packet['packet'])
-        self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(resvd)+", "+str(result)+")")
+        (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
+        if result == CONNACK_REFUSED_PROTOCOL_VERSION and self._protocol == MQTTv311:
+            self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(flags)+", "+str(result)+"), attempting downgrade to MQTT v3.1.")
+            # Downgrade to MQTT v3.1
+            self._protocol = MQTTv31
+            return self.reconnect()
+
+        if result == 0:
+            self._state = mqtt_cs_connected
+
+        self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(flags)+", "+str(result)+")")
         self._callback_mutex.acquire()
         if self.on_connect:
             self._in_callback = True
-            self.on_connect(self, self._userdata, result)
+
+            if sys.version_info[0] < 3:
+                argcount = self.on_connect.func_code.co_argcount
+            else:
+                argcount = self.on_connect.__code__.co_argcount
+
+            if argcount == 3:
+                self.on_connect(self, self._userdata, result)
+            else:
+                flags_dict = dict()
+                flags_dict['session present'] = flags & 0x01
+                self.on_connect(self, self._userdata, flags_dict, result)
             self._in_callback = False
         self._callback_mutex.release()
         if result == 0:
-            self._state = mqtt_cs_connected
             return MQTT_ERR_SUCCESS
         elif result > 0 and result < 6:
             return MQTT_ERR_CONN_REFUSED

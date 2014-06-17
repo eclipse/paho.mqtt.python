@@ -27,7 +27,7 @@ def on_message(mqttc, obj, msg):
         exit(1)
     exit(0)
 
-def on_connect(mqttc, obj, rc):
+def on_connect(mqttc, obj, flags, rc):
     if rc != 0:
         print("Connect failed ("+str(rc)+")")
         exit(rc)

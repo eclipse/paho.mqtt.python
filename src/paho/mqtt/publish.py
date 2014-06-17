@@ -48,7 +48,7 @@ def _do_publish(c):
     c.publish(topic, payload, qos, retain)
 
 
-def _on_connect(c, userdata, rc):
+def _on_connect(c, userdata, flags, rc):
     """Internal callback"""
     _do_publish(c)
 
@@ -62,7 +62,7 @@ def _on_publish(c, userdata, mid):
 
 
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None, protocol=mqtt.MQTTv31):
+             will=None, auth=None, tls=None, protocol=mqtt.MQTTv311):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -172,7 +172,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
 def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None, protocol=mqtt.MQTTv31):
+           tls=None, protocol=mqtt.MQTTv311):
     """Publish a single message to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
