@@ -9,7 +9,7 @@ It supports Python 2.7 or 3.x, with limited support for Python 2.6.
 
 The MQTT protocol is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol. Designed as an extremely lightweight publish/subscribe messaging transport, it is useful for connections with remote locations where a small code footprint is required and/or network bandwidth is at a premium.
 
-Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ project currently in the `incubation phase <http://www.eclipse.org/projects/what-is-incubation.php>`_.
+Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ project.
 
 
 Contents
