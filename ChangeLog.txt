@@ -1,3 +1,9 @@
+v1.0.1
+======
+
+- Fix incorrect reconnect that occurred if calling loop_stop() before
+  disconnect().
+
 v1.0
 ====
 
