@@ -1224,7 +1224,7 @@ class Client(object):
                     run = False
 
             self._state_mutex.acquire()
-            if self._state == mqtt_cs_disconnecting or run == False:
+            if self._state == mqtt_cs_disconnecting or run is False or self._thread_terminate is True:
                 run = False
                 self._state_mutex.release()
             else:
@@ -1232,7 +1232,7 @@ class Client(object):
                 time.sleep(1)
 
                 self._state_mutex.acquire()
-                if self._state == mqtt_cs_disconnecting or run == False:
+                if self._state == mqtt_cs_disconnecting or run is False or self._thread_terminate is True:
                     run = False
                     self._state_mutex.release()
                 else:
