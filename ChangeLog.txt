@@ -2,6 +2,8 @@ v1.0.2
 ======
 
 - Fix "protocol" not being used in publish.single()
+- Fix Client constructor for the case where "localhost" is unresolvable.
+  Closes #439277.
 
 v1.0.1
 ======

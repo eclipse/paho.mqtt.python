@@ -252,7 +252,7 @@ def _socketpair_compat():
     """TCP/IP socketpair including Windows support"""
     listensock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
     listensock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    listensock.bind(("localhost", 0))
+    listensock.bind(("127.0.0.1", 0))
     listensock.listen(1)
 
     iface, port = listensock.getsockname()
