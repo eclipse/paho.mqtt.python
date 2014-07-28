@@ -213,5 +213,5 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
     """
 
     msg = {'topic':topic, 'payload':payload, 'qos':qos, 'retain':retain}
-    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls)
+    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls, protocol)
 
