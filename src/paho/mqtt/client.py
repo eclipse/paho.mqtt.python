@@ -1656,7 +1656,7 @@ class Client(object):
             remaining_length = remaining_length + 2
 
         self._pack_remaining_length(packet, remaining_length)
-        self._pack_str16(packet, utopic)
+        self._pack_str16(packet, topic)
 
         if qos > 0:
             # For message id
