@@ -840,7 +840,7 @@ class Client(object):
             raise ValueError('Invalid topic.')
         if qos<0 or qos>2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str) or isinstance(payload, bytearray):
+        if isinstance(payload, str) or isinstance(payload, bytearray) or isinstance(payload, unicode):
             local_payload = payload
         elif isinstance(payload, int) or isinstance(payload, float):
             local_payload = str(payload)

@@ -4,7 +4,8 @@ v1.0.2
 - Fix "protocol" not being used in publish.single()
 - Fix Client constructor for the case where "localhost" is unresolvable.
   Closes #439277.
-- Don't attempt to encode topic to utf-8 twice.
+- Don't attempt to encode topic to utf-8 twice. Thanks to Luc Milland.
+- Handle "unicode" type payloads on Python 2.7. Thanks to Luc Milland.
 
 v1.0.1
 ======
