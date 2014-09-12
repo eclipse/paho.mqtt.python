@@ -8,6 +8,10 @@ v1.0.2
 - Handle "unicode" type payloads on Python 2.7. Thanks to Luc Milland.
 - Fix reconnecting after sending more QoS>0 messages than inflight messages is
   set to, whilst connecting.  Closes #443935. Thanks to Hiram van Paassen.
+- Fix possible race condition when connecting with TLS and publishing at the
+  same time, which could lead to PUBLISH data being sent before any other
+  messages and unencrypted. Closes #443964. Thanks to Hiram van Paassen.
+
 
 v1.0.1
 ======

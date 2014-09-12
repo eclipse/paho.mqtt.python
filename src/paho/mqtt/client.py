@@ -724,16 +724,16 @@ class Client(object):
 
         try:
             if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
-                self._sock = socket.create_connection((self._host, self._port))
+                sock = socket.create_connection((self._host, self._port))
             else:
-                self._sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
+                sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
         except socket.error as err:
             if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
                 raise
 
         if self._tls_ca_certs is not None:
             self._ssl = ssl.wrap_socket(
-                self._sock,
+                sock,
                 certfile=self._tls_certfile,
                 keyfile=self._tls_keyfile,
                 ca_certs=self._tls_ca_certs,
@@ -747,6 +747,7 @@ class Client(object):
                 else:
                     ssl.match_hostname(self._ssl.getpeercert(), self._host)
 
+        self._sock = sock
         self._sock.setblocking(0)
 
         return self._send_connect(self._keepalive, self._clean_session)
