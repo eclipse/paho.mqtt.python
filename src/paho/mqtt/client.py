@@ -407,6 +407,13 @@ class Client(object):
         userdata is user defined data of any type that is passed as the "userdata"
         parameter to callbacks. It may be updated at a later point with the
         user_data_set() function.
+
+        The protocol argument allows explicit setting of the MQTT version to
+        use for this client. Can be paho.mqtt.client.MQTTv311 (v3.1.1) or
+        paho.mqtt.client.MQTTv31 (v3.1), with the default being v3.1.1. If the
+        broker reports that the client connected with an invalid protocol
+        version, the client will automatically attempt to reconnect using v3.1
+        instead.
         """
         if not clean_session and (client_id == "" or client_id is None):
             raise ValueError('A client id must be provided if clean session is False.')
