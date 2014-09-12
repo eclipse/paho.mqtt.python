@@ -6,6 +6,8 @@ v1.0.2
   Closes #439277.
 - Don't attempt to encode topic to utf-8 twice. Thanks to Luc Milland.
 - Handle "unicode" type payloads on Python 2.7. Thanks to Luc Milland.
+- Fix reconnecting after sending more QoS>0 messages than inflight messages is
+  set to, whilst connecting.  Closes #443935. Thanks to Hiram van Paassen.
 
 v1.0.1
 ======
