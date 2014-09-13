@@ -11,6 +11,8 @@ v1.0.2
 - Fix possible race condition when connecting with TLS and publishing at the
   same time, which could lead to PUBLISH data being sent before any other
   messages and unencrypted. Closes #443964. Thanks to Hiram van Paassen.
+- Handle exceptions from select() in client loop() function. Closes #443881.
+  Thanks to Jeff Jasper.
 
 
 v1.0.1

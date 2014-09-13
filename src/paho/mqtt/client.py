@@ -802,6 +802,12 @@ class Client(object):
         except TypeError:
             # Socket isn't correct type, in likelihood connection is lost
             return MQTT_ERR_CONN_LOST
+        except ValueError:
+            # Can occur if we just reconnected but rlist/wlist contain a -1 for
+            # some reason.
+            return MQTT_ERR_CONN_LOST
+        except:
+            return MQTT_ERR_UNKNOWN
 
         if self.socket() in socklist[0]:
             rc = self.loop_read(max_packets)
