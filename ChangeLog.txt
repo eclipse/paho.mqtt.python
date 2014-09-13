@@ -1,5 +1,5 @@
-v1.0.2
-======
+v1.0.2 - 2014-09-13
+===================
 
 - Fix "protocol" not being used in publish.single()
 - Fix Client constructor for the case where "localhost" is unresolvable.
