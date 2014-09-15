@@ -2138,9 +2138,9 @@ class Client(object):
                 if m.qos > 0 and m.state == mqtt_ms_queued:
                     self._inflight_messages = self._inflight_messages + 1
                     if m.qos == 1:
-                        m.state = mqtt_ms_wait_puback
+                        m.state = mqtt_ms_wait_for_puback
                     elif m.qos == 2:
-                        m.state = mqtt_ms_wait_pubrec
+                        m.state = mqtt_ms_wait_for_pubrec
                     rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
                     if rc != 0:
                         return rc
