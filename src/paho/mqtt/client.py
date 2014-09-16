@@ -100,18 +100,16 @@ mqtt_cs_disconnecting = 2
 mqtt_cs_connect_async = 3
 
 # Message state
-mqtt_ms_invalid = 0,
-mqtt_ms_publish_qos0 = 1
-mqtt_ms_publish_qos1 = 2
-mqtt_ms_wait_for_puback = 3
-mqtt_ms_publish_qos2 = 4
-mqtt_ms_wait_for_pubrec = 5
-mqtt_ms_resend_pubrel = 6
-mqtt_ms_wait_for_pubrel = 7
-mqtt_ms_resend_pubcomp = 8
-mqtt_ms_wait_for_pubcomp = 9
-mqtt_ms_send_pubrec = 10
-mqtt_ms_queued = 11
+mqtt_ms_invalid = 0
+mqtt_ms_publish= 1
+mqtt_ms_wait_for_puback = 2
+mqtt_ms_wait_for_pubrec = 3
+mqtt_ms_resend_pubrel = 4
+mqtt_ms_wait_for_pubrel = 5
+mqtt_ms_resend_pubcomp = 6
+mqtt_ms_wait_for_pubcomp = 7
+mqtt_ms_send_pubrec = 8
+mqtt_ms_queued = 9
 
 # Error values
 MQTT_ERR_AGAIN = -1
@@ -914,10 +912,7 @@ class Client(object):
                 if rc is MQTT_ERR_NO_CONN:
                     with self._out_message_mutex:
                         self._inflight_messages -= 1
-                        if qos == 1:
-                            message.state = mqtt_ms_publish_qos1
-                        elif qos == 2:
-                            message.state = mqtt_ms_publish_qos2
+                        message.state = mqtt_ms_publish
 
                 return (rc, local_mid)
             else:
@@ -1850,12 +1845,12 @@ class Client(object):
             m.timestamp = 0
             if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
                 if m.qos == 0:
-                    m.state = mqtt_ms_publish_qos0
+                    m.state = mqtt_ms_publish
                 elif m.qos == 1:
                     #self._inflight_messages = self._inflight_messages + 1
                     if m.state == mqtt_ms_wait_for_puback:
                         m.dup = True
-                    m.state = mqtt_ms_publish_qos1
+                    m.state = mqtt_ms_publish
                 elif m.qos == 2:
                     #self._inflight_messages = self._inflight_messages + 1
                     if m.state == mqtt_ms_wait_for_pubcomp:
@@ -1864,7 +1859,7 @@ class Client(object):
                     else:
                         if m.state == mqtt_ms_wait_for_pubrec:
                             m.dup = True
-                        m.state = mqtt_ms_publish_qos2
+                        m.state = mqtt_ms_publish
             else:
                 m.state = mqtt_ms_queued
         self._out_message_mutex.release()
@@ -2010,7 +2005,7 @@ class Client(object):
                         self._out_message_mutex.release()
                         return rc
                 elif m.qos == 1:
-                    if m.state == mqtt_ms_publish_qos1:
+                    if m.state == mqtt_ms_publish:
                         self._inflight_messages = self._inflight_messages + 1
                         m.state = mqtt_ms_wait_for_puback
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
@@ -2018,7 +2013,7 @@ class Client(object):
                             self._out_message_mutex.release()
                             return rc
                 elif m.qos == 2:
-                    if m.state == mqtt_ms_publish_qos2:
+                    if m.state == mqtt_ms_publish:
                         self._inflight_messages = self._inflight_messages + 1
                         m.state = mqtt_ms_wait_for_pubrec
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
