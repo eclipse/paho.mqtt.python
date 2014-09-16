@@ -1224,17 +1224,36 @@ class Client(object):
         else:
             return self._sock
 
-    def loop_forever(self, timeout=1.0, max_packets=1):
+    def loop_forever(self, timeout=1.0, max_packets=1, retry_first_connection=False):
         """This function call loop() for you in an infinite blocking loop. It
         is useful for the case where you only want to run the MQTT client loop
         in your program.
 
         loop_forever() will handle reconnecting for you. If you call
-        disconnect() in a callback it will return."""
+        disconnect() in a callback it will return.
+
+
+        timeout: The time in seconds to wait for incoming/outgoing network
+          traffic before timing out and returning.
+        max_packets: Not currently used.
+        retry_first_connection: Should the first connection attempt be retried on failure.
+
+        Raises socket.error on first connection failures unless retry_first_connection=True
+        """
 
         run = True
-        if self._state == mqtt_cs_connect_async:
-            self.reconnect()
+
+        while run:
+            if self._state == mqtt_cs_connect_async:
+                try:
+                    self.reconnect()
+                except socket.error:
+                    if not retry_first_connection:
+                        raise
+                    self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
+                    time.sleep(1)
+            else:
+                break
 
         while run:
             rc = MQTT_ERR_SUCCESS

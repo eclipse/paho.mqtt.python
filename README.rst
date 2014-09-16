@@ -434,9 +434,11 @@ loop_forever()
 
 ::
 
-    loop_forever(timeout=1.0, max_packets=1)
+    loop_forever(timeout=1.0, max_packets=1, retry_first_connection=False)
     
 This is a blocking form of the network loop and will not return until the client calls ``disconnect()``. It automatically handles reconnecting.
+
+Except for the first connection attempt when using connect_async, use ``retry_first_connection=True`` to make it retry the first connection.  Warning: This might lead to situations where the client keeps connecting to an non existing host without failing.
 
 The ``timeout`` and ``max_packets`` arguments are obsolete and should be left unset.
 
