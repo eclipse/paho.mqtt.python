@@ -909,6 +909,16 @@ class Client(object):
                 self._out_message_mutex.release()
 
                 rc = self._send_publish(message.mid, message.topic, message.payload, message.qos, message.retain, message.dup)
+
+                # remove from inflight messages so it will be send after a connection is made
+                if rc is MQTT_ERR_NO_CONN:
+                    with self._out_message_mutex:
+                        self._inflight_messages -= 1
+                        if qos == 1:
+                            message.state = mqtt_ms_publish_qos1
+                        elif qos == 2:
+                            message.state = mqtt_ms_publish_qos2
+
                 return (rc, local_mid)
             else:
                 message.state = mqtt_ms_queued;
