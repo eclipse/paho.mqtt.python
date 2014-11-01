@@ -1,3 +1,10 @@
+v1.0.3 - 2014-11-XX
+===================
+
+- Fix possible race condition if the connection in loop_start() does not
+  complete before loop_stop() is called, meaning the network thread never
+  ends. Closes #448428. Thanks to Kees Bakker.
+
 v1.0.2 - 2014-09-13
 ===================
 

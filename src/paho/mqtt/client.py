@@ -1282,6 +1282,7 @@ class Client(object):
         if self._thread is not None:
             return MQTT_ERR_INVAL
 
+        self._thread_terminate = False
         self._thread = threading.Thread(target=self._thread_main)
         self._thread.daemon = True
         self._thread.start()
@@ -2247,8 +2248,6 @@ class Client(object):
         self._callback_mutex.release()
 
     def _thread_main(self):
-        run = True
-        self._thread_terminate = False
         self._state_mutex.acquire()
         if self._state == mqtt_cs_connect_async:
             self._state_mutex.release()
