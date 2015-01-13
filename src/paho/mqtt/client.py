@@ -2304,7 +2304,13 @@ class Client(object):
                 return False
 
     def _tls_match_hostname(self):
-        cert = self._ssl.getpeercert()
+        try:
+            cert = self._ssl.getpeercert()
+        except AttributeError:
+            # the getpeercert can throw Attribute error: object has no attribute 'peer_certificate'
+            # Don't let that crash the whole client. See also: http://bugs.python.org/issue13721
+            raise ssl.SSLError('Not connected')
+
         san = cert.get('subjectAltName')
         if san:
             have_san_dns = False
