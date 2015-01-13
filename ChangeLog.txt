@@ -1,3 +1,9 @@
+v1.1 - 2015-01-30
+=================
+
+- Add support for wildcard certificates. Closes #440547.
+
+
 v1.0.2 - 2014-09-13
 ===================
 

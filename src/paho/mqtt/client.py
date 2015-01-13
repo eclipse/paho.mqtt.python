@@ -2277,6 +2277,23 @@ class Client(object):
 
         self.loop_forever()
 
+    def _host_matches_cert(self, host, cert_host):
+        if cert_host[0:2] == "*.":
+            if cert_host.count("*") != 1:
+                return False
+
+            host_match = host.split(".", 1)[1]
+            cert_match = cert_host.split(".", 1)[1]
+            if host_match == cert_match:
+                return True
+            else:
+                return False
+        else:
+            if host == cert_host:
+                return True
+            else:
+                return False
+
     def _tls_match_hostname(self):
         cert = self._ssl.getpeercert()
         san = cert.get('subjectAltName')
@@ -2285,7 +2302,7 @@ class Client(object):
             for (key, value) in san:
                 if key == 'DNS':
                     have_san_dns = True
-                    if value.lower() == self._host.lower():
+                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
                         return
                 if key == 'IP Address':
                     have_san_dns = True
@@ -2299,7 +2316,7 @@ class Client(object):
         if subject:
             for ((key, value),) in subject:
                 if key == 'commonName':
-                    if value.lower() == self._host.lower():
+                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
                         return
 
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
