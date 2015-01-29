@@ -1,9 +1,17 @@
-v1.0.3 - 2014-11-XX
-===================
+v1.1 - 2015-01-30
+=================
 
+- Add support for wildcard certificates. Closes #440547.
+- Default connection behaviour has been reverted to MQTT v3.1 instead of
+  v3.1.1. There is as yet insufficient support for v3.1.1 to rely on, and
+  current v3.1 implementations do not return the correct CONNACK code to allow
+  detection of the fault. Closes #451735.
+- Fix incorrect handling of queued messages after reconnecting. Closes
+  #452672.
 - Fix possible race condition if the connection in loop_start() does not
   complete before loop_stop() is called, meaning the network thread never
   ends. Closes #448428. Thanks to Kees Bakker.
+
 
 v1.0.2 - 2014-09-13
 ===================

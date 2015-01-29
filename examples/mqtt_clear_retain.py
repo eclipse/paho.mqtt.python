@@ -94,7 +94,8 @@ def main(argv):
             verbose = True
 
     if topic == None:
-        print("You must provide a topic to clear.")
+        print("You must provide a topic to clear.\n")
+        print_usage()
         sys.exit(2)
 
     mqttc = mqtt.Client(client_id)

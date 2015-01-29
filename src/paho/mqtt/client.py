@@ -387,7 +387,7 @@ class Client(object):
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
-    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv311):
+    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then one will be randomly
         generated. In this case, clean_session must be True. If this is not the
@@ -408,7 +408,7 @@ class Client(object):
 
         The protocol argument allows explicit setting of the MQTT version to
         use for this client. Can be paho.mqtt.client.MQTTv311 (v3.1.1) or
-        paho.mqtt.client.MQTTv31 (v3.1), with the default being v3.1.1. If the
+        paho.mqtt.client.MQTTv31 (v3.1), with the default being v3.1. If the
         broker reports that the client connected with an invalid protocol
         version, the client will automatically attempt to reconnect using v3.1
         instead.
@@ -1090,7 +1090,7 @@ class Client(object):
         if self._sock is None and self._ssl is None:
             return MQTT_ERR_NO_CONN
 
-        max_packets = len(self._out_messages) + len(self._in_messages)
+        max_packets = len(self._out_packet) + 1
         if max_packets < 1:
             max_packets = 1
 
@@ -1224,17 +1224,36 @@ class Client(object):
         else:
             return self._sock
 
-    def loop_forever(self, timeout=1.0, max_packets=1):
+    def loop_forever(self, timeout=1.0, max_packets=1, retry_first_connection=False):
         """This function call loop() for you in an infinite blocking loop. It
         is useful for the case where you only want to run the MQTT client loop
         in your program.
 
         loop_forever() will handle reconnecting for you. If you call
-        disconnect() in a callback it will return."""
+        disconnect() in a callback it will return.
+
+
+        timeout: The time in seconds to wait for incoming/outgoing network
+          traffic before timing out and returning.
+        max_packets: Not currently used.
+        retry_first_connection: Should the first connection attempt be retried on failure.
+
+        Raises socket.error on first connection failures unless retry_first_connection=True
+        """
 
         run = True
-        if self._state == mqtt_cs_connect_async:
-            self.reconnect()
+
+        while run:
+            if self._state == mqtt_cs_connect_async:
+                try:
+                    self.reconnect()
+                except socket.error:
+                    if not retry_first_connection:
+                        raise
+                    self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
+                    time.sleep(1)
+            else:
+                break
 
         while run:
             rc = MQTT_ERR_SUCCESS
@@ -1997,11 +2016,14 @@ class Client(object):
             for m in self._out_messages:
                 m.timestamp = time.time()
                 if m.state == mqtt_ms_queued:
+                    self.loop_write() # Process outgoing messages that have just been queued up
                     self._out_message_mutex.release()
                     return MQTT_ERR_SUCCESS
 
                 if m.qos == 0:
+                    self._in_callback = True # Don't call loop_write after _send_publish()
                     rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                    self._in_callback = False
                     if rc != 0:
                         self._out_message_mutex.release()
                         return rc
@@ -2009,7 +2031,9 @@ class Client(object):
                     if m.state == mqtt_ms_publish:
                         self._inflight_messages = self._inflight_messages + 1
                         m.state = mqtt_ms_wait_for_puback
+                        self._in_callback = True # Don't call loop_write after _send_publish()
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                        self._in_callback = False
                         if rc != 0:
                             self._out_message_mutex.release()
                             return rc
@@ -2017,17 +2041,22 @@ class Client(object):
                     if m.state == mqtt_ms_publish:
                         self._inflight_messages = self._inflight_messages + 1
                         m.state = mqtt_ms_wait_for_pubrec
+                        self._in_callback = True # Don't call loop_write after _send_publish()
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                        self._in_callback = False
                         if rc != 0:
                             self._out_message_mutex.release()
                             return rc
                     elif m.state == mqtt_ms_resend_pubrel:
                         self._inflight_messages = self._inflight_messages + 1
                         m.state = mqtt_ms_wait_for_pubcomp
+                        self._in_callback = True # Don't call loop_write after _send_pubrel()
                         rc = self._send_pubrel(m.mid, m.dup)
+                        self._in_callback = False
                         if rc != 0:
                             self._out_message_mutex.release()
                             return rc
+                self.loop_write() # Process outgoing messages that have just been queued up
             self._out_message_mutex.release()
             return rc
         elif result > 0 and result < 6:
@@ -2257,6 +2286,23 @@ class Client(object):
 
         self.loop_forever()
 
+    def _host_matches_cert(self, host, cert_host):
+        if cert_host[0:2] == "*.":
+            if cert_host.count("*") != 1:
+                return False
+
+            host_match = host.split(".", 1)[1]
+            cert_match = cert_host.split(".", 1)[1]
+            if host_match == cert_match:
+                return True
+            else:
+                return False
+        else:
+            if host == cert_host:
+                return True
+            else:
+                return False
+
     def _tls_match_hostname(self):
         cert = self._ssl.getpeercert()
         san = cert.get('subjectAltName')
@@ -2265,7 +2311,7 @@ class Client(object):
             for (key, value) in san:
                 if key == 'DNS':
                     have_san_dns = True
-                    if value.lower() == self._host.lower():
+                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
                         return
                 if key == 'IP Address':
                     have_san_dns = True
@@ -2279,7 +2325,7 @@ class Client(object):
         if subject:
             for ((key, value),) in subject:
                 if key == 'commonName':
-                    if value.lower() == self._host.lower():
+                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
                         return
 
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
