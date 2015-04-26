@@ -264,7 +264,7 @@ def _socketpair_compat():
     sock1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
     sock1.setblocking(0)
     try:
-        sock1.connect(("localhost", port))
+        sock1.connect(("127.0.0.1", port))
     except socket.error as err:
         if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
             raise
