@@ -1556,7 +1556,7 @@ class Client(object):
                         self._current_out_packet = None
                     self._out_packet_mutex.release()
             else:
-                pass  # FIXME
+                break
 
         self._current_out_packet_mutex.release()
 
