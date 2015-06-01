@@ -529,7 +529,7 @@ class Client(object):
         self._bind_address = ""
         self._in_callback = False
         self._strict_protocol = False
-        self._callback_mutex = threading.Lock()
+        self._callback_mutex = threading.RLock()
         self._state_mutex = threading.Lock()
         self._out_packet_mutex = threading.Lock()
         self._current_out_packet_mutex = threading.Lock()

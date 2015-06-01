@@ -25,6 +25,8 @@ v1.2 - 2016-xx-xx
 - Don't block on TLS sockets on Python 3. Closes #2.
 - Client.publish() now accepts bytes() payloads on Python 3. Closes #1.
 - Don't attempt to join() own thread. Closes #14.
+- Allow the use of Client.message_callback_add() from inside callbacks. Closes
+  #12.
 
 
 v1.1 - 2015-01-30
