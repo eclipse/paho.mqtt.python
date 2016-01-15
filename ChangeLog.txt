@@ -1,6 +1,12 @@
-v1.1.1 - 2015-xx-xx
-===================
+v1.2 - 2016-xx-xx
+=================
 
+- Client.publish() now returns an MQTTMessageInfo object. The MQTTMessageInfo
+  object behaves like a tuple of (rc, mid) for backwards compatibility but
+  also provides two functions: is_published() and wait_for_published().
+  This allows a client to determine whether any given message has been
+  published without need for a callback, and also allows the client to block
+  waiting until the message has been sent.
 - Further fix for Client constructor for the case where "localhost" is
   unresolvable.
 
