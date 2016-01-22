@@ -30,6 +30,9 @@ Contents
     * `Publish`_
         * `Single`_
         * `Multiple`_
+    * `Subscribe`_
+        * `Simple`_
+        * `Calback`_
 * `Reporting bugs`_
 * `More information`_
    
@@ -132,18 +135,28 @@ Client()
 The ``Client()`` constructor takes the following arguments:
 
 client_id
-    the unique client id string used when connecting to the broker. If ``client_id`` is zero length or ``None``, then one will be randomly generated. In this case the ``clean_session`` parameter must be ``True``.
+    the unique client id string used when connecting to the broker. If
+    ``client_id`` is zero length or ``None``, then one will be randomly
+    generated. In this case the ``clean_session`` parameter must be ``True``.
 
 clean_session
-    a boolean that determines the client type. If ``True``, the broker will remove all information about this client when it disconnects. If ``False``, the client is a durable client and subscription information and queued messages will be retained when the client disconnects.
+    a boolean that determines the client type. If ``True``, the broker will
+    remove all information about this client when it disconnects. If ``False``,
+    the client is a durable client and subscription information and queued
+    messages will be retained when the client disconnects.
     
-    Note that a client will never discard its own outgoing messages on disconnect. Calling connect() or reconnect() will cause the messages to be resent. Use reinitialise() to reset a client to its original state.
+    Note that a client will never discard its own outgoing messages on
+    disconnect. Calling connect() or reconnect() will cause the messages to be
+    resent. Use reinitialise() to reset a client to its original state.
 
 userdata
-    user defined data of any type that is passed as the ``userdata`` parameter to callbacks. It may be updated at a later point with the ``user_data_set()`` function.
+    user defined data of any type that is passed as the ``userdata`` parameter
+    to callbacks. It may be updated at a later point with the
+    ``user_data_set()`` function.
 
 protocol
-    the version of the MQTT protocol to use for this client. Can be either ``MQTTv31`` or ``MQTTv311``
+    the version of the MQTT protocol to use for this client. Can be either
+    ``MQTTv31`` or ``MQTTv311``
     
 Example
 .......
@@ -262,21 +275,28 @@ will_set()
 ::
     will_set(topic, payload=None, qos=0, retain=False)
 
-Set a Will to be sent to the broker. If the client disconnects without calling ``disconnect()``, the broker will publish the message on its behalf.
+Set a Will to be sent to the broker. If the client disconnects without calling
+``disconnect()``, the broker will publish the message on its behalf.
 
 topic
     the topic that the will message should be published on.
 
 payload
-    the message to send as a will. If not given, or set to ``None`` a zero length message will be used as the will. Passing an int or float will result in the payload being converted to a string representing that number. If you wish to send a true int/float, use ``struct.pack()`` to create the payload you require.
+    the message to send as a will. If not given, or set to ``None`` a zero
+    length message will be used as the will. Passing an int or float will
+    result in the payload being converted to a string representing that number.
+    If you wish to send a true int/float, use ``struct.pack()`` to create the
+    payload you require.
     
 qos
     the quality of service level to use for the will.
     
 retain
-    if set to ``True``, the will message will be set as the "last known good"/retained message for the topic.
+    if set to ``True``, the will message will be set as the "last known
+    good"/retained message for the topic.
 
-Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if ``topic`` is ``None`` or has zero string length.
+Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if ``topic`` is
+``None`` or has zero string length.
 
 Connect / reconnect / disconnect
 ````````````````````````````````
@@ -288,24 +308,31 @@ connect()
 
     connect(host, port=1883, keepalive=60, bind_address="")
 
-The ``connect()`` function connects the client to a broker. This is a blocking function. It takes the following arguments:
+The ``connect()`` function connects the client to a broker. This is a blocking
+function. It takes the following arguments:
 
 host
     the hostname or IP address of the remote broker
 
 port
-    the network port of the server host to connect to. Defaults to 1883. Note that the default port for MQTT over SSL/TLS is 8883 so if you are using ``tls_set()`` the port may need providing manually
+    the network port of the server host to connect to. Defaults to 1883. Note
+    that the default port for MQTT over SSL/TLS is 8883 so if you are using
+    ``tls_set()`` the port may need providing manually
 
 keepalive
-    maximum period in seconds allowed between communications with the broker. If no other messages are being exchanged, this controls the rate at which the client will send ping messages to the broker
+    maximum period in seconds allowed between communications with the broker.
+    If no other messages are being exchanged, this controls the rate at which
+    the client will send ping messages to the broker
 
 bind_address
-    the IP address of a local network interface to bind this client to, assuming multiple interfaces exist
+    the IP address of a local network interface to bind this client to,
+    assuming multiple interfaces exist
 
 Callback
 ........
 
-When the client receives a CONNACK message from the broker in response to the connect it generates an ``on_connect()`` callback.
+When the client receives a CONNACK message from the broker in response to the
+connect it generates an ``on_connect()`` callback.
 
 Example
 .......
@@ -321,12 +348,14 @@ connect_async()
 
     connect_async(host, port=1883, keepalive=60, bind_address="")
 
-Identical to ``connect()``, but non-blocking. The connection will not complete until one of the ``loop*()`` functions is called.
+Identical to ``connect()``, but non-blocking. The connection will not complete
+until one of the ``loop*()`` functions is called.
 
 Callback
 ........
 
-When the client receives a CONNACK message from the broker in response to the connect it generates an ``on_connect()`` callback.
+When the client receives a CONNACK message from the broker in response to the
+connect it generates an ``on_connect()`` callback.
 
 connect_srv()
 '''''''''''''
@@ -335,17 +364,21 @@ connect_srv()
 
     connect_srv(domain, keepalive=60, bind_address="")
 
-Connect to a broker using an SRV DNS lookup to obtain the broker address. Takes the following arguments:
+Connect to a broker using an SRV DNS lookup to obtain the broker address. Takes
+the following arguments:
 
 domain
-    the DNS domain to search for SRV records. If ``None``, try to determine the local domain name.
+    the DNS domain to search for SRV records. If ``None``, try to determine the
+    local domain name.
 
-See ``connect()`` for a description of the ``keepalive`` and ``bind_address`` arguments.
+See ``connect()`` for a description of the ``keepalive`` and ``bind_address``
+arguments.
 
 Callback
 ........
 
-When the client receives a CONNACK message from the broker in response to the connect it generates an ``on_connect()`` callback.
+When the client receives a CONNACK message from the broker in response to the
+connect it generates an ``on_connect()`` callback.
 
 Example
 .......
@@ -361,12 +394,14 @@ reconnect()
 
     reconnect()
 
-Reconnect to a broker using the previously provided details. You must have called ``connect*()`` before calling this function.
+Reconnect to a broker using the previously provided details. You must have
+called ``connect*()`` before calling this function.
 
 Callback
 ........
 
-When the client receives a CONNACK message from the broker in response to the connect it generates an ``on_connect()`` callback.
+When the client receives a CONNACK message from the broker in response to the
+connect it generates an ``on_connect()`` callback.
 
 disconnect()
 ''''''''''''
@@ -375,17 +410,23 @@ disconnect()
 
     disconnect()
 
-Disconnect from the broker cleanly. Using ``disconnect()`` will not result in a will message being sent by the broker.
+Disconnect from the broker cleanly. Using ``disconnect()`` will not result in a
+will message being sent by the broker.
 
 Callback
 ........
 
-When the client has sent the disconnect message it generates an ``on_disconnect()`` callback.
+When the client has sent the disconnect message it generates an
+``on_disconnect()`` callback.
 
 Network loop
 ````````````
 
-These functions are the driving force behind the client. If they are not called, incoming network data will not be processed and outgoing network data may not be sent in a timely fashion. There are four options for managing the network loop. Three are described here, the fourth in "External event loop support" below. Do not mix the different loop functions.
+These functions are the driving force behind the client. If they are not
+called, incoming network data will not be processed and outgoing network data
+may not be sent in a timely fashion. There are four options for managing the
+network loop. Three are described here, the fourth in "External event loop
+support" below. Do not mix the different loop functions.
 
 loop()
 ''''''
@@ -394,7 +435,11 @@ loop()
 
     loop(timeout=1.0, max_packets=1)
 
-Call regularly to process network events. This call waits in ``select()`` until the network socket is available for reading or writing, if appropriate, then handles the incoming/outgoing data. This function blocks for up to ``timeout`` seconds. ``timeout`` must not exceed the ``keepalive`` value for the client or your client will be regularly disconnected by the broker.
+Call regularly to process network events. This call waits in ``select()`` until
+the network socket is available for reading or writing, if appropriate, then
+handles the incoming/outgoing data. This function blocks for up to ``timeout``
+seconds. ``timeout`` must not exceed the ``keepalive`` value for the client or
+your client will be regularly disconnected by the broker.
 
 The ``max_packets`` argument is obsolete and should be left unset.
 
@@ -415,7 +460,12 @@ loop_start() / loop_stop()
     loop_start()
     loop_stop(force=False)
 
-These functions implement a threaded interface to the network loop. Calling ``loop_start()`` once, before or after ``connect*()``, runs a thread in the background to call ``loop()`` automatically. This frees up the main thread for other work that may be blocking. This call also handles reconnecting to the broker. Call ``loop_stop()`` to stop the background thread. The ``force`` argument is currently ignored.
+These functions implement a threaded interface to the network loop. Calling
+``loop_start()`` once, before or after ``connect*()``, runs a thread in the
+background to call ``loop()`` automatically. This frees up the main thread for
+other work that may be blocking. This call also handles reconnecting to the
+broker. Call ``loop_stop()`` to stop the background thread. The ``force``
+argument is currently ignored.
 
 Example
 .......
@@ -436,11 +486,16 @@ loop_forever()
 
     loop_forever(timeout=1.0, max_packets=1, retry_first_connection=False)
     
-This is a blocking form of the network loop and will not return until the client calls ``disconnect()``. It automatically handles reconnecting.
+This is a blocking form of the network loop and will not return until the
+client calls ``disconnect()``. It automatically handles reconnecting.
 
-Except for the first connection attempt when using connect_async, use ``retry_first_connection=True`` to make it retry the first connection.  Warning: This might lead to situations where the client keeps connecting to an non existing host without failing.
+Except for the first connection attempt when using connect_async, use
+``retry_first_connection=True`` to make it retry the first connection.
+Warning: This might lead to situations where the client keeps connecting to an
+non existing host without failing.
 
-The ``timeout`` and ``max_packets`` arguments are obsolete and should be left unset.
+The ``timeout`` and ``max_packets`` arguments are obsolete and should be left
+unset.
 
 Publishing
 ``````````
@@ -454,28 +509,41 @@ publish()
 
     publish(topic, payload=None, qos=0, retain=False)
 
-This causes a message to be sent to the broker and subsequently from the broker to any clients subscribing to matching topics. It takes the following arguments:
+This causes a message to be sent to the broker and subsequently from the broker
+to any clients subscribing to matching topics. It takes the following
+arguments:
 
 topic
     the topic that the message should be published on
 
 payload
-    the actual message to send. If not given, or set to ``None`` a zero length message will be used. Passing an int or float will result in the payload being converted to a string representing that number. If you wish to send a true int/float, use ``struct.pack()`` to create the payload you require
+    the actual message to send. If not given, or set to ``None`` a zero length
+    message will be used. Passing an int or float will result in the payload
+    being converted to a string representing that number. If you wish to send a
+    true int/float, use ``struct.pack()`` to create the payload you require
     
 qos
     the quality of service level to use
 
 retain
-    if set to ``True``, the message will be set as the "last known good"/retained message for the topic.
+    if set to ``True``, the message will be set as the "last known
+    good"/retained message for the topic.
 
-Returns a tuple ``(result, mid)``, where result is ``MQTT_ERR_SUCCESS`` to indicate success or ``MQTT_ERR_NO_CONN`` if the client is not currently connected. ``mid`` is the message ID for the publish request. The mid value can be used to track the publish request by checking against the mid argument in the ``on_publish()`` callback if it is defined.
+Returns a tuple ``(result, mid)``, where result is ``MQTT_ERR_SUCCESS`` to
+indicate success or ``MQTT_ERR_NO_CONN`` if the client is not currently
+connected. ``mid`` is the message ID for the publish request. The mid value can
+be used to track the publish request by checking against the mid argument in
+the ``on_publish()`` callback if it is defined.
 
-A ``ValueError`` will be raised if topic is ``None``, has zero length or is invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the length of the payload is greater than 268435455 bytes.
+A ``ValueError`` will be raised if topic is ``None``, has zero length or is
+invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the
+length of the payload is greater than 268435455 bytes.
 
 Callback
 ........
 
-When the message has been sent to the broker an ``on_publish()`` callback will be generated.
+When the message has been sent to the broker an ``on_publish()`` callback will
+be generated.
 
 
 Subscribe / Unsubscribe
@@ -519,22 +587,30 @@ List of string and integer tuples
 
 e.g. ``subscribe([("my/topic", 0), ("another/topic", 2)])``
 
-This allows multiple topic subscriptions in a single SUBSCRIPTION command, which is more efficient than using multiple calls to ``subscribe()``.
+This allows multiple topic subscriptions in a single SUBSCRIPTION command,
+which is more efficient than using multiple calls to ``subscribe()``.
 
 topic
-    a list of tuple of format ``(topic, qos)``. Both topic and qos must be present in all of the tuples.
+    a list of tuple of format ``(topic, qos)``. Both topic and qos must be
+    present in all of the tuples.
     
 qos
     not used.
 
-The function returns a tuple ``(result, mid)``, where ``result`` is ``MQTT_ERR_SUCCESS`` to indicate success or ``(MQTT_ERR_NO_CONN, None)`` if the client is not currently connected.  ``mid`` is the message ID for the subscribe request. The mid value can be used to track the subscribe request by checking against the mid argument in the ``on_subscribe()`` callback if it is defined.
+The function returns a tuple ``(result, mid)``, where ``result`` is
+``MQTT_ERR_SUCCESS`` to indicate success or ``(MQTT_ERR_NO_CONN, None)`` if the
+client is not currently connected.  ``mid`` is the message ID for the subscribe
+request. The mid value can be used to track the subscribe request by checking
+against the mid argument in the ``on_subscribe()`` callback if it is defined.
 
-Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if topic is ``None`` or has zero string length, or if ``topic`` is not a string, tuple or list.
+Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if topic is ``None`` or
+has zero string length, or if ``topic`` is not a string, tuple or list.
 
 Callback
 ........
 
-When the broker has acknowledged the subscription, an ``on_subscribe()`` callback will be generated.
+When the broker has acknowledged the subscription, an ``on_subscribe()``
+callback will be generated.
 
 unsubscribe()
 '''''''''''''
@@ -546,19 +622,23 @@ unsubscribe()
 Unsubscribe the client from one or more topics.
 
 topic
-    a single string, or list of strings that are the subscription topics to unsubscribe from.
+    a single string, or list of strings that are the subscription topics to
+    unsubscribe from.
 
-Returns a tuple ``(result, mid)``, where ``result`` is ``MQTT_ERR_SUCCESS``
-to indicate success, or ``(MQTT_ERR_NO_CONN, None)`` if the client is not
-currently connected. ``mid`` is the message ID for the unsubscribe request. The mid value can be used to track the unsubscribe request by checking against the mid
-argument in the ``on_unsubscribe()`` callback if it is defined.
+Returns a tuple ``(result, mid)``, where ``result`` is ``MQTT_ERR_SUCCESS`` to
+indicate success, or ``(MQTT_ERR_NO_CONN, None)`` if the client is not
+currently connected. ``mid`` is the message ID for the unsubscribe request. The
+mid value can be used to track the unsubscribe request by checking against the
+mid argument in the ``on_unsubscribe()`` callback if it is defined.
 
-Raises a ``ValueError`` if ``topic`` is ``None`` or has zero string length, or is not a string or list.
+Raises a ``ValueError`` if ``topic`` is ``None`` or has zero string length, or
+is not a string or list.
 
 Callback
 ........
 
-When the broker has acknowledged the unsubscribe, an ``on_unsubscribe()`` callback will be generated.
+When the broker has acknowledged the unsubscribe, an ``on_unsubscribe()``
+callback will be generated.
 
 Callbacks
 `````````
@@ -630,7 +710,10 @@ userdata
 rc
     the disconnection result
 
-The rc parameter indicates the disconnection state. If ``MQTT_ERR_SUCCESS`` (0), the callback was called in response to a ``disconnect()`` call. If any other value the disconnection was unexpected, such as might be caused by a network error. 
+The rc parameter indicates the disconnection state. If ``MQTT_ERR_SUCCESS``
+(0), the callback was called in response to a ``disconnect()`` call. If any
+other value the disconnection was unexpected, such as might be caused by a
+network error. 
  
 Example
 .......
@@ -680,24 +763,32 @@ Example
 message_callback_add()
 ''''''''''''''''''''''
 
-This function allows you to define callbacks that handle incoming messages for specific subscription filters, including with wildcards. This lets you, for example, subscribe to ``sensors/#`` and have one callback to handle ``sensors/temperature`` and another to handle ``sensors/humidity``.
+This function allows you to define callbacks that handle incoming messages for
+specific subscription filters, including with wildcards. This lets you, for
+example, subscribe to ``sensors/#`` and have one callback to handle
+``sensors/temperature`` and another to handle ``sensors/humidity``.
 
 ::
 
     message_callback_add(sub, callback)
 
 sub
-    the subscription filter to match against for this callback. Only one callback may be defined per literal sub string
+    the subscription filter to match against for this callback. Only one
+    callback may be defined per literal sub string
 
 callback
-    the callback to be used. Takes the same form as the ``on_message`` callback.
+    the callback to be used. Takes the same form as the ``on_message``
+    callback.
 
-If using ``message_callback_add()`` and ``on_message``, only messages that do not match a subscription specific filter will be passed to the ``on_message`` callback.
+If using ``message_callback_add()`` and ``on_message``, only messages that do
+not match a subscription specific filter will be passed to the ``on_message``
+callback.
 
 message_callback_remove()
 '''''''''''''''''''''''''
 
-Remove a topic/subscription specific callback previously registered using ``message_callback_add()``.
+Remove a topic/subscription specific callback previously registered using
+``message_callback_add()``.
 
 ::
 
@@ -713,9 +804,15 @@ on_publish()
 
     on_publish(client, userdata, mid)
 
-Called when a message that was to be sent using the ``publish()`` call has completed transmission to the broker. For messages with QoS levels 1 and 2, this means that the appropriate handshakes have completed. For QoS 0, this simply means that the message has left the client. The ``mid`` variable matches the mid variable returned from the corresponding ``publish()`` call, to allow outgoing messages to be tracked. 
+Called when a message that was to be sent using the ``publish()`` call has
+completed transmission to the broker. For messages with QoS levels 1 and 2,
+this means that the appropriate handshakes have completed. For QoS 0, this
+simply means that the message has left the client. The ``mid`` variable matches
+the mid variable returned from the corresponding ``publish()`` call, to allow
+outgoing messages to be tracked. 
 
-This callback is important because even if the publish() call returns success, it does not always mean that the message has been sent. 
+This callback is important because even if the publish() call returns success,
+it does not always mean that the message has been sent. 
  
 on_subscribe()
 ''''''''''''''
@@ -724,7 +821,10 @@ on_subscribe()
 
     on_subscribe(client, userdata, mid, granted_qos)
 
-Called when the broker responds to a subscribe request. The ``mid`` variable matches the mid variable returned from the corresponding ``subscribe()`` call. The ``granted_qos`` variable is a list of integers that give the QoS level the broker has granted for each of the different subscription requests. 
+Called when the broker responds to a subscribe request. The ``mid`` variable
+matches the mid variable returned from the corresponding ``subscribe()`` call.
+The ``granted_qos`` variable is a list of integers that give the QoS level the
+broker has granted for each of the different subscription requests. 
 
 on_unsubscribe()
 ''''''''''''''''
@@ -733,7 +833,9 @@ on_unsubscribe()
 
     on_unsubscribe(client, userdata, mid)
 
-Called when the broker responds to an unsubscribe request. The ``mid`` variable matches the mid variable returned from the corresponding ``unsubscribe()`` call. 
+Called when the broker responds to an unsubscribe request. The ``mid`` variable
+matches the mid variable returned from the corresponding ``unsubscribe()``
+call. 
 
 on_log()
 ''''''''
@@ -742,7 +844,10 @@ on_log()
 
     on_log(client, userdata, level, buf)
     
-Called when the client has log information. Define to allow debugging. The ``level`` variable gives the severity of the message and will be one of ``MQTT_LOG_INFO``, ``MQTT_LOG_NOTICE``, ``MQTT_LOG_WARNING``, ``MQTT_LOG_ERR``, and ``MQTT_LOG_DEBUG``. The message itself is in ``buf``. 
+Called when the client has log information. Define to allow debugging. The
+``level`` variable gives the severity of the message and will be one of
+``MQTT_LOG_INFO``, ``MQTT_LOG_NOTICE``, ``MQTT_LOG_WARNING``, ``MQTT_LOG_ERR``,
+and ``MQTT_LOG_DEBUG``. The message itself is in ``buf``. 
 
 External event loop support
 ```````````````````````````
@@ -754,7 +859,8 @@ loop_read()
 
     loop_read(max_packets=1)
 
-Call when the socket is ready for reading. ``max_packets`` is obsolete and should be left unset.
+Call when the socket is ready for reading. ``max_packets`` is obsolete and
+should be left unset.
 
 loop_write()
 ''''''''''''
@@ -763,7 +869,8 @@ loop_write()
 
     loop_write(max_packets=1)
 
-Call when the socket is ready for writing. ``max_packets`` is obsolete and should be left unset.
+Call when the socket is ready for writing. ``max_packets`` is obsolete and
+should be left unset.
 
 loop_misc()
 '''''''''''
@@ -781,7 +888,8 @@ socket()
 
     socket()
 
-Returns the socket object in use in the client to allow interfacing with other event loops.
+Returns the socket object in use in the client to allow interfacing with other
+event loops.
 
 want_write()
 ''''''''''''
@@ -790,14 +898,16 @@ want_write()
 
     want_write()
 
-Returns true if there is data waiting to be written, to allow interfacing the client with other event loops.
+Returns true if there is data waiting to be written, to allow interfacing the
+client with other event loops.
 
 Global helper functions
 ```````````````````````
 
 The client module also offers some global helper functions.
 
-``topic_matches_sub(sub, topic)`` can be used to check whether a ``topic`` matches a ``subscription``.
+``topic_matches_sub(sub, topic)`` can be used to check whether a ``topic``
+matches a ``subscription``.
     
 For example:
 
@@ -806,15 +916,20 @@ For example:
     the topic ``non/matching`` would not match the subscription ``non/+/+``
 
 
-``connack_string(connack_code)`` returns the error string associated with a CONNACK result.
+``connack_string(connack_code)`` returns the error string associated with a
+CONNACK result.
 
 
-``error_string(mqtt_errno)`` returns the error string associated with a Paho MQTT error number.
+``error_string(mqtt_errno)`` returns the error string associated with a Paho
+MQTT error number.
 
 Publish
 *******
 
-This module provides some helper functions to allow straightforward publishing of messages in a one-shot manner. In other words, they are useful for the situation where you have a single/multiple messages you want to publish to a broker, then disconnect with nothing else required.
+This module provides some helper functions to allow straightforward publishing
+of messages in a one-shot manner. In other words, they are useful for the
+situation where you have a single/multiple messages you want to publish to a
+broker, then disconnect with nothing else required.
 
 The two functions provided are ``single()`` and ``multiple()``.
 
@@ -834,10 +949,12 @@ Function arguments
 ''''''''''''''''''
 
 topic
-    the only required argument must be the topic string to which the payload will be published.
+    the only required argument must be the topic string to which the payload
+    will be published.
     
 payload
-    the payload to be published. If "" or None, a zero length payload will be published.
+    the payload to be published. If "" or None, a zero length payload will be
+    published.
     
 qos
     the qos to use when publishing,  default to 0.
@@ -846,13 +963,15 @@ retain
     set the message to be retained (True) or not (False).
     
 hostname
-    a string containing the address of the broker to connect to. Defaults to localhost.
+    a string containing the address of the broker to connect to. Defaults to
+    localhost.
     
 port
     the port to connect to the broker on. Defaults to 1883.
     
 client_id
-    the MQTT client id to use. If "" or None, the Paho library will                 generate a client id automatically.
+    the MQTT client id to use. If "" or None, the Paho library will
+    generate a client id automatically.
     
 keepalive
     the keepalive timeout value for the client. Defaults to 60 seconds.
@@ -862,7 +981,8 @@ will
     
     will = {'topic': "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
     
-    Topic is required, all other parameters are optional and will default to None, 0 and False respectively.
+    Topic is required, all other parameters are optional and will default to
+    None, 0 and False respectively.
     
     Defaults to None, which indicates no will should be used.
     
@@ -936,6 +1056,152 @@ Example
     msgs = [{'topic':"paho/test/multiple", 'payload':"multiple 1"},
         ("paho/test/multiple", "multiple 2", 0, False)]
     publish.multiple(msgs, hostname="iot.eclipse.org")
+
+ 
+Subscribe
+*********
+
+This module provides some helper functions to allow straightforward subscribing
+and processing of messages.
+
+The two functions provided are ``simple()`` and ``callback()``.
+
+Simple
+``````
+
+Subscribe to a set of topics and return the messages received. This is a
+blocking function.
+
+::
+
+    simple(topics, qos=0, msg_count=1, retained=False, hostname="localhost",
+        port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
+        protocol=mqtt.MQTTv311)
+           
+
+Function arguments
+''''''''''''''''''
+
+topics
+    the only required argument is the topic string to which the client will
+    subscribe. This can either be a string or a list of strings if multiple
+    topics should be subscribed to.
+    
+qos
+    the qos to use when subscribing, defaults to 0.
+
+msg_count
+    the number of messages to retrieve from the broker. Defaults to 1. If 1, a
+    single MQTTMessage object will be returned. If >1, a list of MQTTMessages
+    will be returned.
+
+retained
+    set to True to consider retained messages, set to False to ignore messages
+    with the retained flag set.
+    
+hostname
+    a string containing the address of the broker to connect to. Defaults to localhost.
+    
+port
+    the port to connect to the broker on. Defaults to 1883.
+    
+client_id
+    the MQTT client id to use. If "" or None, the Paho library will
+    generate a client id automatically.
+    
+keepalive
+    the keepalive timeout value for the client. Defaults to 60 seconds.
+    
+will
+    a dict containing will parameters for the client:
+    
+    will = {'topic': "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
+    
+    Topic is required, all other parameters are optional and will default to
+    None, 0 and False respectively.
+    
+    Defaults to None, which indicates no will should be used.
+    
+auth
+    a dict containing authentication parameters for the client:
+    
+    auth = {'username':"<username>", 'password':"<password>"}
+    
+    Username is required, password is optional and will default to None if not
+    provided.
+    
+    Defaults to None, which indicates no authentication is to be used.
+
+tls
+    a dict containing TLS configuration parameters for the client:
+    
+    dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>", 'keyfile':"<keyfile>", 'tls_version':"<tls_version>", 'ciphers':"<ciphers">}
+    
+    ca_certs is required, all other parameters are optional and will default to
+    None if not provided, which results in the client using the default
+    behaviour - see the paho.mqtt.client documentation.
+    
+    Defaults to None, which indicates that TLS should not be used.
+
+protocol
+    choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
+    
+
+Example
+'''''''
+
+::
+
+    import paho.mqtt.subscribe as subscribe
+    
+    msg = subscribe.simple("paho/test/simple", hostname="iot.eclipse.org")
+    print("%s %s" % (msg.topic, msg.payload))
+
+Callback
+````````
+
+Subscribe to a set of topics and process the messages received using a user
+provided callback. 
+
+::
+
+    callback(callback, topics, qos=0, userdata=None, hostname="localhost",
+        port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
+        protocol=mqtt.MQTTv311)
+
+Function arguments
+''''''''''''''''''
+
+callback
+    an "on_message" callback that will be used for each message received, and
+    of the form
+    
+        def on_message(client, userdata, message)
+
+topics
+    the topic string to which the client will subscribe. This can either be a
+    string or a list of strings if multiple topics should be subscribed to.
+
+qos
+    the qos to use when subscribing, defaults to 0.
+
+userdata
+    a user provided obkect that will be passed to the on_message callback when
+    a message is received.
+
+See ``simple()`` for the description of ``hostname``, ``port``, ``client_id``, ``keepalive``, ``will``, ``auth``, ``tls``, ``protocol``.
+
+Example
+'''''''
+
+::
+
+    import paho.mqtt.subscribe as subscribe
+    
+    def on_message_print(client, userdata, message):
+        print("%s %s" % (message.topic, message.payload))
+
+    subscribe.callback(on_message_print, "paho/test/callback", hostname="iot.eclipse.org")
 
  
 Reporting bugs

@@ -9,6 +9,8 @@ v1.2 - 2016-xx-xx
   waiting until the message has been sent.
 - Further fix for Client constructor for the case where "localhost" is
   unresolvable.
+- Add paho.mqtt.subscribe module, with simple() and callback() helper
+  functions.
 
 
 v1.1 - 2015-01-30
