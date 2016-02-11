@@ -11,6 +11,7 @@ v1.2 - 2016-xx-xx
   unresolvable.
 - Add paho.mqtt.subscribe module, with simple() and callback() helper
   functions.
+- Allow ^C to interrupt client loop.
 
 
 v1.1 - 2015-01-30
