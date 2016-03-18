@@ -3,6 +3,8 @@ v1.1.1 - 2015-xx-xx
 
 - Further fix for Client constructor for the case where "localhost" is
   unresolvable.
+- Fix for keepalive=0 causing an infinite disconnect/reconnect loop. Closes
+  #42.
 
 
 v1.1 - 2015-01-30

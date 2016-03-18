@@ -1571,6 +1571,9 @@ class Client(object):
             self.on_log(self, self._userdata, level, buf)
 
     def _check_keepalive(self):
+        if self._keepalive == 0:
+            return MQTT_ERR_SUCCESS
+
         now = time.time()
         self._msgtime_mutex.acquire()
         last_msg_out = self._last_msg_out
