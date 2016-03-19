@@ -2,4 +2,5 @@
 build
 dist
 MANIFEST
+pkg/debian
 
