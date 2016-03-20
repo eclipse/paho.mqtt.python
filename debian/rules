@@ -20,7 +20,6 @@ PACKAGE = $(shell dh_listpackages)
 override_dh_usrlocal:
 override_dh_auto_install:
 	python setup.py install --root= --install-layout=deb --install-lib=/usr/share/pyshared/
-override_dh_auto_test:
 
 
 # dh_make generated override targets
