@@ -200,6 +200,17 @@ Set the maximum number of messages with QoS>0 that can be part way through their
 
 Defaults to 20. Increasing this value will consume more memory but can increase throughput.
 
+max_queued_messages_set()
+'''''''''''''''''''''''''
+
+::
+
+    max_queued_messages_set(self, queue_size)
+
+Set the maximum number of outgoing messages with QoS>0 that can be pending in the outgoing message queue.
+
+Defaults to 0. 0 means unlimited. When the queue is full, any further outgoing messages would be dropped.
+
 message_retry_set()   
 '''''''''''''''''''
 
