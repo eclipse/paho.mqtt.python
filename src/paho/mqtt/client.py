@@ -128,6 +128,7 @@ MQTT_ERR_AUTH = 11
 MQTT_ERR_ACL_DENIED = 12
 MQTT_ERR_UNKNOWN = 13
 MQTT_ERR_ERRNO = 14
+MQTT_ERR_QUEUE_SIZE = 15
 
 if sys.version_info[0] < 3:
     sockpair_data = "0"
@@ -274,9 +275,67 @@ def _socketpair_compat():
     return (sock1, sock2)
 
 
+class MQTTMessageInfo:
+    """This is a class returned from Client.publish() and can be used to find
+    out the mid of the message that was published, and to determine whether the
+    message has been published, and/or wait until it is published.
+    """
+    def __init__(self, mid):
+        self.mid = mid
+        self._published = False
+        self._condition = threading.Condition()
+        self.rc = 0
+        self._iterpos = 0
+
+    def __str__(self):
+        return str((self.rc, self.mid))
+
+    def __iter__(self):
+        self._iterpos = 0
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        if self._iterpos == 0:
+            self._iterpos = 1
+            return self.rc
+        elif self._iterpos == 1:
+            self._iterpos = 2
+            return self.mid
+        else:
+            raise StopIteration
+
+    def __getitem__(self, index):
+        if index == 0:
+            return self.rc
+        elif index == 1:
+            return self.mid
+        else:
+            raise IndexError("index out of range")
+
+    def _set_as_published(self):
+        with self._condition:
+            self._published = True
+            self._condition.notify()
+
+    def wait_for_publish(self):
+        """Block until the message associated with this object is published."""
+        with self._condition:
+            while self._published == False:
+                self._condition.wait()
+
+    def is_published(self):
+        """Returns True if the message associated with this object has been
+        published, else returns False."""
+        with self._condition:
+            return self._published
+
+
 class MQTTMessage:
-    """ This is a class that describes an incoming message. It is passed to the
-    on_message callback as the message parameter.
+    """ This is a class that describes an incoming or outgoing message. It is
+    passed to the on_message callback as the message parameter.
 
     Members:
 
@@ -286,15 +345,16 @@ class MQTTMessage:
     retain : Boolean. If true, the message is a retained message and not fresh.
     mid : Integer. The message id.
     """
-    def __init__(self):
+    def __init__(self, mid=0, topic=""):
         self.timestamp = 0
         self.state = mqtt_ms_invalid
         self.dup = False
-        self.mid = 0
-        self.topic = ""
+        self.mid = mid
+        self.topic = topic
         self.payload = None
         self.qos = 0
         self.retain = False
+        self.info = MQTTMessageInfo(mid)
 
 
 class Client(object):
@@ -451,6 +511,7 @@ class Client(object):
         self._in_messages = []
         self._max_inflight_messages = 20
         self._inflight_messages = 0
+        self._max_queued_messages = 0
         self._will = False
         self._will_topic = ""
         self._will_payload = None
@@ -804,6 +865,9 @@ class Client(object):
             # Can occur if we just reconnected but rlist/wlist contain a -1 for
             # some reason.
             return MQTT_ERR_CONN_LOST
+        except KeyboardInterrupt:
+            # Allow ^C to interrupt
+            raise
         except:
             return MQTT_ERR_UNKNOWN
 
@@ -846,11 +910,20 @@ class Client(object):
         retain: If set to true, the message will be set as the "last known
         good"/retained message for the topic.
 
-        Returns a tuple (result, mid), where result is MQTT_ERR_SUCCESS to
-        indicate success or MQTT_ERR_NO_CONN if the client is not currently
-        connected.  mid is the message ID for the publish request. The mid
-        value can be used to track the publish request by checking against the
-        mid argument in the on_publish() callback if it is defined.
+        Returns a MQTTMessageInfo class, which can be used to determine whether
+        the message has been delivered (using info.is_published()) or to block
+        waiting for the message to be delivered (info.wait_for_publish()). The
+        message ID and return code of the publish() call can be found at
+        info.mid and info.rc.
+
+        For backwards compatibility, the MQTTMessageInfo class is iterable so
+        the old construct of (rc, mid) = client.publish(...) is still valid.
+
+        rc is MQTT_ERR_SUCCESS to indicate success or MQTT_ERR_NO_CONN if the
+        client is not currently connected.  mid is the message ID for the
+        publish request. The mid value can be used to track the publish request
+        by checking against the mid argument in the on_publish() callback if it
+        is defined.
 
         A ValueError will be raised if topic is None, has zero length or is
         invalid (contains a wildcard), if qos is not one of 0, 1 or 2, or if
@@ -879,14 +952,14 @@ class Client(object):
         local_mid = self._mid_generate()
 
         if qos == 0:
-            rc = self._send_publish(local_mid, topic, local_payload, qos, retain, False)
-            return (rc, local_mid)
+            info = MQTTMessageInfo(local_mid)
+            rc = self._send_publish(local_mid, topic, local_payload, qos, retain, False, info)
+            info.rc = rc
+            return info
         else:
-            message = MQTTMessage()
+            message = MQTTMessage(local_mid, topic)
             message.timestamp = time.time()
 
-            message.mid = local_mid
-            message.topic = topic
             if local_payload is None or len(local_payload) == 0:
                 message.payload = None
             else:
@@ -897,6 +970,11 @@ class Client(object):
             message.dup = False
 
             self._out_message_mutex.acquire()
+
+            if self._max_queued_messages > 0 and len(self._out_messages) >= self._max_queued_messages:
+                self._out_message_mutex.release()
+                return (MQTT_ERR_QUEUE_SIZE, local_mid)
+
             self._out_messages.append(message)
             if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
                 self._inflight_messages = self._inflight_messages+1
@@ -914,11 +992,13 @@ class Client(object):
                         self._inflight_messages -= 1
                         message.state = mqtt_ms_publish
 
-                return (rc, local_mid)
+                message.info.rc = rc
+                return message.info
             else:
                 message.state = mqtt_ms_queued;
                 self._out_message_mutex.release()
-                return (MQTT_ERR_SUCCESS, local_mid)
+                message.info.rc = MQTT_ERR_SUCCESS
+                return message.info
 
     def username_pw_set(self, username, password=None):
         """Set a username and optionally a password for broker authentication.
@@ -1156,6 +1236,16 @@ class Client(object):
         if inflight < 0:
             raise ValueError('Invalid inflight.')
         self._max_inflight_messages = inflight
+
+    def max_queued_messages_set(self, queue_size):
+        """Set the maximum number of messages in the outgoing message queue.
+        0 means unlimited."""
+        if queue_size < 0:
+            raise ValueError('Invalid queue size.')
+        if not isinstance(queue_size, int):
+            raise ValueError('Invalid type of queue size.')
+        self._max_queued_messages = queue_size
+        return self
 
     def message_retry_set(self, retry):
         """Set the timeout in seconds before a message with QoS>0 is retried.
@@ -1524,8 +1614,9 @@ class Client(object):
                             self._in_callback = True
                             self.on_publish(self, self._userdata, packet['mid'])
                             self._in_callback = False
-
                         self._callback_mutex.release()
+
+                        packet['info']._set_as_published()
 
                     if (packet['command'] & 0xF0) == DISCONNECT:
                         self._current_out_packet_mutex.release()
@@ -1677,7 +1768,7 @@ class Client(object):
             else:
                 raise TypeError
 
-    def _send_publish(self, mid, topic, payload=None, qos=0, retain=False, dup=False):
+    def _send_publish(self, mid, topic, payload=None, qos=0, retain=False, dup=False, info=None):
         if self._sock is None and self._ssl is None:
             return MQTT_ERR_NO_CONN
 
@@ -1724,7 +1815,7 @@ class Client(object):
             else:
                 raise TypeError('payload must be a string, unicode or a bytearray.')
 
-        return self._packet_queue(PUBLISH, packet, mid, qos)
+        return self._packet_queue(PUBLISH, packet, mid, qos, info)
 
     def _send_pubrec(self, mid):
         self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREC (Mid: "+str(mid)+")")
@@ -1899,14 +1990,15 @@ class Client(object):
         self._messages_reconnect_reset_out()
         self._messages_reconnect_reset_in()
 
-    def _packet_queue(self, command, packet, mid, qos):
+    def _packet_queue(self, command, packet, mid, qos, info=None):
         mpkt = dict(
             command = command,
             mid = mid,
             qos = qos,
             pos = 0,
             to_process = len(packet),
-            packet = packet)
+            packet = packet,
+            info = info)
 
         self._out_packet_mutex.acquire()
         self._out_packet.append(mpkt)
@@ -2219,6 +2311,25 @@ class Client(object):
         self._callback_mutex.release()
         return MQTT_ERR_SUCCESS
 
+    def _do_on_publish(self, idx, mid):
+        with self._callback_mutex:
+            if self.on_publish:
+                self._out_message_mutex.release()
+                self._in_callback = True
+                self.on_publish(self, self._userdata, mid)
+                self._in_callback = False
+                self._out_message_mutex.acquire()
+
+        msg = self._out_messages.pop(idx)
+        if msg.qos > 0:
+            self._inflight_messages = self._inflight_messages - 1
+            if self._max_inflight_messages > 0:
+                rc = self._update_inflight()
+                if rc != MQTT_ERR_SUCCESS:
+                    return rc
+        msg.info._set_as_published()
+        return MQTT_ERR_SUCCESS
+
     def _handle_pubackcomp(self, cmd):
         if self._strict_protocol:
             if self._in_packet['remaining_length'] != 2:
@@ -2233,24 +2344,9 @@ class Client(object):
             try:
                 if self._out_messages[i].mid == mid:
                     # Only inform the client the message has been sent once.
-                    self._callback_mutex.acquire()
-                    if self.on_publish:
-                        self._out_message_mutex.release()
-                        self._in_callback = True
-                        self.on_publish(self, self._userdata, mid)
-                        self._in_callback = False
-                        self._out_message_mutex.acquire()
-
-                    self._callback_mutex.release()
-                    self._out_messages.pop(i)
-                    self._inflight_messages = self._inflight_messages - 1
-                    if self._max_inflight_messages > 0:
-                        rc = self._update_inflight()
-                        if rc != MQTT_ERR_SUCCESS:
-                            self._out_message_mutex.release()
-                            return rc
+                    rc = self._do_on_publish(i, mid)
                     self._out_message_mutex.release()
-                    return MQTT_ERR_SUCCESS
+                    return rc
             except IndexError:
                 # Have removed item so i>count.
                 # Not really an error.
