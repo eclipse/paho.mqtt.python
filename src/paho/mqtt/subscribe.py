@@ -20,6 +20,7 @@ you to pass a callback for processing of messages.
 """
 
 import paho.mqtt.client as mqtt
+import ssl
 
 
 def _on_connect(c, userdata, flags, rc):
@@ -162,7 +163,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         try:
             tls_version = tls['tls_version']
         except KeyError:
-            tls_version = None
+            tls_version = ssl.PROTOCOL_SSLv23;
         try:
             ciphers = tls['ciphers']
         except KeyError:
