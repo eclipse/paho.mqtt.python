@@ -679,7 +679,7 @@ class Client(object):
         """
 
         if HAVE_DNS is False:
-            raise ValueError('No DNS resolver library found.')
+            raise ValueError('No DNS resolver library found, try "pip install dnspython" or "pip3 install dnspython3".')
 
         if domain is None:
             domain = socket.getfqdn()
