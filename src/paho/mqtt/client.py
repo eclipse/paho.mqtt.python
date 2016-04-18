@@ -2280,14 +2280,7 @@ class Client(object):
         self._callback_mutex.release()
 
     def _thread_main(self):
-        self._state_mutex.acquire()
-        if self._state == mqtt_cs_connect_async:
-            self._state_mutex.release()
-            self.reconnect()
-        else:
-            self._state_mutex.release()
-
-        self.loop_forever()
+        self.loop_forever(retry_first_connection=True)
 
     def _host_matches_cert(self, host, cert_host):
         if cert_host[0:2] == "*.":
