@@ -1244,6 +1244,9 @@ class Client(object):
         run = True
 
         while run:
+            if self._thread_terminate is True:
+                break
+
             if self._state == mqtt_cs_connect_async:
                 try:
                     self.reconnect()
