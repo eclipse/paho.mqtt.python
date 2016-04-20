@@ -5,6 +5,7 @@ v1.1.1 - 2015-xx-xx
   unresolvable.
 - Fix for keepalive=0 causing an infinite disconnect/reconnect loop. Closes
   #42.
+- Add stub callbacks to Client for easy inheritance. Closes #53.
 
 
 v1.1 - 2015-01-30
