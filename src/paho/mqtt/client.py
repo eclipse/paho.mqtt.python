@@ -479,6 +479,14 @@ class Client(object):
         self._tls_ciphers = None
         self._tls_version = tls_version
         self._tls_insecure = False
+        # No default callbacks
+        self._on_log = None
+        self._on_connect = None
+        self._on_subscribe = None
+        self._on_message = None
+        self._on_publish = None
+        self._on_unsubscribe = None
+        self._on_disconnect = None
 
     def __del__(self):
         pass
@@ -1134,9 +1142,10 @@ class Client(object):
                 rc = MQTT_ERR_SUCCESS
             else:
                 rc = 1
-            self._in_callback = True
-            self.on_disconnect(self, self._userdata, rc)
-            self._in_callback = False
+            if self.on_disconnect:
+                self._in_callback = True
+                self.on_disconnect(self, self._userdata, rc)
+                self._in_callback = False
             self._callback_mutex.release()
             return MQTT_ERR_CONN_LOST
 
@@ -1312,9 +1321,9 @@ class Client(object):
         self._thread.join()
         self._thread = None
 
-    def on_log(self, client, userdata, level, buf):
-        """Called when the client has log information.
-        This function may be overridden by sub-classes.
+    @property
+    def on_log(self):
+        """Called when the client has log information if implemented.
 
         Define to allow debugging.
 
@@ -1323,11 +1332,15 @@ class Client(object):
                 MQTT_LOG_DEBUG.
         buf:    the message itself
         """
-        pass
+        return self._on_log
 
-    def on_connect(self, client, userdata, flag, rc):
-        """Called when the broker responds to our connection request.
-        This function may be overridden by sub-classes.
+    @on_log.setter
+    def on_log(self, func):
+        self._on_log = func
+
+    @property
+    def on_connect(self):
+        """Called when the broker responds to our connection request if implemented.
 
         self:       the client instance for this callback
         userdata:   the private user data as set in ``Client()`` or ``userdata_set()``
@@ -1350,23 +1363,31 @@ class Client(object):
             5: Connection refused - not authorised
             6-255: Currently unused.
         """
-        pass
+        return self._on_connect
 
-    def on_subscribe(self, client, userdata, mid, granted_qos):
-        """Called when the broker responds to a subscribe request.
-        This function may be overridden by sub-classes.
+    @on_connect.setter
+    def on_connect(self, func):
+        self._on_connect = func
+
+    @property
+    def on_subscribe(self):
+        """Called when the broker responds to a subscribe request if implemented.
 
         mid:            matches the mid variable returned from the corresponding
                         subscribe() call.
         granted_qos:    list of integers that give the QoS level the broker has
                         granted for each of the different subscription requests.
         """
-        pass
+        return self._on_subscribe
 
-    def on_message(self, client, userdata, message):
+    @on_subscribe.setter
+    def on_subscribe(self, func):
+        self._on_subscribe = func
+
+    @property
+    def on_message(self):
         """Called when a message has been received on a topic that the client
-        subscribes to.
-        This function may be overridden by sub-classes.
+        subscribes to if implemented.
 
         This callback will be called for every message received. Use
         ``message_callback_add()`` to define multiple callbacks that will be called for
@@ -1377,9 +1398,14 @@ class Client(object):
         message:    an instance of MQTTMessage.
                     This is a class with members topic, payload, qos, retain.
         """
-        pass
+        return self._on_message
 
-    def on_publish(self, client, userdata, mid):
+    @on_message.setter
+    def on_message(self, func):
+        self._on_message = func
+
+    @property
+    def on_publish(self):
         """Called when a message that was to be sent using the publish() call
         has completed transmission to the broker.
         This function may be overridden by sub-classes.
@@ -1393,18 +1419,28 @@ class Client(object):
         mid:    matches the mid variable returned from the corresponding
                 publish() call, to allow outgoing messages to be tracked.
         """
-        pass
+        return self._on_publish
 
-    def on_unsubscribe(self, client, userdata, mid):
+    @on_publish.setter
+    def on_publish(self, func):
+        self._on_publish = func
+
+    @property
+    def on_unsubscribe(self):
         """Called when the broker responds to an unsubscribe request.
         This function may be overridden by sub-classes.
 
         mid:    matches the mid variable returned from the corresponding
                 unsubscribe() call.
         """
-        pass
+        return self._on_unsubscribe
 
-    def on_disconnect(self, client, userdata, rc):
+    @on_unsubscribe.setter
+    def on_unsubscribe(self, func):
+        self._on_unsubscribe = func
+
+    @property
+    def on_disconnect(self):
         """Called when the client disconnects from the broker.
         This function may be overridden by sub-classes.
 
@@ -1417,7 +1453,11 @@ class Client(object):
         other value the disconnection was unexpected, such as might be caused by
         a network error.
         """
-        pass
+        return self._on_disconnect
+
+    @on_disconnect.setter
+    def on_disconnect(self, func):
+        self._on_disconnect = func
 
     def message_callback_add(self, sub, callback):
         """Register a message callback for a specific topic.
@@ -1476,9 +1516,10 @@ class Client(object):
                 rc = MQTT_ERR_SUCCESS
             self._state_mutex.release()
             self._callback_mutex.acquire()
-            self._in_callback = True
-            self.on_disconnect(self, self._userdata, rc)
-            self._in_callback = False
+            if self.on_disconnect:
+                self._in_callback = True
+                self.on_disconnect(self, self._userdata, rc)
+                self._in_callback = False
 
             self._callback_mutex.release()
         return rc
@@ -1618,9 +1659,10 @@ class Client(object):
                 if packet['to_process'] == 0:
                     if (packet['command'] & 0xF0) == PUBLISH and packet['qos'] == 0:
                         self._callback_mutex.acquire()
-                        self._in_callback = True
-                        self.on_publish(self, self._userdata, packet['mid'])
-                        self._in_callback = False
+                        if self.on_publish:
+                            self._in_callback = True
+                            self.on_publish(self, self._userdata, packet['mid'])
+                            self._in_callback = False
 
                         self._callback_mutex.release()
 
@@ -1632,9 +1674,10 @@ class Client(object):
                         self._msgtime_mutex.release()
 
                         self._callback_mutex.acquire()
-                        self._in_callback = True
-                        self.on_disconnect(self, self._userdata, 0)
-                        self._in_callback = False
+                        if self.on_disconnect:
+                            self._in_callback = True
+                            self.on_disconnect(self, self._userdata, 0)
+                            self._in_callback = False
                         self._callback_mutex.release()
 
                         if self._ssl:
@@ -1663,7 +1706,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _easy_log(self, level, buf):
-        self.on_log(self, self._userdata, level, buf)
+        if self.on_log:
+            self.on_log(self, self._userdata, level, buf)
 
     def _check_keepalive(self):
         if self._keepalive == 0:
@@ -1694,9 +1738,10 @@ class Client(object):
                 else:
                     rc = 1
                 self._callback_mutex.acquire()
-                self._in_callback = True
-                self.on_disconnect(self, self._userdata, rc)
-                self._in_callback = False
+                if self.on_disconnect:
+                    self._in_callback = True
+                    self.on_disconnect(self, self._userdata, rc)
+                    self._in_callback = False
                 self._callback_mutex.release()
 
     def _mid_generate(self):
@@ -2091,20 +2136,21 @@ class Client(object):
 
         self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(flags)+", "+str(result)+")")
         self._callback_mutex.acquire()
-        self._in_callback = True
+        if self.on_connect:
+            self._in_callback = True
 
-        if sys.version_info[0] < 3:
-            argcount = self.on_connect.func_code.co_argcount
-        else:
-            argcount = self.on_connect.__code__.co_argcount
+            if sys.version_info[0] < 3:
+                argcount = self.on_connect.func_code.co_argcount
+            else:
+                argcount = self.on_connect.__code__.co_argcount
 
-        if argcount == 3:
-            self.on_connect(self, self._userdata, result)
-        else:
-            flags_dict = dict()
-            flags_dict['session present'] = flags & 0x01
-            self.on_connect(self, self._userdata, flags_dict, result)
-        self._in_callback = False
+            if argcount == 3:
+                self.on_connect(self, self._userdata, result)
+            else:
+                flags_dict = dict()
+                flags_dict['session present'] = flags & 0x01
+                self.on_connect(self, self._userdata, flags_dict, result)
+            self._in_callback = False
         self._callback_mutex.release()
         if result == 0:
             rc = 0
@@ -2168,9 +2214,10 @@ class Client(object):
         granted_qos = struct.unpack(pack_format, packet)
 
         self._callback_mutex.acquire()
-        self._in_callback = True
-        self.on_subscribe(self, self._userdata, mid, granted_qos)
-        self._in_callback = False
+        if self.on_subscribe:
+            self._in_callback = True
+            self.on_subscribe(self, self._userdata, mid, granted_qos)
+            self._in_callback = False
         self._callback_mutex.release()
 
         return MQTT_ERR_SUCCESS
@@ -2307,9 +2354,10 @@ class Client(object):
         mid = mid[0]
         self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: "+str(mid)+")")
         self._callback_mutex.acquire()
-        self._in_callback = True
-        self.on_unsubscribe(self, self._userdata, mid)
-        self._in_callback = False
+        if self.on_unsubscribe:
+            self._in_callback = True
+            self.on_unsubscribe(self, self._userdata, mid)
+            self._in_callback = False
         self._callback_mutex.release()
         return MQTT_ERR_SUCCESS
 
@@ -2328,11 +2376,12 @@ class Client(object):
                 if self._out_messages[i].mid == mid:
                     # Only inform the client the message has been sent once.
                     self._callback_mutex.acquire()
-                    self._out_message_mutex.release()
-                    self._in_callback = True
-                    self.on_publish(self, self._userdata, mid)
-                    self._in_callback = False
-                    self._out_message_mutex.acquire()
+                    if self.on_publish:
+                        self._out_message_mutex.release()
+                        self._in_callback = True
+                        self.on_publish(self, self._userdata, mid)
+                        self._in_callback = False
+                        self._out_message_mutex.acquire()
 
                     self._callback_mutex.release()
                     self._out_messages.pop(i)
