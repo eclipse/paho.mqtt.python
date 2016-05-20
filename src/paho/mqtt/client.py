@@ -33,7 +33,14 @@ except:
 import struct
 import sys
 import threading
+
 import time
+try:
+    # Use monotionic clock if available
+    time_func = time.monotonic
+except AttributeError:
+    time_func = time.time
+
 HAVE_DNS = True
 try:
     import dns.resolver
@@ -442,8 +449,8 @@ class Client(object):
             "pos": 0}
         self._out_packet = []
         self._current_out_packet = None
-        self._last_msg_in = time.time()
-        self._last_msg_out = time.time()
+        self._last_msg_in = time_func()
+        self._last_msg_out = time_func()
         self._ping_t = 0
         self._last_mid = 0
         self._state = mqtt_cs_new
@@ -708,8 +715,8 @@ class Client(object):
         self._current_out_packet_mutex.release()
 
         self._msgtime_mutex.acquire()
-        self._last_msg_in = time.time()
-        self._last_msg_out = time.time()
+        self._last_msg_in = time_func()
+        self._last_msg_out = time_func()
         self._msgtime_mutex.release()
 
         self._ping_t = 0
@@ -883,7 +890,7 @@ class Client(object):
             return (rc, local_mid)
         else:
             message = MQTTMessage()
-            message.timestamp = time.time()
+            message.timestamp = time_func()
 
             message.mid = local_mid
             message.topic = topic
@@ -1119,7 +1126,7 @@ class Client(object):
         if self._sock is None and self._ssl is None:
             return MQTT_ERR_NO_CONN
 
-        now = time.time()
+        now = time_func()
         self._check_keepalive()
         if self._last_retry_check+1 < now:
             # Only check once a second at most
@@ -1486,7 +1493,7 @@ class Client(object):
             pos=0)
 
         self._msgtime_mutex.acquire()
-        self._last_msg_in = time.time()
+        self._last_msg_in = time_func()
         self._msgtime_mutex.release()
         return rc
 
@@ -1531,7 +1538,7 @@ class Client(object):
                         self._current_out_packet_mutex.release()
 
                         self._msgtime_mutex.acquire()
-                        self._last_msg_out = time.time()
+                        self._last_msg_out = time_func()
                         self._msgtime_mutex.release()
 
                         self._callback_mutex.acquire()
@@ -1561,7 +1568,7 @@ class Client(object):
         self._current_out_packet_mutex.release()
 
         self._msgtime_mutex.acquire()
-        self._last_msg_out = time.time()
+        self._last_msg_out = time_func()
         self._msgtime_mutex.release()
 
         return MQTT_ERR_SUCCESS
@@ -1574,7 +1581,7 @@ class Client(object):
         if self._keepalive == 0:
             return MQTT_ERR_SUCCESS
 
-        now = time.time()
+        now = time_func()
         self._msgtime_mutex.acquire()
         last_msg_out = self._last_msg_out
         last_msg_in = self._last_msg_in
@@ -1624,7 +1631,7 @@ class Client(object):
         self._easy_log(MQTT_LOG_DEBUG, "Sending PINGREQ")
         rc = self._send_simple_command(PINGREQ)
         if rc == MQTT_ERR_SUCCESS:
-            self._ping_t = time.time()
+            self._ping_t = time_func()
         return rc
 
     def _send_pingresp(self):
@@ -1840,7 +1847,7 @@ class Client(object):
 
     def _message_retry_check_actual(self, messages, mutex):
         mutex.acquire()
-        now = time.time()
+        now = time_func()
         for m in messages:
             if m.timestamp + self._message_retry < now:
                 if m.state == mqtt_ms_wait_for_puback or m.state == mqtt_ms_wait_for_pubrec:
@@ -2017,7 +2024,7 @@ class Client(object):
             rc = 0
             self._out_message_mutex.acquire()
             for m in self._out_messages:
-                m.timestamp = time.time()
+                m.timestamp = time_func()
                 if m.state == mqtt_ms_queued:
                     self.loop_write() # Process outgoing messages that have just been queued up
                     self._out_message_mutex.release()
@@ -2116,7 +2123,7 @@ class Client(object):
             ", m"+str(message.mid)+", '"+message.topic+
             "', ...  ("+str(len(message.payload))+" bytes)")
 
-        message.timestamp = time.time()
+        message.timestamp = time_func()
         if message.qos == 0:
             self._handle_on_message(message)
             return MQTT_ERR_SUCCESS
@@ -2199,7 +2206,7 @@ class Client(object):
         for m in self._out_messages:
             if m.mid == mid:
                 m.state = mqtt_ms_wait_for_pubcomp
-                m.timestamp = time.time()
+                m.timestamp = time_func()
                 self._out_message_mutex.release()
                 return self._send_pubrel(mid, False)
 
