@@ -5,6 +5,8 @@ v1.1.1 - 2015-xx-xx
   unresolvable.
 - Fix for keepalive=0 causing an infinite disconnect/reconnect loop. Closes
   #42.
+- Modify callbacks definition/structure to allow classical inheritence. Closes
+  #53, #54.
 
 
 v1.1 - 2015-01-30
