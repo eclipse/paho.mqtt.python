@@ -321,7 +321,8 @@ connect_async()
 
     connect_async(host, port=1883, keepalive=60, bind_address="")
 
-Identical to ``connect()``, but non-blocking. The connection will not complete until one of the ``loop*()`` functions is called.
+Use in conjunction with ``loop_start()`` to connect in a non-blocking manner.
+The connection will not complete until ``loop_start()`` is called.
 
 Callback
 ........
