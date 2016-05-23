@@ -1251,6 +1251,9 @@ class Client(object):
         run = True
 
         while run:
+            if self._thread_terminate is True:
+                break
+
             if self._state == mqtt_cs_connect_async:
                 try:
                     self.reconnect()
@@ -1332,10 +1335,10 @@ class Client(object):
         Messages that match 'sub' will be passed to 'callback'. Any
         non-matching messages will be passed to the default on_message
         callback.
-        
+
         Call multiple times with different 'sub' to define multiple topic
         specific callbacks.
-        
+
         Topic specific callbacks may be removed with
         message_callback_remove()."""
         if callback is None or sub is None:
@@ -1508,7 +1511,7 @@ class Client(object):
                     write_length = self._ssl.write(packet['packet'][packet['pos']:])
                 else:
                     write_length = self._sock.send(packet['packet'][packet['pos']:])
-            except AttributeError:
+            except (AttributeError, ValueError):
                 self._current_out_packet_mutex.release()
                 return MQTT_ERR_SUCCESS
             except socket.error as err:
@@ -2287,14 +2290,7 @@ class Client(object):
         self._callback_mutex.release()
 
     def _thread_main(self):
-        self._state_mutex.acquire()
-        if self._state == mqtt_cs_connect_async:
-            self._state_mutex.release()
-            self.reconnect()
-        else:
-            self._state_mutex.release()
-
-        self.loop_forever()
+        self.loop_forever(retry_first_connection=True)
 
     def _host_matches_cert(self, host, cert_host):
         if cert_host[0:2] == "*.":
@@ -2347,7 +2343,7 @@ class Client(object):
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
 
 
-# Compatibility class for easy porting from mosquitto.py. 
+# Compatibility class for easy porting from mosquitto.py.
 class Mosquitto(Client):
     def __init__(self, client_id="", clean_session=True, userdata=None):
         super(Mosquitto, self).__init__(client_id, clean_session, userdata)
