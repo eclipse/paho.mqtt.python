@@ -517,14 +517,7 @@ class Client(object):
         self._will_payload = None
         self._will_qos = 0
         self._will_retain = False
-        self.on_disconnect = None
-        self.on_connect = None
-        self.on_publish = None
-        self.on_message = None
         self.on_message_filtered = []
-        self.on_subscribe = None
-        self.on_unsubscribe = None
-        self.on_log = None
         self._host = ""
         self._port = 1883
         self._bind_address = ""
@@ -547,6 +540,14 @@ class Client(object):
         self._tls_ciphers = None
         self._tls_version = tls_version
         self._tls_insecure = False
+        # No default callbacks
+        self._on_log = None
+        self._on_connect = None
+        self._on_subscribe = None
+        self._on_message = None
+        self._on_publish = None
+        self._on_unsubscribe = None
+        self._on_disconnect = None
 
     def __del__(self):
         pass
@@ -1410,15 +1411,188 @@ class Client(object):
         self._thread.join()
         self._thread = None
 
+    @property
+    def on_log(self):
+        """If implemented, called when the client has log information.
+        Defined to allow debugging."""
+        return self._on_log
+
+    @on_log.setter
+    def on_log(self, func):
+        """ Define the logging callback implementation.
+
+        Expected signature is:
+            log_callback(client, userdata, level, buf)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        level:      gives the severity of the message and will be one of
+                    MQTT_LOG_INFO, MQTT_LOG_NOTICE, MQTT_LOG_WARNING,
+                    MQTT_LOG_ERR, and MQTT_LOG_DEBUG.
+        buf:        the message itself
+        """
+        self._on_log = func
+
+    @property
+    def on_connect(self):
+        """If implemented, called when the broker responds to our connection
+        request."""
+        return self._on_connect
+
+    @on_connect.setter
+    def on_connect(self, func):
+        """ Define the connect callback implementation.
+
+        Expected signature is:
+            connect_callback(client, userdata, flags, rc)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        flags:      response flags sent by the broker
+        rc:         the connection result
+
+        flags is a dict that contains response flags from the broker:
+            flags['session present'] - this flag is useful for clients that are
+                using clean session set to 0 only. If a client with clean
+                session=0, that reconnects to a broker that it has previously
+                connected to, this flag indicates whether the broker still has the
+                session information for the client. If 1, the session still exists.
+
+        The value of rc indicates success or not:
+            0: Connection successful
+            1: Connection refused - incorrect protocol version
+            2: Connection refused - invalid client identifier
+            3: Connection refused - server unavailable
+            4: Connection refused - bad username or password
+            5: Connection refused - not authorised
+            6-255: Currently unused.
+        """
+        self._on_connect = func
+
+    @property
+    def on_subscribe(self):
+        """If implemented, called when the broker responds to a subscribe
+        request."""
+        return self._on_subscribe
+
+    @on_subscribe.setter
+    def on_subscribe(self, func):
+        """ Define the suscribe callback implementation.
+
+        Expected signature is:
+            subscribe_callback(client, userdata, mid, granted_qos)
+
+        client:         the client instance for this callback
+        userdata:       the private user data as set in Client() or userdata_set()
+        mid:            matches the mid variable returned from the corresponding
+                        subscribe() call.
+        granted_qos:    list of integers that give the QoS level the broker has
+                        granted for each of the different subscription requests.
+        """
+        self._on_subscribe = func
+
+    @property
+    def on_message(self):
+        """If implemented, called when a message has been received on a topic
+        that the client subscribes to.
+
+        This callback will be called for every message received. Use
+        message_callback_add() to define multiple callbacks that will be called
+        for specific topic filters."""
+        return self._on_message
+
+    @on_message.setter
+    def on_message(self, func):
+        """ Define the message received callback implementation.
+
+        Expected signature is:
+            on_message_callback(client, userdata, message)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        message:    an instance of MQTTMessage.
+                    This is a class with members topic, payload, qos, retain.
+        """
+        self._on_message = func
+
+    @property
+    def on_publish(self):
+        """If implemented, called when a message that was to be sent using the
+        publish() call has completed transmission to the broker.
+
+        For messages with QoS levels 1 and 2, this means that the appropriate
+        handshakes have completed. For QoS 0, this simply means that the message
+        has left the client.
+        This callback is important because even if the publish() call returns
+        success, it does not always mean that the message has been sent."""
+        return self._on_publish
+
+    @on_publish.setter
+    def on_publish(self, func):
+        """ Define the published message callback implementation.
+
+        Expected signature is:
+            on_publish_callback(client, userdata, mid)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        mid:        matches the mid variable returned from the corresponding
+                    publish() call, to allow outgoing messages to be tracked.
+        """
+        self._on_publish = func
+
+    @property
+    def on_unsubscribe(self):
+        """If implemented, called when the broker responds to an unsubscribe
+        request."""
+        return self._on_unsubscribe
+
+    @on_unsubscribe.setter
+    def on_unsubscribe(self, func):
+        """ Define the unsubscribe callback implementation.
+
+        Expected signature is:
+            unsubscribe_callback(client, userdata, mid)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        mid:        matches the mid variable returned from the corresponding
+                    unsubscribe() call.
+        """
+        self._on_unsubscribe = func
+
+    @property
+    def on_disconnect(self):
+        """If implemented, called when the client disconnects from the broker.
+        """
+        return self._on_disconnect
+
+    @on_disconnect.setter
+    def on_disconnect(self, func):
+        """ Define the disconnect callback implementation.
+
+        Expected signature is:
+            disconnect_callback(client, userdata, self)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        rc:         the disconnection result
+                    The rc parameter indicates the disconnection state. If
+                    MQTT_ERR_SUCCESS (0), the callback was called in response to
+                    a disconnect() call. If any other value the disconnection
+                    was unexpected, such as might be caused by a network error.
+        """
+        self._on_disconnect = func
+
     def message_callback_add(self, sub, callback):
         """Register a message callback for a specific topic.
         Messages that match 'sub' will be passed to 'callback'. Any
         non-matching messages will be passed to the default on_message
         callback.
-        
+
         Call multiple times with different 'sub' to define multiple topic
         specific callbacks.
-        
+
         Topic specific callbacks may be removed with
         message_callback_remove()."""
         if callback is None or sub is None:
@@ -1591,7 +1765,7 @@ class Client(object):
                     write_length = self._ssl.write(packet['packet'][packet['pos']:])
                 else:
                     write_length = self._sock.send(packet['packet'][packet['pos']:])
-            except AttributeError:
+            except (AttributeError, ValueError):
                 self._current_out_packet_mutex.release()
                 return MQTT_ERR_SUCCESS
             except socket.error as err:
@@ -1662,6 +1836,9 @@ class Client(object):
             self.on_log(self, self._userdata, level, buf)
 
     def _check_keepalive(self):
+        if self._keepalive == 0:
+            return MQTT_ERR_SUCCESS
+
         now = time.time()
         self._msgtime_mutex.acquire()
         last_msg_out = self._last_msg_out
@@ -2433,7 +2610,7 @@ class Client(object):
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
 
 
-# Compatibility class for easy porting from mosquitto.py. 
+# Compatibility class for easy porting from mosquitto.py.
 class Mosquitto(Client):
     def __init__(self, client_id="", clean_session=True, userdata=None):
         super(Mosquitto, self).__init__(client_id, clean_session, userdata)

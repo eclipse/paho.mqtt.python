@@ -4,9 +4,9 @@
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Distribution License v1.0
-# which accompanies this distribution. 
+# which accompanies this distribution.
 #
-# The Eclipse Distribution License is available at 
+# The Eclipse Distribution License is available at
 #   http://www.eclipse.org/org/documents/edl-v10.php.
 #
 # Contributors:
@@ -29,36 +29,30 @@ except ImportError:
         sys.path.insert(0, cmd_subfolder)
     import paho.mqtt.client as mqtt
 
-class MyMQTTClass:
-    def __init__(self, clientid=None):
-        self._mqttc = mqtt.Client(clientid)
-        self._mqttc.on_message = self.mqtt_on_message
-        self._mqttc.on_connect = self.mqtt_on_connect
-        self._mqttc.on_publish = self.mqtt_on_publish
-        self._mqttc.on_subscribe = self.mqtt_on_subscribe
+class MyMQTTClass(mqtt.Client):
 
-    def mqtt_on_connect(self, mqttc, obj, flags, rc):
+    def on_connect(self, mqttc, obj, flags, rc):
         print("rc: "+str(rc))
 
-    def mqtt_on_message(self, mqttc, obj, msg):
+    def on_message(self, mqttc, obj, msg):
         print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
 
-    def mqtt_on_publish(self, mqttc, obj, mid):
+    def on_publish(self, mqttc, obj, mid):
         print("mid: "+str(mid))
 
-    def mqtt_on_subscribe(self, mqttc, obj, mid, granted_qos):
+    def on_subscribe(self, mqttc, obj, mid, granted_qos):
         print("Subscribed: "+str(mid)+" "+str(granted_qos))
 
-    def mqtt_on_log(self, mqttc, obj, level, string):
+    def on_log(self, mqttc, obj, level, string):
         print(string)
 
     def run(self):
-        self._mqttc.connect("m2m.eclipse.org", 1883, 60)
-        self._mqttc.subscribe("$SYS/#", 0)
+        self.connect("m2m.eclipse.org", 1883, 60)
+        self.subscribe("$SYS/#", 0)
 
         rc = 0
         while rc == 0:
-            rc = self._mqttc.loop()
+            rc = self.loop()
         return rc
 
 
