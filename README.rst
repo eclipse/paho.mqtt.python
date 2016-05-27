@@ -130,7 +130,7 @@ Client()
 
 ::
 
-    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv311)
+    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp")
 
 The ``Client()`` constructor takes the following arguments:
 
@@ -157,7 +157,12 @@ userdata
 protocol
     the version of the MQTT protocol to use for this client. Can be either
     ``MQTTv31`` or ``MQTTv311``
-    
+
+transport
+    set to "websockets" to send MQTT over WebSockets. Leave at the default of
+    "tcp" to use raw TCP.
+
+
 Example
 .......
 
@@ -953,7 +958,7 @@ Publish a single message to a broker, then disconnect cleanly.
 
     single(topic, payload=None, qos=0, retain=False, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311)
+        protocol=mqtt.MQTTv311, transport="tcp")
            
 
 Function arguments
@@ -1017,7 +1022,10 @@ tls
 
 protocol
     choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
-    
+
+transport
+    set to "websockets" to send MQTT over WebSockets. Leave at the default of
+    "tcp" to use raw TCP.
 Example
 '''''''
 
@@ -1035,7 +1043,7 @@ Publish multiple messages to a broker, then disconnect cleanly.
 ::
 
     multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-        will=None, auth=None, tls=None, protocol=mqtt.MQTTv311)
+        will=None, auth=None, tls=None, protocol=mqtt.MQTTv311, transport="tcp")
 
 Function arguments
 ''''''''''''''''''
@@ -1055,7 +1063,7 @@ msgs
     
     ("<topic>", "<payload>", qos, retain)
 
-See ``single()`` for the description of ``hostname``, ``port``, ``client_id``, ``keepalive``, ``will``, ``auth``, ``tls``, ``protocol``.
+See ``single()`` for the description of ``hostname``, ``port``, ``client_id``, ``keepalive``, ``will``, ``auth``, ``tls``, ``protocol``, ``transport``.
 
 Example
 '''''''

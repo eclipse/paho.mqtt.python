@@ -62,7 +62,7 @@ def _on_publish(c, userdata, mid):
 
 
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None, protocol=mqtt.MQTTv31):
+             will=None, auth=None, tls=None, protocol=mqtt.MQTTv31, transport="tcp"):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -110,13 +110,15 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
           Defaults to None, which indicates that TLS should not be used.
+    transport : set to "tcp" to use the default setting of transport which is
+          raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
     if type(msgs) is not list:
         raise ValueError('msgs must be a list')
 
     client = mqtt.Client(client_id=client_id,
-                         userdata=msgs, protocol=protocol)
+                         userdata=msgs, protocol=protocol, transport=transport)
     client.on_publish = _on_publish
     client.on_connect = _on_connect
 
@@ -172,7 +174,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
 def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None, protocol=mqtt.MQTTv31):
+           tls=None, protocol=mqtt.MQTTv31, transport="tcp"):
     """Publish a single message to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -210,8 +212,10 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
           Defaults to None, which indicates that TLS should not be used.
+    transport : set to "tcp" to use the default setting of transport which is
+          raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
     msg = {'topic':topic, 'payload':payload, 'qos':qos, 'retain':retain}
-    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls, protocol)
+    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls, protocol, transport)
 

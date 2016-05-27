@@ -61,7 +61,7 @@ def _on_message_simple(c, userdata, message):
 
 def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv31):
+        protocol=mqtt.MQTTv31, transport="tcp"):
     """Subscribe to a list of topics and process them in a callback function.
 
     This function creates an MQTT client, connects to a broker and subscribes
@@ -109,6 +109,8 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
           Defaults to None, which indicates that TLS should not be used.
+    transport : set to "tcp" to use the default setting of transport which is
+          raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
     if qos < 0 or qos > 2:
@@ -121,7 +123,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
             'userdata':userdata}
 
     client = mqtt.Client(client_id=client_id,
-                         userdata=callback_userdata, protocol=protocol)
+                         userdata=callback_userdata, protocol=protocol, transport=transport)
     client.on_message = _on_message_callback
     client.on_connect = _on_connect
 
@@ -177,7 +179,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
 
 def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost", port=1883,
         client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv31):
+        protocol=mqtt.MQTTv31, transport="tcp"):
     """Subscribe to a list of topics and return msg_count messages.
 
     This function creates an MQTT client, connects to a broker and subscribes
@@ -230,6 +232,8 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost", port
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
           Defaults to None, which indicates that TLS should not be used.
+    transport : set to "tcp" to use the default setting of transport which is
+          raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
     if msg_count < 1:
@@ -245,7 +249,7 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost", port
     userdata = {'retained':retained, 'msg_count':msg_count, 'messages':messages}
 
     callback(_on_message_simple, topics, qos, userdata, hostname, port,
-            client_id, keepalive, will, auth, tls, protocol)
+            client_id, keepalive, will, auth, tls, protocol, transport)
 
     return userdata['messages']
 

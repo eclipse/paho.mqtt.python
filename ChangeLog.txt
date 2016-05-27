@@ -16,6 +16,7 @@ v1.2 - 2016-xx-xx
   #42.
 - Modify callbacks definition/structure to allow classical inheritence. Closes
   #53, #54.
+- Add websockets support.
 
 
 v1.1 - 2015-01-30

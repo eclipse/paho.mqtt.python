@@ -451,7 +451,7 @@ class Client(object):
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
-    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31, use_websocket=False):
+    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then one will be randomly
         generated. In this case, clean_session must be True. If this is not the
@@ -477,13 +477,13 @@ class Client(object):
         version, the client will automatically attempt to reconnect using v3.1
         instead.
 
-        use_websocket determines the protocol type, if True, the client will connect
-        to the broker using a websocket connection.
+        Set transport to "websockets" to use WebSockets as the transport
+        mechanism. Set to "tcp" to use raw TCP, which is the default.
         """
         if not clean_session and (client_id == "" or client_id is None):
             raise ValueError('A client id must be provided if clean session is False.')
 
-        self._use_websocket = use_websocket
+        self._transport = transport
         self._protocol = protocol
         self._userdata = userdata
         self._sock = None
@@ -822,7 +822,7 @@ class Client(object):
                 else:
                     ssl.match_hostname(self._ssl.getpeercert(), self._host)
 
-        if self._use_websocket:
+        if self._transport == "websockets":
             if self._tls_ca_certs is not None:
                 self._ssl = WebsocketWrapper(self._ssl, self._host, self._port, True)
             else:
@@ -2672,7 +2672,8 @@ class WebsocketWrapper:
                  b"Host: " + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" +\
                  b"Origin: http://" + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" +\
                  b"Sec-WebSocket-Key: " + sec_websocket_key + b"\r\n" +\
-                 b"Sec-WebSocket-Version: 13\r\n\r\n"
+                 b"Sec-WebSocket-Version: 13\r\n" +\
+                 b"Sec-WebSocket-Protocol: mqtt\r\n\r\n"
 
         if self._ssl:
             self._socket.write(header)
