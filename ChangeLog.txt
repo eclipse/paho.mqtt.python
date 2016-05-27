@@ -17,6 +17,7 @@ v1.2 - 2016-xx-xx
 - Modify callbacks definition/structure to allow classical inheritence. Closes
   #53, #54.
 - Add websockets support.
+- Default MQTT version is again changed to v3.1.1.
 
 
 v1.1 - 2015-01-30

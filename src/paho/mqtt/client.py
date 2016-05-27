@@ -451,7 +451,7 @@ class Client(object):
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
-    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31, transport="tcp"):
+    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then one will be randomly
         generated. In this case, clean_session must be True. If this is not the
@@ -472,7 +472,7 @@ class Client(object):
 
         The protocol argument allows explicit setting of the MQTT version to
         use for this client. Can be paho.mqtt.client.MQTTv311 (v3.1.1) or
-        paho.mqtt.client.MQTTv31 (v3.1), with the default being v3.1. If the
+        paho.mqtt.client.MQTTv31 (v3.1), with the default being v3.1.1 If the
         broker reports that the client connected with an invalid protocol
         version, the client will automatically attempt to reconnect using v3.1
         instead.
