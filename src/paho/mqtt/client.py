@@ -34,6 +34,10 @@ import struct
 import sys
 import threading
 import time
+import uuid
+import base64
+import hashlib
+
 HAVE_DNS = True
 try:
     import dns.resolver
@@ -447,7 +451,7 @@ class Client(object):
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
-    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31):
+    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv31, use_websocket=False):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then one will be randomly
         generated. In this case, clean_session must be True. If this is not the
@@ -472,10 +476,14 @@ class Client(object):
         broker reports that the client connected with an invalid protocol
         version, the client will automatically attempt to reconnect using v3.1
         instead.
+
+        use_websocket determines the protocol type, if True, the client will connect
+        to the broker using a websocket connection.
         """
         if not clean_session and (client_id == "" or client_id is None):
             raise ValueError('A client id must be provided if clean session is False.')
 
+        self._use_websocket = use_websocket
         self._protocol = protocol
         self._userdata = userdata
         self._sock = None
@@ -813,6 +821,12 @@ class Client(object):
                     self._tls_match_hostname()
                 else:
                     ssl.match_hostname(self._ssl.getpeercert(), self._host)
+
+        if self._use_websocket:
+            if self._tls_ca_certs is not None:
+                self._ssl = WebsocketWrapper(self._ssl, self._host, self._port, True)
+            else:
+                sock = WebsocketWrapper(sock, self._host, self._port, False)
 
         self._sock = sock
         self._sock.setblocking(0)
@@ -2614,3 +2628,290 @@ class Client(object):
 class Mosquitto(Client):
     def __init__(self, client_id="", clean_session=True, userdata=None):
         super(Mosquitto, self).__init__(client_id, clean_session, userdata)
+
+class WebsocketWrapper:
+
+    OPCODE_CONTINUATION = 0x0
+    OPCODE_TEXT = 0x1
+    OPCODE_BINARY = 0x2
+    OPCODE_CONNCLOSE = 0x8
+    OPCODE_PING = 0x9
+    OPCODE_PONG = 0xa
+
+    def __init__(self, socket, host, port, is_ssl):
+
+        self.connected = False
+
+        self._ssl = is_ssl
+        self._host = host
+        self._port = port
+        self._socket = socket
+
+        self._sendbuffer = bytearray()
+        self._readbuffer = bytearray()
+
+        self._requested_size = 0
+        self._payload_head = 0
+        self._readbuffer_head = 0
+
+        self._do_handshake()
+
+    def __del__(self):
+
+        self._sendbuffer = None
+        self._readbuffer = None
+
+    def _do_handshake(self):
+
+        sec_websocket_key = uuid.uuid4().bytes
+        sec_websocket_key = base64.b64encode(sec_websocket_key)
+
+        header = b"GET /mqtt HTTP/1.1\r\n" +\
+                 b"Upgrade: websocket\r\n" +\
+                 b"Connection: Upgrade\r\n" +\
+                 b"Host: " + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" +\
+                 b"Origin: http://" + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" +\
+                 b"Sec-WebSocket-Key: " + sec_websocket_key + b"\r\n" +\
+                 b"Sec-WebSocket-Version: 13\r\n\r\n"
+
+        if self._ssl:
+            self._socket.write(header)
+        else:
+            self._socket.send(header)
+
+        has_secret = False
+        has_upgrade = False
+
+        while True:
+            # read HTTP response header as lines
+            if self._ssl:
+                byte = self._socket.read(1)
+            else:
+                byte = self._socket.recv(1)
+
+            self._readbuffer.extend(byte)
+            # line end
+            if byte == b"\n":
+                if len(self._readbuffer) > 2:
+                    # check upgrade
+                    if b"connection" in str(self._readbuffer).lower().encode('utf-8'):
+                        if b"upgrade" not in str(self._readbuffer).lower().encode('utf-8'):
+                            raise ValueError("WebSocket handshake error, connection not upgraded")
+                        else:
+                            has_upgrade = True
+
+                    # check key hash
+                    if b"sec-websocket-accept" in str(self._readbuffer).lower().encode('utf-8'):
+                        GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+                        server_hash = self._readbuffer.decode('utf-8').split(": ", 1)[1]
+                        server_hash = server_hash.strip().encode('utf-8')
+
+                        client_hash = sec_websocket_key.decode('utf-8') + GUID
+                        client_hash = hashlib.sha1(client_hash.encode('utf-8'))
+                        client_hash = base64.b64encode(client_hash.digest())
+
+                        if server_hash != client_hash:
+                            raise ValueError("WebSocket handshake error, invalid secret key")
+                        else:
+                            has_secret = True
+                else:
+                    # ending linebreak
+                    break
+
+                # reset linebuffer
+                self._readbuffer = bytearray()
+
+            # connection reset
+            elif not byte:
+                raise ValueError("WebSocket handshake error")
+
+        if not has_upgrade or not has_secret:
+            raise ValueError("WebSocket handshake error")
+
+        self._readbuffer = bytearray()
+        self.connected = True
+
+    def _create_frame(self, opcode, data, do_masking=1):
+
+        header = bytearray()
+        length = len(data)
+        mask_key = bytearray([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
+        mask_flag = do_masking
+
+        # 1 << 7 is the final flag, we don't send continuated data
+        header.append(1 << 7 | opcode)
+
+        if length < 126:
+            header.append(mask_flag << 7 | length)
+
+        elif length < 32768:
+            header.append(mask_flag << 7 | 126)
+            header += struct.pack("!H", length)
+
+        elif length < 0x8000000000000001:
+            header.append(mask_flag << 7 | 127)
+            header += struct.pack("!Q", length)
+
+        else:
+            raise ValueError("Maximum payload size is 2^63")
+
+        if mask_flag == 1:
+            for index in range(length):
+                data[index] ^= mask_key[index % 4]
+            data = mask_key + data
+
+        return header + data
+
+    def _buffered_read(self, length):
+
+        # try to recv and strore needed bytes
+        if self._readbuffer_head + length > len(self._readbuffer):
+
+            if self._ssl:
+                data = self._socket.read(self._readbuffer_head + length - len(self._readbuffer))
+            else:
+                data = self._socket.recv(self._readbuffer_head + length - len(self._readbuffer))
+
+            if not data:
+                raise socket.error(errno.ECONNABORTED, 0)
+            else:
+                self._readbuffer.extend(data)
+
+        self._readbuffer_head += length
+        return self._readbuffer[self._readbuffer_head-length:self._readbuffer_head]
+
+    def _recv_impl(self, length):
+
+        # try to decode websocket payload part from data
+        try:
+
+            self._readbuffer_head = 0
+
+            result = None
+
+            chunk_startindex = self._payload_head
+            chunk_endindex = self._payload_head + length
+
+            header1 = self._buffered_read(1)
+            header2 = self._buffered_read(1)
+
+            opcode = (header1[0] & 0x0f)
+            maskbit = (header2[0] & 0x80) == 0x80
+            lengthbits = (header2[0] & 0x7f)
+            payload_length = lengthbits
+            mask_key = None
+
+            # read length
+            if lengthbits == 0x7e:
+
+                value = self._buffered_read(2)
+                payload_length = struct.unpack("!H", value)[0]
+
+            elif lengthbits == 0x7f:
+
+                value = self._buffered_read(8)
+                payload_length = struct.unpack("!Q", value)[0]
+
+            # read mask
+            if maskbit:
+
+                mask_key = self._buffered_read(4)
+
+            # if frame payload is shorter than the requested data, read only the possible part
+            readindex = chunk_endindex
+            if payload_length < readindex:
+                readindex = payload_length
+
+            if readindex > 0:
+
+                # get payload chunk
+                payload = self._buffered_read(readindex)
+
+                # unmask only the needed part
+                if maskbit:
+                    for index in range(chunk_startindex, readindex):
+                        payload[index] ^= mask_key[index % 4]
+
+                result = payload[chunk_startindex:readindex]
+                self._payload_head = readindex
+
+            # check if full frame arrived and reset readbuffer and payloadhead if needed
+            if readindex == payload_length:
+                self._readbuffer = bytearray()
+                self._payload_head = 0
+
+                # respond to non-binary opcodes, their arrival is not guaranteed beacause of non-blocking sockets
+                if opcode == WebsocketWrapper.OPCODE_CONNCLOSE:
+                    frame = self._create_frame(WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)
+                    if self._ssl:
+                        self._socket.write(frame)
+                    else:
+                        self._socket.send(frame)
+
+                if opcode == WebsocketWrapper.OPCODE_PING:
+                    frame = self._create_frame(WebsocketWrapper.OPCODE_PONG, payload, 0)
+                    if self._ssl:
+                        self._socket.write(frame)
+                    else:
+                        self._socket.send(frame)
+
+            if opcode == WebsocketWrapper.OPCODE_BINARY:
+                return result
+            else:
+                raise socket.error(errno.EAGAIN, 0)
+
+        except socket.error as err:
+
+            if err.errno == errno.ECONNABORTED:
+                self.connected = False
+                return b''
+            else:
+                # no more data
+                raise
+
+    def _send_impl(self, data):
+
+        # if previous frame was sent successfully
+        if len(self._sendbuffer) == 0:
+
+            # create websocket frame
+            frame = self._create_frame(WebsocketWrapper.OPCODE_BINARY, bytearray(data))
+            self._sendbuffer.extend(frame)
+            self._requested_size = len(data)
+
+        # try to write out as much as possible
+        if self._ssl:
+            length = self._socket.write(self._sendbuffer)
+        else:
+            length = self._socket.send(self._sendbuffer)
+
+        self._sendbuffer = self._sendbuffer[length:]
+
+        if len(self._sendbuffer) == 0:
+            # buffer sent out completely, return with payload's size
+            return self._requested_size
+        else:
+            # couldn't send whole data, request the same data again with 0 as sent length
+            return 0
+
+    def recv(self, length):
+        return self._recv_impl(length)
+
+    def read(self, length):
+        return self._recv_impl(length)
+
+    def send(self, data):
+        return self._send_impl(data)
+
+    def write(self, data):
+        return self._send_impl(data)
+
+    def close(self):
+        self._socket.close()
+
+    def fileno(self):
+        return self._socket.fileno()
+
+    def setblocking(self,flag):
+        self._socket.setblocking(flag)
