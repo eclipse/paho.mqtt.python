@@ -19,7 +19,8 @@ situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect and nothing else is required.
 """
 
-import paho.mqtt.client as mqtt
+import paho.mqtt.client as paho
+import paho.mqtt as mqtt
 
 
 def _do_publish(c):
@@ -50,7 +51,10 @@ def _do_publish(c):
 
 def _on_connect(c, userdata, flags, rc):
     """Internal callback"""
-    _do_publish(c)
+    if rc == 0:
+        _do_publish(c)
+    else:
+        raise mqtt.MQTTException(paho.connack_string(rc))
 
 
 def _on_publish(c, userdata, mid):
@@ -62,7 +66,7 @@ def _on_publish(c, userdata, mid):
 
 
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None, protocol=mqtt.MQTTv311, transport="tcp"):
+             will=None, auth=None, tls=None, protocol=paho.MQTTv311, transport="tcp"):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -117,7 +121,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     if type(msgs) is not list:
         raise ValueError('msgs must be a list')
 
-    client = mqtt.Client(client_id=client_id,
+    client = paho.Client(client_id=client_id,
                          userdata=msgs, protocol=protocol, transport=transport)
     client.on_publish = _on_publish
     client.on_connect = _on_connect
@@ -174,7 +178,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
 def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None, protocol=mqtt.MQTTv311, transport="tcp"):
+           tls=None, protocol=paho.MQTTv311, transport="tcp"):
     """Publish a single message to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
