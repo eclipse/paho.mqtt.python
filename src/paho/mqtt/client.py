@@ -1425,8 +1425,9 @@ class Client(object):
             return MQTT_ERR_INVAL
 
         self._thread_terminate = True
-        self._thread.join()
-        self._thread = None
+        if threading.current_thread() != self._thread:
+            self._thread.join()
+            self._thread = None
 
     @property
     def on_log(self):
