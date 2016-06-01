@@ -827,7 +827,10 @@ class Client(object):
                 sock = WebsocketWrapper(sock, self._host, self._port, False)
 
         self._sock = sock
-        self._sock.setblocking(0)
+        if self._ssl:
+            self._ssl.setblocking(0)
+        else:
+            self._sock.setblocking(0)
 
         return self._send_connect(self._keepalive, self._clean_session)
 
