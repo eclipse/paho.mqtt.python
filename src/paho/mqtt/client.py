@@ -37,6 +37,7 @@ import time
 import uuid
 import base64
 import hashlib
+import types
 
 HAVE_DNS = True
 try:
@@ -1241,7 +1242,7 @@ class Client(object):
                 rc = 1
             if self.on_disconnect:
                 self._in_callback = True
-                self.on_disconnect(self, self._userdata, rc)
+                self.on_disconnect(self._userdata, rc)
                 self._in_callback = False
             self._callback_mutex.release()
             return MQTT_ERR_CONN_LOST
@@ -1449,7 +1450,7 @@ class Client(object):
                     MQTT_LOG_ERR, and MQTT_LOG_DEBUG.
         buf:        the message itself
         """
-        self._on_log = func
+        self._on_log = types.MethodType(func, self)
 
     @property
     def on_connect(self):
@@ -1485,7 +1486,7 @@ class Client(object):
             5: Connection refused - not authorised
             6-255: Currently unused.
         """
-        self._on_connect = func
+        self._on_connect = types.MethodType(func, self)
 
     @property
     def on_subscribe(self):
@@ -1507,7 +1508,7 @@ class Client(object):
         granted_qos:    list of integers that give the QoS level the broker has
                         granted for each of the different subscription requests.
         """
-        self._on_subscribe = func
+        self._on_subscribe = types.MethodType(func, self)
 
     @property
     def on_message(self):
@@ -1531,7 +1532,7 @@ class Client(object):
         message:    an instance of MQTTMessage.
                     This is a class with members topic, payload, qos, retain.
         """
-        self._on_message = func
+        self._on_message = types.MethodType(func, self)
 
     @property
     def on_publish(self):
@@ -1557,7 +1558,7 @@ class Client(object):
         mid:        matches the mid variable returned from the corresponding
                     publish() call, to allow outgoing messages to be tracked.
         """
-        self._on_publish = func
+        self._on_publish = types.MethodType(func, self)
 
     @property
     def on_unsubscribe(self):
@@ -1577,7 +1578,7 @@ class Client(object):
         mid:        matches the mid variable returned from the corresponding
                     unsubscribe() call.
         """
-        self._on_unsubscribe = func
+        self._on_unsubscribe = types.MethodType(func, self)
 
     @property
     def on_disconnect(self):
@@ -1600,7 +1601,7 @@ class Client(object):
                     a disconnect() call. If any other value the disconnection
                     was unexpected, such as might be caused by a network error.
         """
-        self._on_disconnect = func
+        self._on_disconnect = types.MethodType(func, self)
 
     def message_callback_add(self, sub, callback):
         """Register a message callback for a specific topic.
@@ -1661,7 +1662,7 @@ class Client(object):
             self._callback_mutex.acquire()
             if self.on_disconnect:
                 self._in_callback = True
-                self.on_disconnect(self, self._userdata, rc)
+                self.on_disconnect(self._userdata, rc)
                 self._in_callback = False
 
             self._callback_mutex.release()
@@ -1804,7 +1805,7 @@ class Client(object):
                         self._callback_mutex.acquire()
                         if self.on_publish:
                             self._in_callback = True
-                            self.on_publish(self, self._userdata, packet['mid'])
+                            self.on_publish(self._userdata, packet['mid'])
                             self._in_callback = False
                         self._callback_mutex.release()
 
@@ -1820,7 +1821,7 @@ class Client(object):
                         self._callback_mutex.acquire()
                         if self.on_disconnect:
                             self._in_callback = True
-                            self.on_disconnect(self, self._userdata, 0)
+                            self.on_disconnect(self._userdata, 0)
                             self._in_callback = False
                         self._callback_mutex.release()
 
@@ -1851,7 +1852,7 @@ class Client(object):
 
     def _easy_log(self, level, buf):
         if self.on_log:
-            self.on_log(self, self._userdata, level, buf)
+            self.on_log(self._userdata, level, buf)
 
     def _check_keepalive(self):
         if self._keepalive == 0:
@@ -1884,7 +1885,7 @@ class Client(object):
                 self._callback_mutex.acquire()
                 if self.on_disconnect:
                     self._in_callback = True
-                    self.on_disconnect(self, self._userdata, rc)
+                    self.on_disconnect(self._userdata, rc)
                     self._in_callback = False
                 self._callback_mutex.release()
 
@@ -2290,11 +2291,11 @@ class Client(object):
                 argcount = self.on_connect.__code__.co_argcount
 
             if argcount == 3:
-                self.on_connect(self, self._userdata, result)
+                self.on_connect(self._userdata, result)
             else:
                 flags_dict = dict()
                 flags_dict['session present'] = flags & 0x01
-                self.on_connect(self, self._userdata, flags_dict, result)
+                self.on_connect(self._userdata, flags_dict, result)
             self._in_callback = False
         self._callback_mutex.release()
         if result == 0:
@@ -2361,7 +2362,7 @@ class Client(object):
         self._callback_mutex.acquire()
         if self.on_subscribe:
             self._in_callback = True
-            self.on_subscribe(self, self._userdata, mid, granted_qos)
+            self.on_subscribe(self._userdata, mid, granted_qos)
             self._in_callback = False
         self._callback_mutex.release()
 
@@ -2501,7 +2502,7 @@ class Client(object):
         self._callback_mutex.acquire()
         if self.on_unsubscribe:
             self._in_callback = True
-            self.on_unsubscribe(self, self._userdata, mid)
+            self.on_unsubscribe(self._userdata, mid)
             self._in_callback = False
         self._callback_mutex.release()
         return MQTT_ERR_SUCCESS
@@ -2511,7 +2512,7 @@ class Client(object):
             if self.on_publish:
                 self._out_message_mutex.release()
                 self._in_callback = True
-                self.on_publish(self, self._userdata, mid)
+                self.on_publish(self._userdata, mid)
                 self._in_callback = False
                 self._out_message_mutex.acquire()
 
@@ -2562,7 +2563,7 @@ class Client(object):
 
         if matched == False and self.on_message:
             self._in_callback = True
-            self.on_message(self, self._userdata, message)
+            self.on_message(self._userdata, message)
             self._in_callback = False
 
         self._callback_mutex.release()
