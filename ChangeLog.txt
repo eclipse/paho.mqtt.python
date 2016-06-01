@@ -23,6 +23,7 @@ v1.2 - 2016-xx-xx
 - paho.mqtt.publish() now raises an MQTTException on a CONNECT failure, rather
   than blindly continuing. Closes #6.
 - Don't block on TLS sockets on Python 3. Closes #2.
+- Client.publish() now accepts bytes() payloads on Python 3. Closes #1.
 
 
 v1.1 - 2015-01-30

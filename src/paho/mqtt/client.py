@@ -950,6 +950,8 @@ class Client(object):
             raise ValueError('Invalid QoS level.')
         if isinstance(payload, str) or isinstance(payload, bytearray):
             local_payload = payload
+        elif sys.version_info[0] == 3 and isinstance(payload, bytes):
+            local_payload = bytearray(payload)
         elif sys.version_info[0] < 3 and isinstance(payload, unicode):
             local_payload = payload
         elif isinstance(payload, int) or isinstance(payload, float):
