@@ -27,6 +27,8 @@ v1.2 - 2016-xx-xx
 - Don't attempt to join() own thread. Closes #14.
 - Allow the use of Client.message_callback_add() from inside callbacks. Closes
   #12.
+- Use a monotonic time source for keeping track of time, if available. Closes
+  #56.
 
 
 v1.1 - 2015-01-30
