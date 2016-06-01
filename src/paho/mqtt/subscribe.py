@@ -19,12 +19,16 @@ returns one or messages matching a set of topics, and callback() which allows
 you to pass a callback for processing of messages.
 """
 
-import paho.mqtt.client as mqtt
+import paho.mqtt.client as paho
+import paho.mqtt as mqtt
 import ssl
 
 
 def _on_connect(c, userdata, flags, rc):
     """Internal callback"""
+    if rc != 0:
+        raise mqtt.MQTTException(paho.connack_string(rc))
+
     if type(userdata['topics']) is list:
         for t in userdata['topics']:
             c.subscribe(t, userdata['qos'])
@@ -61,7 +65,7 @@ def _on_message_simple(c, userdata, message):
 
 def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311, transport="tcp"):
+        protocol=paho.MQTTv311, transport="tcp"):
     """Subscribe to a list of topics and process them in a callback function.
 
     This function creates an MQTT client, connects to a broker and subscribes
@@ -122,7 +126,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
             'qos':qos,
             'userdata':userdata}
 
-    client = mqtt.Client(client_id=client_id,
+    client = paho.Client(client_id=client_id,
                          userdata=callback_userdata, protocol=protocol, transport=transport)
     client.on_message = _on_message_callback
     client.on_connect = _on_connect
@@ -179,7 +183,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
 
 def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost", port=1883,
         client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311, transport="tcp"):
+        protocol=paho.MQTTv311, transport="tcp"):
     """Subscribe to a list of topics and return msg_count messages.
 
     This function creates an MQTT client, connects to a broker and subscribes
