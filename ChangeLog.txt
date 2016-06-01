@@ -18,6 +18,8 @@ v1.2 - 2016-xx-xx
   #53, #54.
 - Add websockets support.
 - Default MQTT version is again changed to v3.1.1.
+- Client.subscribe() now accepts unicode type topic inputs on Python 2. Closes
+  #16.
 
 
 v1.1 - 2015-01-30

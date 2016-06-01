@@ -64,8 +64,6 @@ else:
     PROTOCOL_NAMEv31 = b"MQIsdp"
     PROTOCOL_NAMEv311 = b"MQTT"
 
-PROTOCOL_VERSION = 3
-
 # Message types
 CONNECT = 0x10
 CONNACK = 0x20
@@ -1082,7 +1080,7 @@ class Client(object):
         zero string length, or if topic is not a string, tuple or list.
         """
         topic_qos_list = None
-        if isinstance(topic, str):
+        if isinstance(topic, str) or (sys.version_info[0] == 2 and isinstance(topic, unicode)):
             if qos<0 or qos>2:
                 raise ValueError('Invalid QoS level.')
             if topic is None or len(topic) == 0:
