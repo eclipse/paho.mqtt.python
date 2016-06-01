@@ -476,7 +476,7 @@ class Client(object):
         self._bind_address = ""
         self._in_callback = False
         self._strict_protocol = False
-        self._callback_mutex = threading.Lock()
+        self._callback_mutex = threading.RLock()
         self._state_mutex = threading.Lock()
         self._out_packet_mutex = threading.Lock()
         self._current_out_packet_mutex = threading.Lock()
@@ -1344,16 +1344,12 @@ class Client(object):
         if callback is None or sub is None:
             raise ValueError("sub and callback must both be defined.")
 
-        self._callback_mutex.acquire()
-
-        for i in range(0, len(self.on_message_filtered)):
-            if self.on_message_filtered[i][0] == sub:
-                self.on_message_filtered[i] = (sub, callback)
-                self._callback_mutex.release()
-                return
-
-        self.on_message_filtered.append((sub, callback))
-        self._callback_mutex.release()
+        with self._callback_mutex:
+            for i in range(0, len(self.on_message_filtered)):
+                if self.on_message_filtered[i][0] == sub:
+                    self.on_message_filtered[i] = (sub, callback)
+                    return
+            self.on_message_filtered.append((sub, callback))
 
     def message_callback_remove(self, sub):
         """Remove a message callback previously registered with
@@ -1361,13 +1357,11 @@ class Client(object):
         if sub is None:
             raise ValueError("sub must defined.")
 
-        self._callback_mutex.acquire()
-        for i in range(0, len(self.on_message_filtered)):
-            if self.on_message_filtered[i][0] == sub:
-                self.on_message_filtered.pop(i)
-                self._callback_mutex.release()
-                return
-        self._callback_mutex.release()
+        with self._callback_mutex:
+            for i in range(0, len(self.on_message_filtered)):
+                if self.on_message_filtered[i][0] == sub:
+                    self.on_message_filtered.pop(i)
+                    return
 
     # ============================================================
     # Private functions
