@@ -1,4 +1,4 @@
-v1.2 - 2016-xx-xx
+v1.2 - 2016-06-03
 =================
 
 - Client.publish() now returns an MQTTMessageInfo object. The MQTTMessageInfo
