@@ -1,5 +1,5 @@
-Eclipse Paho MQTT Python Client
-===============================
+Eclipse Paho™ MQTT Python Client
+================================
 
 This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 3.1 and 3.1.1 of the MQTT protocol.
 
@@ -32,7 +32,7 @@ Contents
         * `Multiple`_
     * `Subscribe`_
         * `Simple`_
-        * `Calback`_
+        * `Using Callback`_
 * `Reporting bugs`_
 * `More information`_
    
@@ -58,14 +58,14 @@ To obtain the full code, including examples and tests, you can clone the git rep
 
 ::
 
-    git clone git://git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.python.git
+    git clone https://github.com/eclipse/paho.mqtt.python
 
 
 Once you have the code, it can be installed from your repository as well:
 
 ::
 
-    cd org.eclipse.paho.mqtt.python
+    cd paho.mqtt.python
     python setup.py install
 
 Usage and API
@@ -163,8 +163,8 @@ transport
     "tcp" to use raw TCP.
 
 
-Example
-.......
+Constructor Example
+...................
 
 ::
 
@@ -182,8 +182,8 @@ reinitialise()
     
 The ``reinitialise()`` function resets the client to its starting state as if it had just been created. It takes the same arguments as the ``Client()`` constructor.
 
-Example
-.......
+Reinitialise Example
+....................
 
 ::
 
@@ -220,6 +220,7 @@ message_retry_set()
 '''''''''''''''''''
 
 ::
+
     message_retry_set(retry)
 
 Set the time in seconds before a message with QoS>0 is retried, if the broker does not respond.
@@ -281,6 +282,7 @@ user_data_set()
 '''''''''''''''
 
 ::
+
     user_data_set(userdata)
 
 Set the private user data that will be passed to callbacks when events are generated. Use this for your own purpose to support your application.
@@ -289,6 +291,7 @@ will_set()
 ''''''''''
 
 ::
+
     will_set(topic, payload=None, qos=0, retain=False)
 
 Set a Will to be sent to the broker. If the client disconnects without calling
@@ -350,8 +353,8 @@ Callback
 When the client receives a CONNACK message from the broker in response to the
 connect it generates an ``on_connect()`` callback.
 
-Example
-.......
+Connect Example
+...............
 
 ::
 
@@ -367,8 +370,8 @@ connect_async()
 Use in conjunction with ``loop_start()`` to connect in a non-blocking manner.
 The connection will not complete until ``loop_start()`` is called.
 
-Callback
-........
+Callback (connect)
+..................
 
 When the client receives a CONNACK message from the broker in response to the
 connect it generates an ``on_connect()`` callback.
@@ -390,14 +393,14 @@ domain
 See ``connect()`` for a description of the ``keepalive`` and ``bind_address``
 arguments.
 
-Callback
-........
+Callback (connect_srv)
+......................
 
 When the client receives a CONNACK message from the broker in response to the
 connect it generates an ``on_connect()`` callback.
 
-Example
-.......
+SRV Connect Example
+...................
 
 ::
 
@@ -413,8 +416,8 @@ reconnect()
 Reconnect to a broker using the previously provided details. You must have
 called ``connect*()`` before calling this function.
 
-Callback
-........
+Callback (reconnect)
+....................
 
 When the client receives a CONNACK message from the broker in response to the
 connect it generates an ``on_connect()`` callback.
@@ -429,8 +432,8 @@ disconnect()
 Disconnect from the broker cleanly. Using ``disconnect()`` will not result in a
 will message being sent by the broker.
 
-Callback
-........
+Callback (disconnect)
+.....................
 
 When the client has sent the disconnect message it generates an
 ``on_disconnect()`` callback.
@@ -459,8 +462,8 @@ your client will be regularly disconnected by the broker.
 
 The ``max_packets`` argument is obsolete and should be left unset.
 
-Example
-.......
+Loop Example
+............
 
 ::
 
@@ -483,8 +486,8 @@ other work that may be blocking. This call also handles reconnecting to the
 broker. Call ``loop_stop()`` to stop the background thread. The ``force``
 argument is currently ignored.
 
-Example
-.......
+Loop Start/Stop Example
+.......................
 
 ::
 
@@ -555,8 +558,8 @@ A ``ValueError`` will be raised if topic is ``None``, has zero length or is
 invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the
 length of the payload is greater than 268435455 bytes.
 
-Callback
-........
+Callback (publish)
+..................
 
 When the message has been sent to the broker an ``on_publish()`` callback will
 be generated.
@@ -622,8 +625,8 @@ against the mid argument in the ``on_subscribe()`` callback if it is defined.
 Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if topic is ``None`` or
 has zero string length, or if ``topic`` is not a string, tuple or list.
 
-Callback
-........
+Callback (subscribe)
+....................
 
 When the broker has acknowledged the subscription, an ``on_subscribe()``
 callback will be generated.
@@ -650,8 +653,8 @@ mid argument in the ``on_unsubscribe()`` callback if it is defined.
 Raises a ``ValueError`` if ``topic`` is ``None`` or has zero string length, or
 is not a string or list.
 
-Callback
-........
+Callback (unsubscribe)
+......................
 
 When the broker has acknowledged the unsubscribe, an ``on_unsubscribe()``
 callback will be generated.
@@ -697,8 +700,8 @@ The value of rc indicates success or not:
     5: Connection refused - not authorised 
     6-255: Currently unused. 
 
-Example
-.......
+On Connect Example
+..................
 
 ::
 
@@ -731,8 +734,8 @@ The rc parameter indicates the disconnection state. If ``MQTT_ERR_SUCCESS``
 other value the disconnection was unexpected, such as might be caused by a
 network error. 
  
-Example
-.......
+On Disconnect Example
+.....................
 
 ::
 
@@ -764,8 +767,8 @@ userdata
 message
     an instance of MQTTMessage. This is a class with members ``topic``, ``payload``, ``qos``, ``retain``.
 
-Example
-.......
+On Message Example
+..................
 
 ::
 
@@ -961,8 +964,8 @@ Publish a single message to a broker, then disconnect cleanly.
         protocol=mqtt.MQTTv311, transport="tcp")
            
 
-Function arguments
-''''''''''''''''''
+Publish Single Function arguments
+'''''''''''''''''''''''''''''''''
 
 topic
     the only required argument must be the topic string to which the payload
@@ -1026,8 +1029,9 @@ protocol
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
     "tcp" to use raw TCP.
-Example
-'''''''
+
+Publish Single Example
+''''''''''''''''''''''
 
 ::
 
@@ -1045,8 +1049,8 @@ Publish multiple messages to a broker, then disconnect cleanly.
     multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
         will=None, auth=None, tls=None, protocol=mqtt.MQTTv311, transport="tcp")
 
-Function arguments
-''''''''''''''''''
+Publish Multiple Function arguments
+'''''''''''''''''''''''''''''''''''
 
 msgs
     a list of messages to publish. Each message is either a dict or a tuple.
@@ -1065,8 +1069,8 @@ msgs
 
 See ``single()`` for the description of ``hostname``, ``port``, ``client_id``, ``keepalive``, ``will``, ``auth``, ``tls``, ``protocol``, ``transport``.
 
-Example
-'''''''
+Publish Multiple Example
+''''''''''''''''''''''''
 
 ::
 
@@ -1098,8 +1102,8 @@ blocking function.
         protocol=mqtt.MQTTv311)
            
 
-Function arguments
-''''''''''''''''''
+Simple Subscribe Function arguments
+'''''''''''''''''''''''''''''''''''
 
 topics
     the only required argument is the topic string to which the client will
@@ -1166,8 +1170,8 @@ protocol
     choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
     
 
-Example
-'''''''
+Simple Example
+''''''''''''''
 
 ::
 
@@ -1176,8 +1180,8 @@ Example
     msg = subscribe.simple("paho/test/simple", hostname="iot.eclipse.org")
     print("%s %s" % (msg.topic, msg.payload))
 
-Callback
-````````
+Using Callback
+``````````````
 
 Subscribe to a set of topics and process the messages received using a user
 provided callback. 
@@ -1188,8 +1192,8 @@ provided callback.
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
         protocol=mqtt.MQTTv311)
 
-Function arguments
-''''''''''''''''''
+Callback Subscribe Function arguments
+'''''''''''''''''''''''''''''''''''''
 
 callback
     an "on_message" callback that will be used for each message received, and
@@ -1205,13 +1209,13 @@ qos
     the qos to use when subscribing, defaults to 0.
 
 userdata
-    a user provided obkect that will be passed to the on_message callback when
+    a user provided object that will be passed to the on_message callback when
     a message is received.
 
 See ``simple()`` for the description of ``hostname``, ``port``, ``client_id``, ``keepalive``, ``will``, ``auth``, ``tls``, ``protocol``.
 
-Example
-'''''''
+Callback Example
+''''''''''''''''
 
 ::
 
