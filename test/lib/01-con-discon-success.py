@@ -23,7 +23,7 @@ import paho_test
 
 rc = 1
 keepalive = 60
-connect_packet = paho_test.gen_connect("01-con-discon-success", keepalive=keepalive)
+connect_packet = paho_test.gen_connect("01-con-discon-success", keepalive=keepalive, proto_name="MQIsdp", proto_ver=3)
 connack_packet = paho_test.gen_connack(rc=0)
 
 disconnect_packet = paho_test.gen_disconnect()
