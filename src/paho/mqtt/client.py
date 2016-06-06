@@ -2081,9 +2081,11 @@ class Client(object):
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
+        self._easy_log(MQTT_LOG_DEBUG, "Sending CONNECT")
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_disconnect(self):
+        self._easy_log(MQTT_LOG_DEBUG, "Sending DISCONNECT")
         return self._send_simple_command(DISCONNECT)
 
     def _send_subscribe(self, dup, topics):
@@ -2100,6 +2102,8 @@ class Client(object):
         for t in topics:
             self._pack_str16(packet, t[0])
             packet.extend(struct.pack("B", t[1]))
+
+        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE")
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2115,6 +2119,8 @@ class Client(object):
         packet.extend(struct.pack("!H", local_mid))
         for t in topics:
             self._pack_str16(packet, t)
+
+        self._easy_log(MQTT_LOG_DEBUG, "Sending UNSUBSCRIBE")
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _message_retry_check_actual(self, messages, mutex):
