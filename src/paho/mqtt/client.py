@@ -2121,7 +2121,7 @@ class Client(object):
     def _message_retry_check_actual(self, messages, mutex):
         mutex.acquire()
         now = time.time()
-        for m in messages:
+        for m in messages.values():
             if m.timestamp + self._message_retry < now:
                 if m.state == mqtt_ms_wait_for_puback or m.state == mqtt_ms_wait_for_pubrec:
                     m.timestamp = now
@@ -2138,8 +2138,8 @@ class Client(object):
         mutex.release()
 
     def _message_retry_check(self):
-        self._message_retry_check_actual(self._out_messages.values(), self._out_message_mutex)
-        self._message_retry_check_actual(self._in_messages.values(), self._in_message_mutex)
+        self._message_retry_check_actual(self._out_messages, self._out_message_mutex)
+        self._message_retry_check_actual(self._in_messages, self._in_message_mutex)
 
     def _messages_reconnect_reset_out(self):
         self._out_message_mutex.acquire()
