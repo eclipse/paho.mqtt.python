@@ -1969,7 +1969,7 @@ class Client(object):
         packet.extend(struct.pack("!B", command))
         if payload is None:
             remaining_length = 2+len(utopic)
-            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
+            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(int(dup))+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+"), '"+topic+"' (NULL payload)")
         else:
             if isinstance(payload, str):
                 upayload = payload.encode('utf-8')
@@ -1981,7 +1981,7 @@ class Client(object):
                 payloadlen = len(upayload)
 
             remaining_length = 2+len(utopic) + payloadlen
-            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(payloadlen)+" bytes)")
+            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(int(dup))+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+"), '"+topic+"', ... ("+str(payloadlen)+" bytes)")
 
         if qos > 0:
             # For message id
@@ -2081,7 +2081,16 @@ class Client(object):
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
-        self._easy_log(MQTT_LOG_DEBUG, "Sending CONNECT")
+        self._easy_log(MQTT_LOG_DEBUG, "Sending CONNECT (u%d, p%d, wr%d, wq%d, wf%d, c%d, k%d) client_id=%s" % (
+                            (connect_flags&0x80)>>7, 
+                            (connect_flags&0x40)>>6,
+                            (connect_flags&0x20)>>5,
+                            (connect_flags&0x18)>>3,
+                            (connect_flags&0x4)>>2,
+                            (connect_flags&0x2)>>1,
+                            keepalive,
+                            self._client_id )
+        )
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_disconnect(self):
@@ -2103,7 +2112,9 @@ class Client(object):
             self._pack_str16(packet, t[0])
             packet.extend(struct.pack("B", t[1]))
 
-        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE")
+        topics_repr = ", ".join("'%s' q%s" % (topic.decode('utf8'), qos) for topic, qos in topics)
+        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE (d"+str(int(dup))+", m"+str(local_mid)+") "+topics_repr)
+
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2120,7 +2131,8 @@ class Client(object):
         for t in topics:
             self._pack_str16(packet, t)
 
-        self._easy_log(MQTT_LOG_DEBUG, "Sending UNSUBSCRIBE")
+        topics_repr = ", ".join("'"+topic.decode('utf8')+"'" for topic in topics)
+        self._easy_log(MQTT_LOG_DEBUG, "Sending UNSUBSCRIBE (d"+str(int(dup))+") "+topics_repr)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _message_retry_check_actual(self, messages, mutex):
