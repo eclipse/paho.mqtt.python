@@ -991,6 +991,10 @@ class Client(object):
                 self._out_message_mutex.release()
                 return (MQTT_ERR_QUEUE_SIZE, local_mid)
 
+            if local_mid in self._out_messages:
+                self._out_message_mutex.release()
+                return (MQTT_ERR_QUEUE_SIZE, local_mid)
+
             self._out_messages[message.mid] = message
             if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
                 self._inflight_messages += 1
