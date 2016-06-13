@@ -66,7 +66,7 @@ else:
 
     unicode = str
     basestring = str
-    
+
 
 # Message types
 CONNECT = 0x10
@@ -498,9 +498,11 @@ class Client(object):
             self._client_id = "paho/" + "".join(random.choice("0123456789ADCDEF") for x in range(23-5))
         else:
             self._client_id = client_id
+        if isinstance(self._client_id, unicode):
+            self._client_id = self._client_id.encode('utf-8')
 
-        self._username = ""
-        self._password = ""
+        self._username = None
+        self._password = None
         self._in_packet = {
             "command": 0,
             "have_remaining": 0,
@@ -957,7 +959,7 @@ class Client(object):
         if isinstance(payload, (unicode, bytes, bytearray)):
             local_payload = payload
         elif isinstance(payload, (int, float)):
-            local_payload = str(payload)
+            local_payload = str(payload).encode('ascii')
         elif payload is None:
             local_payload = None
         else:
@@ -1031,6 +1033,8 @@ class Client(object):
         """
         self._username = username.encode('utf-8')
         self._password = password
+        if isinstance(self._password, unicode):
+            self._password.encode('utf-8')
 
     def disconnect(self):
         """Disconnect a connected client from the broker."""
@@ -1297,14 +1301,16 @@ class Client(object):
         """
         if topic is None or len(topic) == 0:
             raise ValueError('Invalid topic.')
-        if qos<0 or qos>2:
+
+        if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
+
         if isinstance(payload, unicode):
             self._will_payload = payload.encode('utf-8')
         elif isinstance(payload, (bytes, bytearray)):
             self._will_payload = payload
         elif isinstance(payload, (int, float)):
-            self._will_payload = str(payload)
+            self._will_payload = str(payload).encode('ascii')
         elif payload is None:
             self._will_payload = None
         else:
@@ -1941,7 +1947,6 @@ class Client(object):
             data = data.encode('utf-8')
         packet.extend(struct.pack("!H", len(data)))
         packet.extend(data)
-        #TODO: check type ?
 
     def _send_publish(self, mid, topic, payload=None, qos=0, retain=False, dup=False, info=None):
         if self._sock is None and self._ssl is None:
@@ -1964,7 +1969,7 @@ class Client(object):
 
         if qos > 0:
             # For message id
-            remaining_length = remaining_length + 2
+            remaining_length += 2
 
         self._pack_remaining_length(packet, remaining_length)
         self._pack_str16(packet, utopic)
@@ -2009,25 +2014,25 @@ class Client(object):
         else:
             protocol = PROTOCOL_NAMEv311
             proto_ver = 4
+
         remaining_length = 2+len(protocol) + 1+1+2 + 2+len(self._client_id)
         connect_flags = 0
         if clean_session:
             connect_flags |= 0x02
 
         if self._will:
+            remaining_length += 2+len(self._will_topic)
             if self._will_payload is not None:
-                remaining_length = remaining_length + 2+len(self._will_topic) + 2+len(self._will_payload)
-            else:
-                remaining_length = remaining_length + 2+len(self._will_topic) + 2
+                remaining_length += 2+len(self._will_payload)
 
             connect_flags |= 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
         if self._username:
-            remaining_length = remaining_length + 2+len(self._username)
+            remaining_length += 2+len(self._username)
             connect_flags |= 0x80
-            if self._password:
+            if self._password is not None:
                 connect_flags |= 0x40
-                remaining_length = remaining_length + 2+len(self._password)
+                remaining_length += 2+len(self._password)
 
         command = CONNECT
         packet = bytearray()
@@ -2045,10 +2050,10 @@ class Client(object):
             else:
                 self._pack_str16(packet, self._will_payload)
 
-        if self._username:
+        if self._username is not None:
             self._pack_str16(packet, self._username)
 
-            if self._password:
+            if self._password is not None:
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
@@ -2059,8 +2064,8 @@ class Client(object):
 
     def _send_subscribe(self, dup, topics):
         remaining_length = 2
-        for t in topics:
-            remaining_length = remaining_length + 2+len(t[0])+1
+        for t, _ in topics:
+            remaining_length += 2+len(t)+1
 
         command = SUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
@@ -2068,15 +2073,17 @@ class Client(object):
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
         packet.extend(struct.pack("!H", local_mid))
-        for t in topics:
-            self._pack_str16(packet, t[0])
-            packet.append(t[1])
+        for t, q in topics:
+            self._pack_str16(packet, t)
+            packet.append(q)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
+        topics = [t.encode("utf-8") for t in topics]
+
         remaining_length = 2
         for t in topics:
-            remaining_length = remaining_length + 2+len(t)
+            remaining_length += 2+len(t)
 
         command = UNSUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
