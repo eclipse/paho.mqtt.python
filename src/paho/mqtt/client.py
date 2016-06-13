@@ -2027,7 +2027,7 @@ class Client(object):
 
             connect_flags |= 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
-        if self._username:
+        if self._username is not None:
             remaining_length += 2+len(self._username)
             connect_flags |= 0x80
             if self._password is not None:
