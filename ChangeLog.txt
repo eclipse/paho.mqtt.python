@@ -1,3 +1,9 @@
+v1.x - 2016-xx-xx
+=================
+
+- Handle unicode username and passwords correctly. Closes #79.
+
+
 v1.2 - 2016-06-03
 =================
 

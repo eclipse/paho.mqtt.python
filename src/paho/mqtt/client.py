@@ -1033,7 +1033,7 @@ class Client(object):
         username: The username to authenticate with. Need have no relationship to the client id.
         password: The password to authenticate with. Optional, set to None if not required.
         """
-        self._username = username.encode('utf-8')
+        self._username = username
         self._password = password
 
     def disconnect(self):
@@ -2065,11 +2065,13 @@ class Client(object):
             connect_flags = connect_flags | 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
         if self._username:
-            remaining_length = remaining_length + 2+len(self._username)
+            uusername = self._username.encode('utf-8')
+            remaining_length = remaining_length + 2+len(uusername)
             connect_flags = connect_flags | 0x80
             if self._password:
                 connect_flags = connect_flags | 0x40
-                remaining_length = remaining_length + 2+len(self._password)
+                upassword = self._password.encode('utf-8')
+                remaining_length = remaining_length + 2+len(upassword)
 
         command = CONNECT
         packet = bytearray()

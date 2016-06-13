@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+# vim: set fileencoding=utf-8
+
+import paho.mqtt.client as mqtt
+
+mqttc = mqtt.Client("01-unpwd-unicode-set")
+
+run = -1
+mqttc.username_pw_set(u"úsérnámé-hélló", u"hélló")
+mqttc.connect("localhost", 1888)
+while run == -1:
+    mqttc.loop()
+
+exit(run)
