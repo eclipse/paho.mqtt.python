@@ -1034,7 +1034,7 @@ class Client(object):
         self._username = username.encode('utf-8')
         self._password = password
         if isinstance(self._password, unicode):
-            self._password.encode('utf-8')
+            self._password = self._password.encode('utf-8')
 
     def disconnect(self):
         """Disconnect a connected client from the broker."""
