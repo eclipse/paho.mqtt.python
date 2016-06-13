@@ -2079,8 +2079,6 @@ class Client(object):
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
-        topics = [t.encode("utf-8") for t in topics]
-
         remaining_length = 2
         for t in topics:
             remaining_length += 2+len(t)
