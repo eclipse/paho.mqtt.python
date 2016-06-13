@@ -501,8 +501,8 @@ class Client(object):
         else:
             self._client_id = client_id
 
-        self._username = ""
-        self._password = ""
+        self._username = None
+        self._password = None
         self._in_packet = {
             "command": 0,
             "have_remaining": 0,
@@ -2064,10 +2064,10 @@ class Client(object):
 
             connect_flags = connect_flags | 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
-        if self._username:
+        if self._username is not None:
             remaining_length = remaining_length + 2+len(self._username)
             connect_flags = connect_flags | 0x80
-            if self._password:
+            if self._password is not None:
                 connect_flags = connect_flags | 0x40
                 remaining_length = remaining_length + 2+len(self._password)
 
@@ -2087,10 +2087,10 @@ class Client(object):
             else:
                 self._pack_str16(packet, self._will_payload)
 
-        if self._username:
+        if self._username is not None:
             self._pack_str16(packet, self._username)
 
-            if self._password:
+            if self._password is not None:
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
