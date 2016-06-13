@@ -64,6 +64,10 @@ else:
     PROTOCOL_NAMEv31 = b"MQIsdp"
     PROTOCOL_NAMEv311 = b"MQTT"
 
+    unicode = str
+    basestring = str
+
+
 # Message types
 CONNECT = 0x10
 CONNACK = 0x20
@@ -175,17 +179,17 @@ def error_string(mqtt_errno):
 
 def connack_string(connack_code):
     """Return the string associated with a CONNACK result."""
-    if connack_code == 0:
+    if connack_code == CONNACK_ACCEPTED:
         return "Connection Accepted."
-    elif connack_code == 1:
+    elif connack_code == CONNACK_REFUSED_PROTOCOL_VERSION:
         return "Connection Refused: unacceptable protocol version."
-    elif connack_code == 2:
+    elif connack_code == CONNACK_REFUSED_IDENTIFIER_REJECTED:
         return "Connection Refused: identifier rejected."
-    elif connack_code == 3:
+    elif connack_code == CONNACK_REFUSED_SERVER_UNAVAILABLE:
         return "Connection Refused: broker unavailable."
-    elif connack_code == 4:
+    elif connack_code == CONNACK_REFUSED_BAD_USERNAME_PASSWORD:
         return "Connection Refused: bad user name or password."
-    elif connack_code == 5:
+    elif connack_code == CONNACK_REFUSED_NOT_AUTHORIZED:
         return "Connection Refused: not authorised."
     else:
         return "Connection Refused: unknown reason."
@@ -325,7 +329,7 @@ class MQTTMessageInfo:
     def wait_for_publish(self):
         """Block until the message associated with this object is published."""
         with self._condition:
-            while self._published == False:
+            while not self._published:
                 self._condition.wait()
 
     def is_published(self):
@@ -494,9 +498,11 @@ class Client(object):
             self._client_id = "paho/" + "".join(random.choice("0123456789ADCDEF") for x in range(23-5))
         else:
             self._client_id = client_id
+        if isinstance(self._client_id, unicode):
+            self._client_id = self._client_id.encode('utf-8')
 
-        self._username = ""
-        self._password = ""
+        self._username = None
+        self._password = None
         self._in_packet = {
             "command": 0,
             "have_remaining": 0,
@@ -946,16 +952,14 @@ class Client(object):
         the length of the payload is greater than 268435455 bytes."""
         if topic is None or len(topic) == 0:
             raise ValueError('Invalid topic.')
+
         if qos<0 or qos>2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str) or isinstance(payload, bytearray):
+
+        if isinstance(payload, (unicode, bytes, bytearray)):
             local_payload = payload
-        elif sys.version_info[0] == 3 and isinstance(payload, bytes):
-            local_payload = bytearray(payload)
-        elif sys.version_info[0] < 3 and isinstance(payload, unicode):
-            local_payload = payload
-        elif isinstance(payload, int) or isinstance(payload, float):
-            local_payload = str(payload)
+        elif isinstance(payload, (int, float)):
+            local_payload = str(payload).encode('ascii')
         elif payload is None:
             local_payload = None
         else:
@@ -1029,6 +1033,8 @@ class Client(object):
         """
         self._username = username.encode('utf-8')
         self._password = password
+        if isinstance(self._password, unicode):
+            self._password = self._password.encode('utf-8')
 
     def disconnect(self):
         """Disconnect a connected client from the broker."""
@@ -1085,26 +1091,24 @@ class Client(object):
         zero string length, or if topic is not a string, tuple or list.
         """
         topic_qos_list = None
-        if isinstance(topic, str) or (sys.version_info[0] == 2 and isinstance(topic, unicode)):
-            if qos<0 or qos>2:
+
+        if isinstance(topic, tuple):
+            topic, qos = topic
+
+        if isinstance(topic, basestring):
+            if qos < 0 or qos > 2:
                 raise ValueError('Invalid QoS level.')
             if topic is None or len(topic) == 0:
                 raise ValueError('Invalid topic.')
             topic_qos_list = [(topic.encode('utf-8'), qos)]
-        elif isinstance(topic, tuple):
-            if topic[1]<0 or topic[1]>2:
-                raise ValueError('Invalid QoS level.')
-            if topic[0] is None or len(topic[0]) == 0 or not isinstance(topic[0], str):
-                raise ValueError('Invalid topic.')
-            topic_qos_list = [(topic[0].encode('utf-8'), topic[1])]
         elif isinstance(topic, list):
             topic_qos_list = []
-            for t in topic:
-                if t[1]<0 or t[1]>2:
+            for t, q in topic:
+                if q < 0 or q > 2:
                     raise ValueError('Invalid QoS level.')
-                if t[0] is None or len(t[0]) == 0 or not isinstance(t[0], str):
+                if t is None or len(t) == 0 or not isinstance(t, basestring):
                     raise ValueError('Invalid topic.')
-                topic_qos_list.append((t[0].encode('utf-8'), t[1]))
+                topic_qos_list.append((t.encode('utf-8'), q))
 
         if topic_qos_list is None:
             raise ValueError("No topic specified, or incorrect topic type.")
@@ -1133,14 +1137,14 @@ class Client(object):
         topic_list = None
         if topic is None:
             raise ValueError('Invalid topic.')
-        if isinstance(topic, str):
+        if isinstance(topic, basestring):
             if len(topic) == 0:
                 raise ValueError('Invalid topic.')
             topic_list = [topic.encode('utf-8')]
         elif isinstance(topic, list):
             topic_list = []
             for t in topic:
-                if len(t) == 0 or not isinstance(t, str):
+                if len(t) == 0 or not isinstance(t, basestring):
                     raise ValueError('Invalid topic.')
                 topic_list.append(t.encode('utf-8'))
 
@@ -1167,7 +1171,7 @@ class Client(object):
         if max_packets < 1:
             max_packets = 1
 
-        for i in range(0, max_packets):
+        for _ in range(0, max_packets):
             rc = self._packet_read()
             if rc > 0:
                 return self._loop_rc_handle(rc)
@@ -1192,7 +1196,7 @@ class Client(object):
         if max_packets < 1:
             max_packets = 1
 
-        for i in range(0, max_packets):
+        for _ in range(0, max_packets):
             rc = self._packet_write()
             if rc > 0:
                 return self._loop_rc_handle(rc)
@@ -1297,14 +1301,16 @@ class Client(object):
         """
         if topic is None or len(topic) == 0:
             raise ValueError('Invalid topic.')
-        if qos<0 or qos>2:
+
+        if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str):
+
+        if isinstance(payload, unicode):
             self._will_payload = payload.encode('utf-8')
-        elif isinstance(payload, bytearray):
+        elif isinstance(payload, (bytes, bytearray)):
             self._will_payload = payload
-        elif isinstance(payload, int) or isinstance(payload, float):
-            self._will_payload = str(payload)
+        elif isinstance(payload, (int, float)):
+            self._will_payload = str(payload).encode('ascii')
         elif payload is None:
             self._will_payload = None
         else:
@@ -1697,8 +1703,8 @@ class Client(object):
             else:
                 if len(command) == 0:
                     return 1
-                command = struct.unpack("!B", command)
-                self._in_packet['command'] = command[0]
+                command, = struct.unpack("!B", command)
+                self._in_packet['command'] = command
 
         if self._in_packet['have_remaining'] == 0:
             # Read remaining
@@ -1718,15 +1724,14 @@ class Client(object):
                     print(err)
                     return 1
                 else:
-                    byte = struct.unpack("!B", byte)
-                    byte = byte[0]
+                    byte, = struct.unpack("!B", byte)
                     self._in_packet['remaining_count'].append(byte)
                     # Max 4 bytes length for remaining length as defined by protocol.
                      # Anything more likely means a broken/malicious client.
                     if len(self._in_packet['remaining_count']) > 4:
                         return MQTT_ERR_PROTOCOL
 
-                    self._in_packet['remaining_length'] = self._in_packet['remaining_length'] + (byte & 127)*self._in_packet['remaining_mult']
+                    self._in_packet['remaining_length'] += (byte & 127) * self._in_packet['remaining_mult']
                     self._in_packet['remaining_mult'] = self._in_packet['remaining_mult'] * 128
 
                 if (byte & 128) == 0:
@@ -1749,23 +1754,23 @@ class Client(object):
                 print(err)
                 return 1
             else:
-                self._in_packet['to_process'] = self._in_packet['to_process'] - len(data)
-                self._in_packet['packet'] = self._in_packet['packet'] + data
+                self._in_packet['to_process'] -= len(data)
+                self._in_packet['packet'] += data
 
         # All data for this packet is read.
         self._in_packet['pos'] = 0
         rc = self._packet_handle()
 
         # Free data and reset values
-        self._in_packet = dict(
-            command=0,
-            have_remaining=0,
-            remaining_count=[],
-            remaining_mult=1,
-            remaining_length=0,
-            packet=b"",
-            to_process=0,
-            pos=0)
+        self._in_packet = {
+            'command': 0,
+            'have_remaining': 0,
+            'remaining_count': [],
+            'remaining_mult': 1,
+            'remaining_length': 0,
+            'packet': b"",
+            'to_process': 0,
+            'pos': 0}
 
         self._msgtime_mutex.acquire()
         self._last_msg_in = time.time()
@@ -1796,8 +1801,8 @@ class Client(object):
                 return 1
 
             if write_length > 0:
-                packet['to_process'] = packet['to_process'] - write_length
-                packet['pos'] = packet['pos'] + write_length
+                packet['to_process'] -= write_length
+                packet['pos'] += write_length
 
                 if packet['to_process'] == 0:
                     if (packet['command'] & 0xF0) == PUBLISH and packet['qos'] == 0:
@@ -1929,39 +1934,19 @@ class Client(object):
             remaining_length = remaining_length // 128
             # If there are more digits to encode, set the top bit of this digit
             if remaining_length > 0:
-                byte = byte | 0x80
+                byte |= 0x80
 
             remaining_bytes.append(byte)
-            packet.extend(struct.pack("!B", byte))
+            packet.append(byte)
             if remaining_length == 0:
                 # FIXME - this doesn't deal with incorrectly large payloads
                 return packet
 
     def _pack_str16(self, packet, data):
-        if sys.version_info[0] < 3:
-            if isinstance(data, bytearray):
-                packet.extend(struct.pack("!H", len(data)))
-                packet.extend(data)
-            elif isinstance(data, str):
-                udata = data.encode('utf-8')
-                pack_format = "!H" + str(len(udata)) + "s"
-                packet.extend(struct.pack(pack_format, len(udata), udata))
-            elif isinstance(data, unicode):
-                udata = data.encode('utf-8')
-                pack_format = "!H" + str(len(udata)) + "s"
-                packet.extend(struct.pack(pack_format, len(udata), udata))
-            else:
-                raise TypeError
-        else:
-            if isinstance(data, bytearray) or isinstance(data, bytes):
-                packet.extend(struct.pack("!H", len(data)))
-                packet.extend(data)
-            elif isinstance(data, str):
-                udata = data.encode('utf-8')
-                pack_format = "!H" + str(len(udata)) + "s"
-                packet.extend(struct.pack(pack_format, len(udata), udata))
-            else:
-                raise TypeError
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
+        packet.extend(struct.pack("!H", len(data)))
+        packet.extend(data)
 
     def _send_publish(self, mid, topic, payload=None, qos=0, retain=False, dup=False, info=None):
         if self._sock is None and self._ssl is None:
@@ -1970,45 +1955,32 @@ class Client(object):
         utopic = topic.encode('utf-8')
         command = PUBLISH | ((dup&0x1)<<3) | (qos<<1) | retain
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
         if payload is None:
             remaining_length = 2+len(utopic)
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
         else:
-            if isinstance(payload, str):
-                upayload = payload.encode('utf-8')
-                payloadlen = len(upayload)
-            elif isinstance(payload, bytearray):
-                payloadlen = len(payload)
-            elif isinstance(payload, unicode):
-                upayload = payload.encode('utf-8')
-                payloadlen = len(upayload)
+            if isinstance(payload, unicode):
+                payload = payload.encode('utf-8')
+            payloadlen = len(payload)
 
             remaining_length = 2+len(utopic) + payloadlen
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(payloadlen)+" bytes)")
 
         if qos > 0:
             # For message id
-            remaining_length = remaining_length + 2
+            remaining_length += 2
 
         self._pack_remaining_length(packet, remaining_length)
-        self._pack_str16(packet, topic)
+        self._pack_str16(packet, utopic)
 
         if qos > 0:
             # For message id
             packet.extend(struct.pack("!H", mid))
 
         if payload is not None:
-            if isinstance(payload, str):
-                pack_format = str(payloadlen) + "s"
-                packet.extend(struct.pack(pack_format, upayload))
-            elif isinstance(payload, bytearray):
-                packet.extend(payload)
-            elif isinstance(payload, unicode):
-                pack_format = str(payloadlen) + "s"
-                packet.extend(struct.pack(pack_format, upayload))
-            else:
-                raise TypeError('payload must be a string, unicode or a bytearray.')
+            packet.extend(payload)
+            #TODO: check type
 
         return self._packet_queue(PUBLISH, packet, mid, qos, info)
 
@@ -2023,7 +1995,7 @@ class Client(object):
     def _send_command_with_mid(self, command, mid, dup):
         # For PUBACK, PUBCOMP, PUBREC, and PUBREL
         if dup:
-            command = command | 8
+            command |= 8
 
         remaining_length = 2
         packet = struct.pack('!BBH', command, remaining_length, mid)
@@ -2042,29 +2014,29 @@ class Client(object):
         else:
             protocol = PROTOCOL_NAMEv311
             proto_ver = 4
+
         remaining_length = 2+len(protocol) + 1+1+2 + 2+len(self._client_id)
         connect_flags = 0
         if clean_session:
-            connect_flags = connect_flags | 0x02
+            connect_flags |= 0x02
 
         if self._will:
+            remaining_length += 2+len(self._will_topic)
             if self._will_payload is not None:
-                remaining_length = remaining_length + 2+len(self._will_topic) + 2+len(self._will_payload)
-            else:
-                remaining_length = remaining_length + 2+len(self._will_topic) + 2
+                remaining_length += 2+len(self._will_payload)
 
-            connect_flags = connect_flags | 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
+            connect_flags |= 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
-        if self._username:
-            remaining_length = remaining_length + 2+len(self._username)
-            connect_flags = connect_flags | 0x80
-            if self._password:
-                connect_flags = connect_flags | 0x40
-                remaining_length = remaining_length + 2+len(self._password)
+        if self._username is not None:
+            remaining_length += 2+len(self._username)
+            connect_flags |= 0x80
+            if self._password is not None:
+                connect_flags |= 0x40
+                remaining_length += 2+len(self._password)
 
         command = CONNECT
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
 
         self._pack_remaining_length(packet, remaining_length)
         packet.extend(struct.pack("!H"+str(len(protocol))+"sBBH", len(protocol), protocol, proto_ver, connect_flags, keepalive))
@@ -2078,10 +2050,10 @@ class Client(object):
             else:
                 self._pack_str16(packet, self._will_payload)
 
-        if self._username:
+        if self._username is not None:
             self._pack_str16(packet, self._username)
 
-            if self._password:
+            if self._password is not None:
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
@@ -2092,28 +2064,28 @@ class Client(object):
 
     def _send_subscribe(self, dup, topics):
         remaining_length = 2
-        for t in topics:
-            remaining_length = remaining_length + 2+len(t[0])+1
+        for t, _ in topics:
+            remaining_length += 2+len(t)+1
 
-        command = SUBSCRIBE | (dup<<3) | (1<<1)
+        command = SUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
         packet.extend(struct.pack("!H", local_mid))
-        for t in topics:
-            self._pack_str16(packet, t[0])
-            packet.extend(struct.pack("B", t[1]))
+        for t, q in topics:
+            self._pack_str16(packet, t)
+            packet.append(q)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
         remaining_length = 2
         for t in topics:
-            remaining_length = remaining_length + 2+len(t)
+            remaining_length += 2+len(t)
 
-        command = UNSUBSCRIBE | (dup<<3) | (1<<1)
+        command = UNSUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
         packet.extend(struct.pack("!H", local_mid))
@@ -2186,14 +2158,14 @@ class Client(object):
         self._messages_reconnect_reset_in()
 
     def _packet_queue(self, command, packet, mid, qos, info=None):
-        mpkt = dict(
-            command = command,
-            mid = mid,
-            qos = qos,
-            pos = 0,
-            to_process = len(packet),
-            packet = packet,
-            info = info)
+        mpkt = {
+            'command': command,
+            'mid': mid,
+            'qos': qos,
+            'pos': 0,
+            'to_process': len(packet),
+            'packet': packet,
+            'info': info}
 
         self._out_packet_mutex.acquire()
         self._out_packet.append(mpkt)
@@ -2217,7 +2189,7 @@ class Client(object):
             return MQTT_ERR_SUCCESS
 
     def _packet_handle(self):
-        cmd = self._in_packet['command']&0xF0
+        cmd = self._in_packet['command'] & 0xF0
         if cmd == PINGREQ:
             return self._handle_pingreq()
         elif cmd == PINGRESP:
@@ -2292,7 +2264,7 @@ class Client(object):
             if argcount == 3:
                 self.on_connect(self, self._userdata, result)
             else:
-                flags_dict = dict()
+                flags_dict = {}
                 flags_dict['session present'] = flags & 0x01
                 self.on_connect(self, self._userdata, flags_dict, result)
             self._in_callback = False
@@ -2426,8 +2398,7 @@ class Client(object):
         if len(self._in_packet['packet']) != 2:
             return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREL (Mid: "+str(mid)+")")
 
         self._in_message_mutex.acquire()
@@ -2475,8 +2446,7 @@ class Client(object):
             if self._in_packet['remaining_length'] != 2:
                 return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREC (Mid: "+str(mid)+")")
 
         self._out_message_mutex.acquire()
@@ -2495,8 +2465,7 @@ class Client(object):
             if self._in_packet['remaining_length'] != 2:
                 return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: "+str(mid)+")")
         self._callback_mutex.acquire()
         if self.on_unsubscribe:
@@ -2530,8 +2499,7 @@ class Client(object):
             if self._in_packet['remaining_length'] != 2:
                 return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received "+cmd+" (Mid: "+str(mid)+")")
 
         self._out_message_mutex.acquire()
@@ -2584,15 +2552,9 @@ class Client(object):
 
             host_match = host.split(".", 1)[1]
             cert_match = cert_host.split(".", 1)[1]
-            if host_match == cert_match:
-                return True
-            else:
-                return False
+            return host_match == cert_match
         else:
-            if host == cert_host:
-                return True
-            else:
-                return False
+            return host == cert_host
 
     def _tls_match_hostname(self):
         try:
@@ -2608,7 +2570,7 @@ class Client(object):
             for (key, value) in san:
                 if key == 'DNS':
                     have_san_dns = True
-                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
+                    if self._host_matches_cert(self._host.lower(), value.lower()):
                         return
                 if key == 'IP Address':
                     have_san_dns = True
@@ -2622,7 +2584,7 @@ class Client(object):
         if subject:
             for ((key, value),) in subject:
                 if key == 'commonName':
-                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
+                    if self._host_matches_cert(self._host.lower(), value.lower()):
                         return
 
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
@@ -2811,12 +2773,12 @@ class WebsocketWrapper:
             if lengthbits == 0x7e:
 
                 value = self._buffered_read(2)
-                payload_length = struct.unpack("!H", value)[0]
+                payload_length, = struct.unpack("!H", value)
 
             elif lengthbits == 0x7f:
 
                 value = self._buffered_read(8)
-                payload_length = struct.unpack("!Q", value)[0]
+                payload_length, = struct.unpack("!Q", value)
 
             # read mask
             if maskbit:
