@@ -175,17 +175,17 @@ def error_string(mqtt_errno):
 
 def connack_string(connack_code):
     """Return the string associated with a CONNACK result."""
-    if connack_code == 0:
+    if connack_code == CONNACK_ACCEPTED:
         return "Connection Accepted."
-    elif connack_code == 1:
+    elif connack_code == CONNACK_REFUSED_PROTOCOL_VERSION:
         return "Connection Refused: unacceptable protocol version."
-    elif connack_code == 2:
+    elif connack_code == CONNACK_REFUSED_IDENTIFIER_REJECTED:
         return "Connection Refused: identifier rejected."
-    elif connack_code == 3:
+    elif connack_code == CONNACK_REFUSED_SERVER_UNAVAILABLE:
         return "Connection Refused: broker unavailable."
-    elif connack_code == 4:
+    elif connack_code == CONNACK_REFUSED_BAD_USERNAME_PASSWORD:
         return "Connection Refused: bad user name or password."
-    elif connack_code == 5:
+    elif connack_code == CONNACK_REFUSED_NOT_AUTHORIZED:
         return "Connection Refused: not authorised."
     else:
         return "Connection Refused: unknown reason."
