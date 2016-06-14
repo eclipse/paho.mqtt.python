@@ -457,9 +457,12 @@ class Client(object):
     """
     def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
-        broker. If client_id is zero length or None, then one will be randomly
-        generated. In this case, clean_session must be True. If this is not the
-        case a ValueError will be raised.
+        broker. If client_id is zero length or None, then the behaviour is
+        defined by which protocol version is in use. If using MQTT v3.1.1, then
+        a zero length client id will be sent to the broker and the broker will
+        generate a random for the client. If using MQGG v3.1 then an id will be
+        randomly generated. In both cases, clean_session must be True. If this
+        is not the case a ValueError will be raised.
 
         clean_session is a boolean that determines the client type. If True,
         the broker will remove all information about this client when it
@@ -497,7 +500,10 @@ class Client(object):
         self._last_retry_check = 0
         self._clean_session = clean_session
         if client_id == "" or client_id is None:
-            self._client_id = "paho/" + "".join(random.choice("0123456789ADCDEF") for x in range(23-5))
+            if protocol == MQTTv31:
+                self._client_id = "paho/" + "".join(random.choice("0123456789ADCDEF") for x in range(23-5))
+            else:
+                self._client_id = ""
         else:
             self._client_id = client_id
 

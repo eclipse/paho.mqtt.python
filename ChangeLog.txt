@@ -3,6 +3,7 @@ v1.x - 2016-xx-xx
 
 - Allow username and password to be zero length (as opposed to not being
   present). Closes #80.
+- Allow zero length client ids when using MQTT v3.1.1.
 
 
 v1.2 - 2016-06-03
