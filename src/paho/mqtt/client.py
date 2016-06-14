@@ -358,11 +358,22 @@ class MQTTMessage:
         self.state = mqtt_ms_invalid
         self.dup = False
         self.mid = mid
-        self.topic = topic
+        self._topic = topic
         self.payload = None
         self.qos = 0
         self.retain = False
         self.info = MQTTMessageInfo(mid)
+
+    @property
+    def topic(self):
+        if sys.version_info[0] >= 3:
+            return self._topic.decode('utf-8')
+        else:
+            return self._topic
+
+    @topic.setter
+    def topic(self, value):
+        self._topic = value
 
 
 class Client(object):
@@ -2390,13 +2401,24 @@ class Client(object):
         pack_format = "!H" + str(len(self._in_packet['packet'])-2) + 's'
         (slen, packet) = struct.unpack(pack_format, self._in_packet['packet'])
         pack_format = '!' + str(slen) + 's' + str(len(packet)-slen) + 's'
-        (message.topic, packet) = struct.unpack(pack_format, packet)
+        (topic, packet) = struct.unpack(pack_format, packet)
 
-        if len(message.topic) == 0:
+        if len(topic) == 0:
             return MQTT_ERR_PROTOCOL
 
+        # Handle topics with invalid UTF-8
+        # This replaces an invalid topic with a message and the hex
+        # representation of the topic for logging. When the user attempts to
+        # access message.topic in the callback, an exception will be raised.
         if sys.version_info[0] >= 3:
-            message.topic = message.topic.decode('utf-8')
+            try:
+                print_topic = topic.decode('utf-8')
+            except UnicodeDecodeError:
+                print_topic = "TOPIC WITH INVALID UTF-8: " + str(topic)
+        else:
+            print_topic = topic
+
+        message.topic = topic
 
         if message.qos > 0:
             pack_format = "!H" + str(len(packet)-2) + 's'
@@ -2408,7 +2430,7 @@ class Client(object):
             MQTT_LOG_DEBUG,
             "Received PUBLISH (d"+str(message.dup)+
             ", q"+str(message.qos)+", r"+str(message.retain)+
-            ", m"+str(message.mid)+", '"+message.topic+
+            ", m"+str(message.mid)+", '"+print_topic+
             "', ...  ("+str(len(message.payload))+" bytes)")
 
         message.timestamp = time_func()
