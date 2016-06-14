@@ -37,6 +37,7 @@ import threading
 import time
 import uuid
 import base64
+import string
 import hashlib
 try:
     # Use monotionic clock if available
@@ -195,6 +196,17 @@ def connack_string(connack_code):
         return "Connection Refused: not authorised."
     else:
         return "Connection Refused: unknown reason."
+
+
+def base62(num, base=string.digits+string.ascii_letters, padding=1):
+    """Convert a number to base-62 representation."""
+    assert num >= 0
+    digits = []
+    while num:
+        num, rest = divmod(num, 62)
+        digits.append(base[rest])
+    digits.extend(base[0] for _ in range(len(digits), padding))
+    return ''.join(reversed(digits))
 
 
 def topic_matches_sub(sub, topic):
@@ -499,9 +511,10 @@ class Client(object):
         self._message_retry = 20
         self._last_retry_check = 0
         self._clean_session = clean_session
+
         if client_id == "" or client_id is None:
             if protocol == MQTTv31:
-                self._client_id = "paho/" + "".join(random.choice("0123456789ADCDEF") for x in range(23-5))
+                self._client_id = base62(uuid.uuid4().int, padding=22)
             else:
                 self._client_id = ""
         else:
