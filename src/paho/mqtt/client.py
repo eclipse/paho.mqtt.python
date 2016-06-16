@@ -331,7 +331,7 @@ class MQTTMessageInfo:
     def wait_for_publish(self):
         """Block until the message associated with this object is published."""
         with self._condition:
-            while self._published == False:
+            while not self._published:
                 self._condition.wait()
 
     def is_published(self):
@@ -958,16 +958,17 @@ class Client(object):
         the length of the payload is greater than 268435455 bytes."""
         if topic is None or len(topic) == 0:
             raise ValueError('Invalid topic.')
-        if qos<0 or qos>2:
+
+        if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str) or isinstance(payload, bytearray):
+        if isinstance(payload, (str, bytearray)):
             local_payload = payload
         elif sys.version_info[0] == 3 and isinstance(payload, bytes):
             local_payload = bytearray(payload)
         elif sys.version_info[0] < 3 and isinstance(payload, unicode):
             local_payload = payload
-        elif isinstance(payload, int) or isinstance(payload, float):
-            local_payload = str(payload)
+        elif isinstance(payload, (int, float)):
+            local_payload = str(payload).encode('ascii')
         elif payload is None:
             local_payload = None
         else:
@@ -1097,18 +1098,16 @@ class Client(object):
         zero string length, or if topic is not a string, tuple or list.
         """
         topic_qos_list = None
+
+        if isinstance(topic, tuple):
+            topic, qos = topic
+
         if isinstance(topic, str) or (sys.version_info[0] == 2 and isinstance(topic, unicode)):
-            if qos<0 or qos>2:
+            if qos < 0 or qos > 2:
                 raise ValueError('Invalid QoS level.')
             if topic is None or len(topic) == 0:
                 raise ValueError('Invalid topic.')
             topic_qos_list = [(topic.encode('utf-8'), qos)]
-        elif isinstance(topic, tuple):
-            if topic[1]<0 or topic[1]>2:
-                raise ValueError('Invalid QoS level.')
-            if topic[0] is None or len(topic[0]) == 0 or not isinstance(topic[0], str):
-                raise ValueError('Invalid topic.')
-            topic_qos_list = [(topic[0].encode('utf-8'), topic[1])]
         elif isinstance(topic, list):
             topic_qos_list = []
             for t, q in topic:
@@ -1179,7 +1178,7 @@ class Client(object):
         if max_packets < 1:
             max_packets = 1
 
-        for i in range(0, max_packets):
+        for _ in range(0, max_packets):
             rc = self._packet_read()
             if rc > 0:
                 return self._loop_rc_handle(rc)
@@ -1204,7 +1203,7 @@ class Client(object):
         if max_packets < 1:
             max_packets = 1
 
-        for i in range(0, max_packets):
+        for _ in range(0, max_packets):
             rc = self._packet_write()
             if rc > 0:
                 return self._loop_rc_handle(rc)
@@ -1309,14 +1308,15 @@ class Client(object):
         """
         if topic is None or len(topic) == 0:
             raise ValueError('Invalid topic.')
-        if qos<0 or qos>2:
+
+        if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
         if isinstance(payload, str):
             self._will_payload = payload.encode('utf-8')
         elif isinstance(payload, bytearray):
             self._will_payload = payload
-        elif isinstance(payload, int) or isinstance(payload, float):
-            self._will_payload = str(payload)
+        elif isinstance(payload, (int, float)):
+            self._will_payload = str(payload).encode('ascii')
         elif payload is None:
             self._will_payload = None
         else:
@@ -1771,15 +1771,15 @@ class Client(object):
         rc = self._packet_handle()
 
         # Free data and reset values
-        self._in_packet = dict(
-            command=0,
-            have_remaining=0,
-            remaining_count=[],
-            remaining_mult=1,
-            remaining_length=0,
-            packet=b"",
-            to_process=0,
-            pos=0)
+        self._in_packet = {
+            'command': 0,
+            'have_remaining': 0,
+            'remaining_count': [],
+            'remaining_mult': 1,
+            'remaining_length': 0,
+            'packet': b"",
+            'to_process': 0,
+            'pos': 0}
 
         self._msgtime_mutex.acquire()
         self._last_msg_in = time_func()
@@ -1967,7 +1967,7 @@ class Client(object):
             else:
                 raise TypeError
         else:
-            if isinstance(data, bytearray) or isinstance(data, bytes):
+            if isinstance(data, (bytearray, bytes)):
                 packet.extend(struct.pack("!H", len(data)))
                 packet.extend(data)
             elif isinstance(data, str):
@@ -2109,7 +2109,7 @@ class Client(object):
         for t, _ in topics:
             remaining_length += 2+len(t)+1
 
-        command = SUBSCRIBE | (dup<<3) | (1<<1)
+        command = SUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
         packet.extend(struct.pack("!B", command))
         self._pack_remaining_length(packet, remaining_length)
@@ -2125,7 +2125,7 @@ class Client(object):
         for t in topics:
             remaining_length += 2+len(t)
 
-        command = UNSUBSCRIBE | (dup<<3) | (1<<1)
+        command = UNSUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
         packet.extend(struct.pack("!B", command))
         self._pack_remaining_length(packet, remaining_length)
@@ -2200,14 +2200,14 @@ class Client(object):
         self._messages_reconnect_reset_in()
 
     def _packet_queue(self, command, packet, mid, qos, info=None):
-        mpkt = dict(
-            command = command,
-            mid = mid,
-            qos = qos,
-            pos = 0,
-            to_process = len(packet),
-            packet = packet,
-            info = info)
+        mpkt = {
+            'command': command,
+            'mid': mid,
+            'qos': qos,
+            'pos': 0,
+            'to_process': len(packet),
+            'packet': packet,
+            'info': info}
 
         self._out_packet_mutex.acquire()
         self._out_packet.append(mpkt)
@@ -2231,7 +2231,7 @@ class Client(object):
             return MQTT_ERR_SUCCESS
 
     def _packet_handle(self):
-        cmd = self._in_packet['command']&0xF0
+        cmd = self._in_packet['command'] & 0xF0
         if cmd == PINGREQ:
             return self._handle_pingreq()
         elif cmd == PINGRESP:
@@ -2306,7 +2306,7 @@ class Client(object):
             if argcount == 3:
                 self.on_connect(self, self._userdata, result)
             else:
-                flags_dict = dict()
+                flags_dict = {}
                 flags_dict['session present'] = flags & 0x01
                 self.on_connect(self, self._userdata, flags_dict, result)
             self._in_callback = False
@@ -2587,15 +2587,9 @@ class Client(object):
 
             host_match = host.split(".", 1)[1]
             cert_match = cert_host.split(".", 1)[1]
-            if host_match == cert_match:
-                return True
-            else:
-                return False
+            return host_match == cert_match
         else:
-            if host == cert_host:
-                return True
-            else:
-                return False
+            return host == cert_host
 
     def _tls_match_hostname(self):
         try:
@@ -2611,7 +2605,7 @@ class Client(object):
             for (key, value) in san:
                 if key == 'DNS':
                     have_san_dns = True
-                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
+                    if self._host_matches_cert(self._host.lower(), value.lower()):
                         return
                 if key == 'IP Address':
                     have_san_dns = True
@@ -2625,7 +2619,7 @@ class Client(object):
         if subject:
             for ((key, value),) in subject:
                 if key == 'commonName':
-                    if self._host_matches_cert(self._host.lower(), value.lower()) == True:
+                    if self._host_matches_cert(self._host.lower(), value.lower()):
                         return
 
         raise ssl.SSLError('Certificate subject does not match remote hostname.')
