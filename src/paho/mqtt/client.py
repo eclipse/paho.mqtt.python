@@ -70,6 +70,11 @@ else:
     PROTOCOL_NAMEv31 = b"MQIsdp"
     PROTOCOL_NAMEv311 = b"MQTT"
 
+    # define some alias for python2 compatibility
+    unicode = str
+    basestring = str
+
+
 # Message types
 CONNECT = 0x10
 CONNACK = 0x20
@@ -961,11 +966,10 @@ class Client(object):
 
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, (str, bytearray)):
-            local_payload = payload
-        elif sys.version_info[0] == 3 and isinstance(payload, bytes):
-            local_payload = bytearray(payload)
-        elif sys.version_info[0] < 3 and isinstance(payload, unicode):
+
+        if isinstance(payload, unicode):
+            local_payload = payload.encode('utf-8')
+        elif isinstance(payload, (bytes, bytearray)):
             local_payload = payload
         elif isinstance(payload, (int, float)):
             local_payload = str(payload).encode('ascii')
@@ -1102,7 +1106,7 @@ class Client(object):
         if isinstance(topic, tuple):
             topic, qos = topic
 
-        if isinstance(topic, str) or (sys.version_info[0] == 2 and isinstance(topic, unicode)):
+        if isinstance(topic, basestring):
             if qos < 0 or qos > 2:
                 raise ValueError('Invalid QoS level.')
             if topic is None or len(topic) == 0:
@@ -1113,7 +1117,7 @@ class Client(object):
             for t, q in topic:
                 if q < 0 or q > 2:
                     raise ValueError('Invalid QoS level.')
-                if t is None or len(t) == 0 or not isinstance(t, str):
+                if t is None or len(t) == 0 or not isinstance(t, basestring):
                     raise ValueError('Invalid topic.')
                 topic_qos_list.append((t.encode('utf-8'), q))
 
@@ -1144,14 +1148,14 @@ class Client(object):
         topic_list = None
         if topic is None:
             raise ValueError('Invalid topic.')
-        if isinstance(topic, str):
+        if isinstance(topic, basestring):
             if len(topic) == 0:
                 raise ValueError('Invalid topic.')
             topic_list = [topic.encode('utf-8')]
         elif isinstance(topic, list):
             topic_list = []
             for t in topic:
-                if len(t) == 0 or not isinstance(t, str):
+                if len(t) == 0 or not isinstance(t, basestring):
                     raise ValueError('Invalid topic.')
                 topic_list.append(t.encode('utf-8'))
 
@@ -1311,9 +1315,10 @@ class Client(object):
 
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
-        if isinstance(payload, str):
+
+        if isinstance(payload, unicode):
             self._will_payload = payload.encode('utf-8')
-        elif isinstance(payload, bytearray):
+        elif isinstance(payload, (bytes, bytearray)):
             self._will_payload = payload
         elif isinstance(payload, (int, float)):
             self._will_payload = str(payload).encode('ascii')
@@ -1952,30 +1957,10 @@ class Client(object):
                 return packet
 
     def _pack_str16(self, packet, data):
-        if sys.version_info[0] < 3:
-            if isinstance(data, bytearray):
-                packet.extend(struct.pack("!H", len(data)))
-                packet.extend(data)
-            elif isinstance(data, str):
-                udata = data.encode('utf-8')
-                pack_format = "!H" + str(len(udata)) + "s"
-                packet.extend(struct.pack(pack_format, len(udata), udata))
-            elif isinstance(data, unicode):
-                udata = data.encode('utf-8')
-                pack_format = "!H" + str(len(udata)) + "s"
-                packet.extend(struct.pack(pack_format, len(udata), udata))
-            else:
-                raise TypeError
-        else:
-            if isinstance(data, (bytearray, bytes)):
-                packet.extend(struct.pack("!H", len(data)))
-                packet.extend(data)
-            elif isinstance(data, str):
-                udata = data.encode('utf-8')
-                pack_format = "!H" + str(len(udata)) + "s"
-                packet.extend(struct.pack(pack_format, len(udata), udata))
-            else:
-                raise TypeError
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
+        packet.extend(struct.pack("!H", len(data)))
+        packet.extend(data)
 
     def _send_publish(self, mid, topic, payload=None, qos=0, retain=False, dup=False, info=None):
         if self._sock is None and self._ssl is None:
@@ -1989,14 +1974,9 @@ class Client(object):
             remaining_length = 2+len(utopic)
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
         else:
-            if isinstance(payload, str):
-                upayload = payload.encode('utf-8')
-                payloadlen = len(upayload)
-            elif isinstance(payload, bytearray):
-                payloadlen = len(payload)
-            elif isinstance(payload, unicode):
-                upayload = payload.encode('utf-8')
-                payloadlen = len(upayload)
+            if isinstance(payload, unicode):
+                payload = payload.encode('utf-8')
+            payloadlen = len(payload)
 
             remaining_length = 2+len(utopic) + payloadlen
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(payloadlen)+" bytes)")
@@ -2006,23 +1986,15 @@ class Client(object):
             remaining_length += 2
 
         self._pack_remaining_length(packet, remaining_length)
-        self._pack_str16(packet, topic)
+        self._pack_str16(packet, utopic)
 
         if qos > 0:
             # For message id
             packet.extend(struct.pack("!H", mid))
 
         if payload is not None:
-            if isinstance(payload, str):
-                pack_format = str(payloadlen) + "s"
-                packet.extend(struct.pack(pack_format, upayload))
-            elif isinstance(payload, bytearray):
-                packet.extend(payload)
-            elif isinstance(payload, unicode):
-                pack_format = str(payloadlen) + "s"
-                packet.extend(struct.pack(pack_format, upayload))
-            else:
-                raise TypeError('payload must be a string, unicode or a bytearray.')
+            packet.extend(payload)
+            #TODO: check type
 
         return self._packet_queue(PUBLISH, packet, mid, qos, info)
 
