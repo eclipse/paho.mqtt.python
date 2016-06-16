@@ -1007,7 +1007,7 @@ class Client(object):
 
             self._out_messages.append(message)
             if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
-                self._inflight_messages = self._inflight_messages+1
+                self._inflight_messages += 1
                 if qos == 1:
                     message.state = mqtt_ms_wait_for_puback
                 elif qos == 2:
@@ -1740,7 +1740,7 @@ class Client(object):
                     if len(self._in_packet['remaining_count']) > 4:
                         return MQTT_ERR_PROTOCOL
 
-                    self._in_packet['remaining_length'] = self._in_packet['remaining_length'] + (byte & 127)*self._in_packet['remaining_mult']
+                    self._in_packet['remaining_length'] += (byte & 127) * self._in_packet['remaining_mult']
                     self._in_packet['remaining_mult'] = self._in_packet['remaining_mult'] * 128
 
                 if (byte & 128) == 0:
@@ -1763,8 +1763,8 @@ class Client(object):
                 print(err)
                 return 1
             else:
-                self._in_packet['to_process'] = self._in_packet['to_process'] - len(data)
-                self._in_packet['packet'] = self._in_packet['packet'] + data
+                self._in_packet['to_process'] -= len(data)
+                self._in_packet['packet'] += data
 
         # All data for this packet is read.
         self._in_packet['pos'] = 0
@@ -1810,8 +1810,8 @@ class Client(object):
                 return 1
 
             if write_length > 0:
-                packet['to_process'] = packet['to_process'] - write_length
-                packet['pos'] = packet['pos'] + write_length
+                packet['to_process'] -= write_length
+                packet['pos'] += write_length
 
                 if packet['to_process'] == 0:
                     if (packet['command'] & 0xF0) == PUBLISH and packet['qos'] == 0:
@@ -1903,7 +1903,7 @@ class Client(object):
                 self._callback_mutex.release()
 
     def _mid_generate(self):
-        self._last_mid = self._last_mid + 1
+        self._last_mid += 1
         if self._last_mid == 65536:
             self._last_mid = 1
         return self._last_mid
@@ -1943,7 +1943,7 @@ class Client(object):
             remaining_length = remaining_length // 128
             # If there are more digits to encode, set the top bit of this digit
             if remaining_length > 0:
-                byte = byte | 0x80
+                byte |= 0x80
 
             remaining_bytes.append(byte)
             packet.extend(struct.pack("!B", byte))
@@ -2003,7 +2003,7 @@ class Client(object):
 
         if qos > 0:
             # For message id
-            remaining_length = remaining_length + 2
+            remaining_length += 2
 
         self._pack_remaining_length(packet, remaining_length)
         self._pack_str16(packet, topic)
@@ -2037,7 +2037,7 @@ class Client(object):
     def _send_command_with_mid(self, command, mid, dup):
         # For PUBACK, PUBCOMP, PUBREC, and PUBREL
         if dup:
-            command = command | 8
+            command |= 0x8
 
         remaining_length = 2
         packet = struct.pack('!BBH', command, remaining_length, mid)
@@ -2056,25 +2056,25 @@ class Client(object):
         else:
             protocol = PROTOCOL_NAMEv311
             proto_ver = 4
+
         remaining_length = 2+len(protocol) + 1+1+2 + 2+len(self._client_id)
         connect_flags = 0
         if clean_session:
-            connect_flags = connect_flags | 0x02
+            connect_flags |= 0x02
 
         if self._will:
+            remaining_length += 2+len(self._will_topic) + 2
             if self._will_payload is not None:
-                remaining_length = remaining_length + 2+len(self._will_topic) + 2+len(self._will_payload)
-            else:
-                remaining_length = remaining_length + 2+len(self._will_topic) + 2
+                remaining_length += len(self._will_payload)
 
-            connect_flags = connect_flags | 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
+            connect_flags |= 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
         if self._username is not None:
-            remaining_length = remaining_length + 2+len(self._username)
-            connect_flags = connect_flags | 0x80
+            remaining_length += 2+len(self._username)
+            connect_flags |= 0x80
             if self._password is not None:
-                connect_flags = connect_flags | 0x40
-                remaining_length = remaining_length + 2+len(self._password)
+                connect_flags |= 0x40
+                remaining_length += 2+len(self._password)
 
         command = CONNECT
         packet = bytearray()
@@ -2107,7 +2107,7 @@ class Client(object):
     def _send_subscribe(self, dup, topics):
         remaining_length = 2
         for t, _ in topics:
-            remaining_length = remaining_length + 2+len(t)+1
+            remaining_length += 2+len(t)+1
 
         command = SUBSCRIBE | (dup<<3) | (1<<1)
         packet = bytearray()
@@ -2123,7 +2123,7 @@ class Client(object):
     def _send_unsubscribe(self, dup, topics):
         remaining_length = 2
         for t in topics:
-            remaining_length = remaining_length + 2+len(t)
+            remaining_length += 2+len(t)
 
         command = UNSUBSCRIBE | (dup<<3) | (1<<1)
         packet = bytearray()
@@ -2330,7 +2330,7 @@ class Client(object):
                         return rc
                 elif m.qos == 1:
                     if m.state == mqtt_ms_publish:
-                        self._inflight_messages = self._inflight_messages + 1
+                        self._inflight_messages += 1
                         m.state = mqtt_ms_wait_for_puback
                         self._in_callback = True # Don't call loop_write after _send_publish()
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
@@ -2340,7 +2340,7 @@ class Client(object):
                             return rc
                 elif m.qos == 2:
                     if m.state == mqtt_ms_publish:
-                        self._inflight_messages = self._inflight_messages + 1
+                        self._inflight_messages += 1
                         m.state = mqtt_ms_wait_for_pubrec
                         self._in_callback = True # Don't call loop_write after _send_publish()
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
@@ -2349,7 +2349,7 @@ class Client(object):
                             self._out_message_mutex.release()
                             return rc
                     elif m.state == mqtt_ms_resend_pubrel:
-                        self._inflight_messages = self._inflight_messages + 1
+                        self._inflight_messages += 1
                         m.state = mqtt_ms_wait_for_pubcomp
                         self._in_callback = True # Don't call loop_write after _send_pubrel()
                         rc = self._send_pubrel(m.mid, m.dup)
@@ -2451,7 +2451,7 @@ class Client(object):
                 # prevents multiple callbacks for the same message.
                 self._handle_on_message(self._in_messages[i])
                 self._in_messages.pop(i)
-                self._inflight_messages = self._inflight_messages - 1
+                self._inflight_messages -= 1
                 if self._max_inflight_messages > 0:
                     self._out_message_mutex.acquire()
                     rc = self._update_inflight()
@@ -2471,7 +2471,7 @@ class Client(object):
         for m in self._out_messages:
             if self._inflight_messages < self._max_inflight_messages:
                 if m.qos > 0 and m.state == mqtt_ms_queued:
-                    self._inflight_messages = self._inflight_messages + 1
+                    self._inflight_messages += 1
                     if m.qos == 1:
                         m.state = mqtt_ms_wait_for_puback
                     elif m.qos == 2:
@@ -2528,7 +2528,7 @@ class Client(object):
 
         msg = self._out_messages.pop(idx)
         if msg.qos > 0:
-            self._inflight_messages = self._inflight_messages - 1
+            self._inflight_messages -= 1
             if self._max_inflight_messages > 0:
                 rc = self._update_inflight()
                 if rc != MQTT_ERR_SUCCESS:
