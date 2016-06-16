@@ -1111,12 +1111,12 @@ class Client(object):
             topic_qos_list = [(topic[0].encode('utf-8'), topic[1])]
         elif isinstance(topic, list):
             topic_qos_list = []
-            for t in topic:
-                if t[1]<0 or t[1]>2:
+            for t, q in topic:
+                if q < 0 or q > 2:
                     raise ValueError('Invalid QoS level.')
-                if t[0] is None or len(t[0]) == 0 or not isinstance(t[0], str):
+                if t is None or len(t) == 0 or not isinstance(t, str):
                     raise ValueError('Invalid topic.')
-                topic_qos_list.append((t[0].encode('utf-8'), t[1]))
+                topic_qos_list.append((t.encode('utf-8'), q))
 
         if topic_qos_list is None:
             raise ValueError("No topic specified, or incorrect topic type.")
@@ -1712,8 +1712,8 @@ class Client(object):
             else:
                 if len(command) == 0:
                     return 1
-                command = struct.unpack("!B", command)
-                self._in_packet['command'] = command[0]
+                command, = struct.unpack("!B", command)
+                self._in_packet['command'] = command
 
         if self._in_packet['have_remaining'] == 0:
             # Read remaining
@@ -1733,8 +1733,7 @@ class Client(object):
                     print(err)
                     return 1
                 else:
-                    byte = struct.unpack("!B", byte)
-                    byte = byte[0]
+                    byte, = struct.unpack("!B", byte)
                     self._in_packet['remaining_count'].append(byte)
                     # Max 4 bytes length for remaining length as defined by protocol.
                      # Anything more likely means a broken/malicious client.
@@ -2107,8 +2106,8 @@ class Client(object):
 
     def _send_subscribe(self, dup, topics):
         remaining_length = 2
-        for t in topics:
-            remaining_length = remaining_length + 2+len(t[0])+1
+        for t, _ in topics:
+            remaining_length = remaining_length + 2+len(t)+1
 
         command = SUBSCRIBE | (dup<<3) | (1<<1)
         packet = bytearray()
@@ -2116,9 +2115,9 @@ class Client(object):
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
         packet.extend(struct.pack("!H", local_mid))
-        for t in topics:
-            self._pack_str16(packet, t[0])
-            packet.extend(struct.pack("B", t[1]))
+        for t, q in topics:
+            self._pack_str16(packet, t)
+            packet.extend(struct.pack("B", q))
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2441,8 +2440,7 @@ class Client(object):
         if len(self._in_packet['packet']) != 2:
             return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREL (Mid: "+str(mid)+")")
 
         self._in_message_mutex.acquire()
@@ -2490,8 +2488,7 @@ class Client(object):
             if self._in_packet['remaining_length'] != 2:
                 return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREC (Mid: "+str(mid)+")")
 
         self._out_message_mutex.acquire()
@@ -2510,8 +2507,7 @@ class Client(object):
             if self._in_packet['remaining_length'] != 2:
                 return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: "+str(mid)+")")
         self._callback_mutex.acquire()
         if self.on_unsubscribe:
@@ -2545,8 +2541,7 @@ class Client(object):
             if self._in_packet['remaining_length'] != 2:
                 return MQTT_ERR_PROTOCOL
 
-        mid = struct.unpack("!H", self._in_packet['packet'])
-        mid = mid[0]
+        mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received "+cmd+" (Mid: "+str(mid)+")")
 
         self._out_message_mutex.acquire()
@@ -2819,12 +2814,12 @@ class WebsocketWrapper:
             if lengthbits == 0x7e:
 
                 value = self._buffered_read(2)
-                payload_length = struct.unpack("!H", value)[0]
+                payload_length, = struct.unpack("!H", value)
 
             elif lengthbits == 0x7f:
 
                 value = self._buffered_read(8)
-                payload_length = struct.unpack("!Q", value)[0]
+                payload_length, = struct.unpack("!Q", value)
 
             # read mask
             if maskbit:
