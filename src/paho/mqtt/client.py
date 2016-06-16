@@ -358,13 +358,13 @@ class MQTTMessage:
     retain : Boolean. If true, the message is a retained message and not fresh.
     mid : Integer. The message id.
     """
-    def __init__(self, mid=0, topic=""):
+    def __init__(self, mid=0, topic=b""):
         self.timestamp = 0
         self.state = mqtt_ms_invalid
         self.dup = False
         self.mid = mid
         self.topic = topic
-        self.payload = None
+        self.payload = b""
         self.qos = 0
         self.retain = False
         self.info = MQTTMessageInfo(mid)
@@ -504,13 +504,16 @@ class Client(object):
         self._message_retry = 20
         self._last_retry_check = 0
         self._clean_session = clean_session
+
         if client_id == "" or client_id is None:
             if protocol == MQTTv31:
                 self._client_id = "paho/" + "".join(random.choice("0123456789ADCDEF") for x in range(23-5))
             else:
-                self._client_id = ""
+                self._client_id = b""
         else:
             self._client_id = client_id
+        if isinstance(self._client_id, unicode):
+            self._client_id = self._client_id.encode('utf-8')
 
         self._username = None
         self._password = None
@@ -536,8 +539,8 @@ class Client(object):
         self._inflight_messages = 0
         self._max_queued_messages = 0
         self._will = False
-        self._will_topic = ""
-        self._will_payload = None
+        self._will_topic = b""
+        self._will_payload = b""
         self._will_qos = 0
         self._will_retain = False
         self.on_message_filtered = []
@@ -964,6 +967,11 @@ class Client(object):
         if topic is None or len(topic) == 0:
             raise ValueError('Invalid topic.')
 
+        topic = topic.encode('utf-8')
+
+        if self._topic_wildcard_len_check(topic) != MQTT_ERR_SUCCESS:
+            raise ValueError('Publish topic cannot contain wildcards.')
+
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
 
@@ -974,15 +982,12 @@ class Client(object):
         elif isinstance(payload, (int, float)):
             local_payload = str(payload).encode('ascii')
         elif payload is None:
-            local_payload = None
+            local_payload = b''
         else:
             raise TypeError('payload must be a string, bytearray, int, float or None.')
 
-        if local_payload is not None and len(local_payload) > 268435455:
+        if len(local_payload) > 268435455:
             raise ValueError('Payload too large.')
-
-        if self._topic_wildcard_len_check(topic) != MQTT_ERR_SUCCESS:
-            raise ValueError('Publish topic cannot contain wildcards.')
 
         local_mid = self._mid_generate()
 
@@ -994,12 +999,7 @@ class Client(object):
         else:
             message = MQTTMessage(local_mid, topic)
             message.timestamp = time_func()
-
-            if local_payload is None or len(local_payload) == 0:
-                message.payload = None
-            else:
-                message.payload = local_payload
-
+            message.payload = local_payload
             message.qos = qos
             message.retain = retain
             message.dup = False
@@ -1046,6 +1046,8 @@ class Client(object):
         """
         self._username = username.encode('utf-8')
         self._password = password
+        if isinstance(self._password, unicode):
+            self._password = self._password.encode('utf-8')
 
     def disconnect(self):
         """Disconnect a connected client from the broker."""
@@ -1323,7 +1325,7 @@ class Client(object):
         elif isinstance(payload, (int, float)):
             self._will_payload = str(payload).encode('ascii')
         elif payload is None:
-            self._will_payload = None
+            self._will_payload = b""
         else:
             raise TypeError('payload must be a string, bytearray, int, float or None.')
 
@@ -1337,8 +1339,8 @@ class Client(object):
 
         Must be called before connect() to have any effect."""
         self._will = False
-        self._will_topic = ""
-        self._will_payload = None
+        self._will_topic = b""
+        self._will_payload = b""
         self._will_qos = 0
         self._will_retain = False
 
@@ -1913,11 +1915,12 @@ class Client(object):
             self._last_mid = 1
         return self._last_mid
 
-    def _topic_wildcard_len_check(self, topic):
+    @staticmethod
+    def _topic_wildcard_len_check(topic):
         # Search for + or # in a topic. Return MQTT_ERR_INVAL if found.
          # Also returns MQTT_ERR_INVAL if the topic string is too long.
          # Returns MQTT_ERR_SUCCESS if everything is fine.
-        if '+' in topic or '#' in topic or len(topic) == 0 or len(topic) > 65535:
+        if b'+' in topic or b'#' in topic or len(topic) == 0 or len(topic) > 65535:
             return MQTT_ERR_INVAL
         else:
             return MQTT_ERR_SUCCESS
@@ -1962,23 +1965,23 @@ class Client(object):
         packet.extend(struct.pack("!H", len(data)))
         packet.extend(data)
 
-    def _send_publish(self, mid, topic, payload=None, qos=0, retain=False, dup=False, info=None):
+    def _send_publish(self, mid, topic, payload=b'', qos=0, retain=False, dup=False, info=None):
+        # we assume that topic and payload are already properly encoded
+        # assert not isinstance(topic, unicode) and not isinstance(payload, unicode) and payload is not None
+
         if self._sock is None and self._ssl is None:
             return MQTT_ERR_NO_CONN
 
-        utopic = topic.encode('utf-8')
         command = PUBLISH | ((dup&0x1)<<3) | (qos<<1) | retain
         packet = bytearray()
         packet.append(command)
-        if payload is None:
-            remaining_length = 2+len(utopic)
+
+        payloadlen = len(payload)
+        remaining_length = 2+len(topic) + payloadlen
+
+        if payloadlen == 0:
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
         else:
-            if isinstance(payload, unicode):
-                payload = payload.encode('utf-8')
-            payloadlen = len(payload)
-
-            remaining_length = 2+len(utopic) + payloadlen
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(payloadlen)+" bytes)")
 
         if qos > 0:
@@ -1986,15 +1989,13 @@ class Client(object):
             remaining_length += 2
 
         self._pack_remaining_length(packet, remaining_length)
-        self._pack_str16(packet, utopic)
+        self._pack_str16(packet, topic)
 
         if qos > 0:
             # For message id
             packet.extend(struct.pack("!H", mid))
 
-        if payload is not None:
-            packet.extend(payload)
-            #TODO: check type
+        packet.extend(payload)
 
         return self._packet_queue(PUBLISH, packet, mid, qos, info)
 
@@ -2035,10 +2036,7 @@ class Client(object):
             connect_flags |= 0x02
 
         if self._will:
-            remaining_length += 2+len(self._will_topic) + 2
-            if self._will_payload is not None:
-                remaining_length += len(self._will_payload)
-
+            remaining_length += 2+len(self._will_topic) + 2+len(self._will_payload)
             connect_flags |= 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
 
         if self._username is not None:
@@ -2059,10 +2057,7 @@ class Client(object):
 
         if self._will:
             self._pack_str16(packet, self._will_topic)
-            if self._will_payload is None or len(self._will_payload) == 0:
-                packet.extend(struct.pack("!H", 0))
-            else:
-                self._pack_str16(packet, self._will_payload)
+            self._pack_str16(packet, self._will_payload)
 
         if self._username is not None:
             self._pack_str16(packet, self._username)
