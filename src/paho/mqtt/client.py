@@ -1951,7 +1951,7 @@ class Client(object):
                 byte |= 0x80
 
             remaining_bytes.append(byte)
-            packet.extend(struct.pack("!B", byte))
+            packet.append(byte)
             if remaining_length == 0:
                 # FIXME - this doesn't deal with incorrectly large payloads
                 return packet
@@ -1969,7 +1969,7 @@ class Client(object):
         utopic = topic.encode('utf-8')
         command = PUBLISH | ((dup&0x1)<<3) | (qos<<1) | retain
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
         if payload is None:
             remaining_length = 2+len(utopic)
             self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
@@ -2050,7 +2050,7 @@ class Client(object):
 
         command = CONNECT
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
 
         self._pack_remaining_length(packet, remaining_length)
         packet.extend(struct.pack("!H"+str(len(protocol))+"sBBH", len(protocol), protocol, proto_ver, connect_flags, keepalive))
@@ -2083,13 +2083,13 @@ class Client(object):
 
         command = SUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
         packet.extend(struct.pack("!H", local_mid))
         for t, q in topics:
             self._pack_str16(packet, t)
-            packet.extend(struct.pack("B", q))
+            packet.append(q)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2099,7 +2099,7 @@ class Client(object):
 
         command = UNSUBSCRIBE | (dup<<3) | 0x2
         packet = bytearray()
-        packet.extend(struct.pack("!B", command))
+        packet.append(command)
         self._pack_remaining_length(packet, remaining_length)
         local_mid = self._mid_generate()
         packet.extend(struct.pack("!H", local_mid))
