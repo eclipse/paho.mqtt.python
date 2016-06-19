@@ -199,6 +199,23 @@ def connack_string(connack_code):
         return "Connection Refused: unknown reason."
 
 
+def topic_matches_sub(sub, topic):
+    """Check whether a topic matches a subscription.
+
+    For example:
+
+    foo/bar would match the subscription foo/# or +/bar
+    non/matching would not match the subscription non/+/+
+    """
+    matcher = MQTTMatcher()
+    matcher[sub] = True
+    try:
+        next(matcher.iter_match(topic))
+        return True
+    except StopIteration:
+        return False
+
+
 def _socketpair_compat():
     """TCP/IP socketpair including Windows support"""
     listensock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
