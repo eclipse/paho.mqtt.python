@@ -50,6 +50,8 @@ try:
 except ImportError:
     HAVE_DNS = False
 
+from .matcher import MQTTMatcher
+
 if platform.system() == 'Windows':
     EAGAIN = errno.WSAEWOULDBLOCK
 else:
@@ -205,61 +207,13 @@ def topic_matches_sub(sub, topic):
     foo/bar would match the subscription foo/# or +/bar
     non/matching would not match the subscription non/+/+
     """
-    result = True
-    multilevel_wildcard = False
-
-    slen = len(sub)
-    tlen = len(topic)
-
-    if slen > 0 and tlen > 0:
-        if (sub[0] == '$' and topic[0] != '$') or (topic[0] == '$' and sub[0] != '$'):
-            return False
-
-    spos = 0
-    tpos = 0
-
-    while spos < slen and tpos < tlen:
-        if sub[spos] == topic[tpos]:
-            if tpos == tlen-1:
-                # Check for e.g. foo matching foo/#
-                if spos == slen-3 and sub[spos+1] == '/' and sub[spos+2] == '#':
-                    result = True
-                    multilevel_wildcard = True
-                    break
-
-            spos += 1
-            tpos += 1
-
-            if tpos == tlen and spos == slen-1 and sub[spos] == '+':
-                spos += 1
-                result = True
-                break
-        else:
-            if sub[spos] == '+':
-                spos += 1
-                while tpos < tlen and topic[tpos] != '/':
-                    tpos += 1
-                if tpos == tlen and spos == slen:
-                    result = True
-                    break
-
-            elif sub[spos] == '#':
-                multilevel_wildcard = True
-                if spos+1 != slen:
-                    result = False
-                    break
-                else:
-                    result = True
-                    break
-
-            else:
-                result = False
-                break
-
-    if not multilevel_wildcard and (tpos < tlen or spos < slen):
-        result = False
-
-    return result
+    matcher = MQTTMatcher()
+    matcher[sub] = True
+    try:
+        next(matcher.iter_match(topic))
+        return True
+    except StopIteration:
+        return False
 
 
 def _socketpair_compat():
@@ -535,7 +489,7 @@ class Client(object):
         self._will_payload = None
         self._will_qos = 0
         self._will_retain = False
-        self.on_message_filtered = []
+        self._on_message_filtered = MQTTMatcher()
         self._host = ""
         self._port = 1883
         self._bind_address = ""
@@ -1632,14 +1586,7 @@ class Client(object):
             raise ValueError("sub and callback must both be defined.")
 
         self._callback_mutex.acquire()
-
-        for i in range(0, len(self.on_message_filtered)):
-            if self.on_message_filtered[i][0] == sub:
-                self.on_message_filtered[i] = (sub, callback)
-                self._callback_mutex.release()
-                return
-
-        self.on_message_filtered.append((sub, callback))
+        self._on_message_filtered[sub] = callback
         self._callback_mutex.release()
 
     def message_callback_remove(self, sub):
@@ -1649,11 +1596,10 @@ class Client(object):
             raise ValueError("sub must defined.")
 
         self._callback_mutex.acquire()
-        for i in range(0, len(self.on_message_filtered)):
-            if self.on_message_filtered[i][0] == sub:
-                self.on_message_filtered.pop(i)
-                self._callback_mutex.release()
-                return
+        try:
+            del self._on_message_filtered[sub]
+        except KeyError:  # no such subscription
+            pass
         self._callback_mutex.release()
 
     # ============================================================
@@ -2568,12 +2514,11 @@ class Client(object):
     def _handle_on_message(self, message):
         self._callback_mutex.acquire()
         matched = False
-        for t in self.on_message_filtered:
-            if topic_matches_sub(t[0], message.topic):
-                self._in_callback = True
-                t[1](self, self._userdata, message)
-                self._in_callback = False
-                matched = True
+        for callback in self._on_message_filtered.iter_match(message.topic):
+            self._in_callback = True
+            callback(self, self._userdata, message)
+            self._in_callback = False
+            matched = True
 
         if matched == False and self.on_message:
             self._in_callback = True
