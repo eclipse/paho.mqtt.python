@@ -1075,6 +1075,9 @@ class Client(object):
         if topic_qos_list is None:
             raise ValueError("No topic specified, or incorrect topic type.")
 
+        if any(self._filter_wildcard_len_check(topic) != MQTT_ERR_SUCCESS for topic, _ in topic_qos_list):
+            raise ValueError('Invalid subscription filter.')
+
         if self._sock is None and self._ssl is None:
             return (MQTT_ERR_NO_CONN, None)
 
@@ -1855,11 +1858,21 @@ class Client(object):
             self._last_mid = 1
         return self._last_mid
 
-    def _topic_wildcard_len_check(self, topic):
+    @staticmethod
+    def _topic_wildcard_len_check(topic):
         # Search for + or # in a topic. Return MQTT_ERR_INVAL if found.
          # Also returns MQTT_ERR_INVAL if the topic string is too long.
          # Returns MQTT_ERR_SUCCESS if everything is fine.
         if '+' in topic or '#' in topic or len(topic) == 0 or len(topic) > 65535:
+            return MQTT_ERR_INVAL
+        else:
+            return MQTT_ERR_SUCCESS
+
+    @staticmethod
+    def _filter_wildcard_len_check(sub):
+        if (len(sub) == 0 or len(sub) > 65535
+            or any(b'+' in p or b'#' in p for p in sub.split(b'/') if len(p) > 1)
+            or b'#/' in sub):
             return MQTT_ERR_INVAL
         else:
             return MQTT_ERR_SUCCESS
