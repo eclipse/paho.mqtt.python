@@ -242,6 +242,9 @@ class MQTTMessageInfo:
     out the mid of the message that was published, and to determine whether the
     message has been published, and/or wait until it is published.
     """
+
+    __slots__ = 'mid', '_published', '_condition', 'rc', '_iterpos'
+
     def __init__(self, mid):
         self.mid = mid
         self._published = False
@@ -307,6 +310,9 @@ class MQTTMessage:
     retain : Boolean. If true, the message is a retained message and not fresh.
     mid : Integer. The message id.
     """
+
+    __slots__ = 'timestamp', 'state', 'dup', 'mid', 'topic', 'payload', 'qos', 'retain', 'info'
+
     def __init__(self, mid=0, topic=""):
         self.timestamp = 0
         self.state = mqtt_ms_invalid
