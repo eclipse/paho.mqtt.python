@@ -1193,8 +1193,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def loop_write(self, max_packets=1):
-        """Process read network events. Use in place of calling loop() if you
-        wish to handle your client reads as part of your own application.
+        """Process write network events. Use in place of calling loop() if you
+        wish to handle your client writes as part of your own application.
 
         Use socket() to obtain the client socket to call select() or equivalent
         on.
