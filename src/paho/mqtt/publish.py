@@ -25,7 +25,7 @@ import paho.mqtt as mqtt
 
 def _do_publish(c):
     """Internal function"""
-    m = c._userdata.pop()
+    m = c._userdata.pop(0)
     if type(m) is dict:
         topic = m['topic']
         try:
