@@ -21,15 +21,14 @@ import platform
 import random
 import select
 import socket
-HAVE_SSL = True
 try:
     import ssl
-    cert_reqs = ssl.CERT_REQUIRED
-    tls_version = ssl.PROTOCOL_TLSv1
-except:
+except ImportError:
     HAVE_SSL = False
-    cert_reqs = None
-    tls_version = None
+    ssl = None
+else:
+    HAVE_SSL = True
+
 import struct
 import sys
 import threading
@@ -41,16 +40,17 @@ import string
 import hashlib
 import logging
 try:
-    # Use monotionic clock if available
+    # Use monotonic clock if available
     time_func = time.monotonic
 except AttributeError:
     time_func = time.time
 
-HAVE_DNS = True
 try:
     import dns.resolver
 except ImportError:
     HAVE_DNS = False
+else:
+    HAVE_DNS = True
 
 from .matcher import MQTTMatcher
 
@@ -256,6 +256,16 @@ def _socketpair_compat():
     sock2.setblocking(0)
     listensock.close()
     return (sock1, sock2)
+
+
+def _check_can_read_file(filename):
+    if filename:
+        try:
+            f = open(filename, "r")
+        except IOError as err:
+            raise IOError(filename + ": " + err.strerror)
+        else:
+            f.close()
 
 
 class MQTTMessageInfo:
@@ -535,12 +545,7 @@ class Client(object):
         self._thread = None
         self._thread_terminate = False
         self._ssl = False
-        self._tls_certfile = None
-        self._tls_keyfile = None
-        self._tls_ca_certs = None
-        self._tls_cert_reqs = None
-        self._tls_ciphers = None
-        self._tls_version = tls_version
+        self._ssl_context = None
         self._tls_insecure = False
         self._logger = None
         # No default callbacks
@@ -568,7 +573,33 @@ class Client(object):
 
         self.__init__(client_id, clean_session, userdata)
 
-    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=cert_reqs, tls_version=tls_version, ciphers=None):
+    def tls_set_context(self, context=None):
+        """Configure network encryption and authentication context. Enables SSL/TLS support.
+
+        context : an ssl.SSLContext object, or a dictionary containing
+        arguments for ssl.wrap_socket. By default this is given by
+        `ssl.create_default_context()`, if available.
+
+        Must be called before connect() or connect_async()."""
+        if self._ssl_context is not None:
+            raise ValueError('SSL/TLS has already been configured.')
+
+        if HAVE_SSL is False:
+            raise ValueError('This platform has no SSL/TLS.')
+
+        if sys.version_info < (2, 7):
+            raise ValueError('Python 2.7 is the minimum supported version for TLS.')
+
+        if context is None:
+            if hasattr(ssl, 'create_default_context'):
+                context = ssl.create_default_context()
+            else:
+                raise ValueError('SSL/TLS context must be specified')
+
+        self._ssl = True
+        self._ssl_context = context
+
+    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -606,40 +637,49 @@ class Client(object):
         if HAVE_SSL is False:
             raise ValueError('This platform has no SSL/TLS.')
 
-        if sys.version < '2.7':
+        if sys.version_info < (2, 7):
             raise ValueError('Python 2.7 is the minimum supported version for TLS.')
 
         if ca_certs is None:
             raise ValueError('ca_certs must not be None.')
 
-        try:
-            f = open(ca_certs, "r")
-        except IOError as err:
-            raise IOError(ca_certs+": "+err.strerror)
-        else:
-            f.close()
-        if certfile is not None:
-            try:
-                f = open(certfile, "r")
-            except IOError as err:
-                raise IOError(certfile+": "+err.strerror)
-            else:
-                f.close()
-        if keyfile is not None:
-            try:
-                f = open(keyfile, "r")
-            except IOError as err:
-                raise IOError(keyfile+": "+err.strerror)
-            else:
-                f.close()
+        # Load defaults
+        if cert_reqs is None:
+            cert_reqs = ssl.CERT_REQUIRED
+        if tls_version is None:
+            tls_version = ssl.PROTOCOL_TLSv1
 
-        self._ssl = True
-        self._tls_ca_certs = ca_certs
-        self._tls_certfile = certfile
-        self._tls_keyfile = keyfile
-        self._tls_cert_reqs = cert_reqs
-        self._tls_version = tls_version
-        self._tls_ciphers = ciphers
+        if hasattr(ssl, 'SSLContext'):
+            # Create SSLContext object
+            context = ssl.SSLContext(tls_version)
+
+            # Configure context
+            if certfile is not None:
+                context.load_cert_chain(certfile, keyfile)
+            if cert_reqs is not None:
+                context.verify_mode = cert_reqs
+            if ca_certs is not None:
+                context.load_verify_locations(ca_certs)
+            if ciphers is not None:
+                context.set_ciphers(ciphers)
+        else:
+            # Revert to version without SSLContext, since not available
+
+            _check_can_read_file(ca_certs)
+            _check_can_read_file(certfile)
+            _check_can_read_file(keyfile)
+
+            # Dictionary of arguments for ssl.wrap_socket
+            context = {
+                'certfile': certfile,
+                'keyfile': keyfile,
+                'ca_certs': ca_certs,
+                'cert_reqs': cert_reqs,
+                'ciphers': ciphers,
+                'ssl_version': tls_version
+            }
+
+        self.tls_set_context(context)
 
     def tls_insecure_set(self, value):
         """Configure verification of the server hostname in the server certificate.
@@ -789,6 +829,7 @@ class Client(object):
         self._state_mutex.acquire()
         self._state = mqtt_cs_new
         self._state_mutex.release()
+
         if self._sock:
             self._sock.close()
             self._sock = None
@@ -805,27 +846,25 @@ class Client(object):
             if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
                 raise
 
-        if self._tls_ca_certs is not None:
-            sock = ssl.wrap_socket(
-                sock,
-                certfile=self._tls_certfile,
-                keyfile=self._tls_keyfile,
-                ca_certs=self._tls_ca_certs,
-                cert_reqs=self._tls_cert_reqs,
-                ssl_version=self._tls_version,
-                ciphers=self._tls_ciphers)
+        if self._ssl:
+            if isinstance(self._ssl_context, dict):
+                # Version without SSL Context
+                sock = ssl.wrap_socket(
+                    sock, **self._ssl_context)
+            else:
+                # Use SSLContext (implies Python >= 3.2)
+                server_hostname = self._host if ssl.HAS_SNI else None
+                sock = self._ssl_context.wrap_socket(
+                    sock, server_hostname=server_hostname)
 
-            if self._tls_insecure is False:
-                if sys.version_info < (2,7,9) or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
+            if not self._tls_insecure:
+                if sys.version_info < (2, 7, 9) or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
                     self._tls_match_hostname(sock)
                 else:
                     ssl.match_hostname(sock.getpeercert(), self._host)
 
         if self._transport == "websockets":
-            if self._tls_ca_certs is not None:
-                sock = WebsocketWrapper(sock, self._host, self._port, True)
-            else:
-                sock = WebsocketWrapper(sock, self._host, self._port, False)
+            sock = WebsocketWrapper(sock, self._host, self._port, self._ssl)
 
         self._sock = sock
         self._sock.setblocking(0)

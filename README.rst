@@ -253,6 +253,23 @@ ciphers
 
 Must be called before ``connect*()``.
 
+tls_set_context()
+'''''''''''''''''
+
+::
+
+    tls_set_context(context)
+
+Configure network encryption and authentication context. Enables SSL/TLS support.
+
+context
+    an ssl.SSLContext object, or a dictionary containing arguments for ``ssl.wrap_socket``. By default this is given by ``ssl.create_default_context()``, if available (added in Python 3.4).
+
+If you're unsure about using this method, then either use the default context, or use the ``tls_set`` method. See the ssl module documentation section about `security considerations <https://docs.python.org/3/library/ssl.html#ssl-security>`_ for more information.
+
+Must be called before ``connect*()``.
+
+
 tls_insecure_set()
 ''''''''''''''''''
 
