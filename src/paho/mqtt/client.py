@@ -829,7 +829,10 @@ class Client(object):
                 ca_certs=self._tls_ca_certs,
                 cert_reqs=self._tls_cert_reqs,
                 ssl_version=self._tls_version,
-                ciphers=self._tls_ciphers)
+                ciphers=self._tls_ciphers,
+                do_handshake_on_connect=False)
+            self._ssl.settimeout(self._keepalive)
+            self._ssl.do_handshake()
 
             if self._tls_insecure is False:
                 if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
