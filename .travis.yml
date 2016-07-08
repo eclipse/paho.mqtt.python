@@ -1,0 +1,24 @@
+sudo: false
+
+language: python
+
+matrix:
+  include:
+    - python: 3.5
+      env: TARGET=python3
+    - python: 3.4
+      env: TARGET=python3
+    - python: 3.3
+      env: TARGET=python3
+    - python: 3.2
+      env: TARGET=python3
+    - python: 2.7
+      env: TARGET=python
+    - python: 2.6
+      env: TARGET=python
+
+install:
+  - echo No requirements
+
+script:
+  - make $TARGET
