@@ -268,6 +268,38 @@ Do not use this function in a real system. Setting value to True means there is 
 
 Must be called before ``connect*)``.
 
+enable_logger()
+'''''''''''''''
+
+::
+
+    enable_logger(logger)
+
+Enable logging using the standard python logging package (See PEP 282). This may be used at the same time as the ``on_log`` callback method.
+
+If ``logger`` is specified, then that ``logging.Logger`` object will be used, otherwise one will be created automatically.
+
+Paho logging levels are converted to standard ones according to the following mapping:
+
+====================  ===============
+Paho                  logging
+====================  ===============
+``MQTT_LOG_ERR``      ``logging.ERROR``
+``MQTT_LOG_WARNING``  ``logging.WARNING``
+``MQTT_LOG_NOTICE``   ``logging.INFO`` *(no direct equivalent)*
+``MQTT_LOG_INFO``     ``logging.INFO``
+``MQTT_LOG_DEBUG``    ``logging.DEBUG``
+====================  ===============
+
+disable_logger()
+''''''''''''''''
+
+::
+
+    disable_logger()
+
+Disable logging using standard python logging package. This has no effect on the ``on_log`` callback.
+
 username_pw_set()
 '''''''''''''''''
 
@@ -864,6 +896,9 @@ Called when the client has log information. Define to allow debugging. The
 ``level`` variable gives the severity of the message and will be one of
 ``MQTT_LOG_INFO``, ``MQTT_LOG_NOTICE``, ``MQTT_LOG_WARNING``, ``MQTT_LOG_ERR``,
 and ``MQTT_LOG_DEBUG``. The message itself is in ``buf``. 
+
+This may be used at the same time as the standard Python logging, which can be
+enabled via the ``enable_logger`` method.
 
 External event loop support
 ```````````````````````````
