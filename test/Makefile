@@ -1,14 +1,9 @@
-.PHONY: all test clean reallyclean python python3
+.PHONY: all test clean reallyclean
 
 all :
 
-python : 
-	$(MAKE) -C lib python
-
-python3 : 
-	$(MAKE) -C lib python3
-
-test : python python3
+test :
+	$(MAKE) -C lib test
 
 clean : 
 	$(MAKE) -C lib clean
