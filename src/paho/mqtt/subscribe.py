@@ -112,7 +112,10 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
+          Alternatively, tls input can be an SSLContext object, which will be
+          processed using the tls_set_context method.
           Defaults to None, which indicates that TLS should not be used.
+
     transport : set to "tcp" to use the default setting of transport which is
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
@@ -157,25 +160,11 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         client.will_set(will_topic, will_payload, will_qos, will_retain)
 
     if tls is not None:
-        ca_certs = tls['ca_certs']
-        try:
-            certfile = tls['certfile']
-        except KeyError:
-            certfile = None
-        try:
-            keyfile = tls['keyfile']
-        except KeyError:
-            keyfile = None
-        try:
-            tls_version = tls['tls_version']
-        except KeyError:
-            tls_version = ssl.PROTOCOL_SSLv23;
-        try:
-            ciphers = tls['ciphers']
-        except KeyError:
-            ciphers = None
-        client.tls_set(ca_certs, certfile, keyfile, tls_version=tls_version,
-                       ciphers=ciphers)
+        if isinstance(tls, dict):
+            client.tls_set(**tls)
+        else:
+            # Assume input is SSLContext object
+            client.tls_set_context(tls)
 
     client.connect(hostname, port, keepalive)
     client.loop_forever()
@@ -235,7 +224,10 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost", port
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
+          Alternatively, tls input can be an SSLContext object, which will be
+          processed using the tls_set_context method.
           Defaults to None, which indicates that TLS should not be used.
+
     transport : set to "tcp" to use the default setting of transport which is
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
