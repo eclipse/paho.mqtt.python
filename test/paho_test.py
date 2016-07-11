@@ -211,28 +211,33 @@ def gen_connect(client_id, clean_session=True, keepalive=60, username=None, pass
     if client_id is None:
         remaining_length = 12
     else:
+        client_id = client_id.encode('utf-8')
         remaining_length = 2 + len(proto_name) + 1 + 1 + 2 + 2 + len(client_id)
     connect_flags = 0
     if clean_session:
         connect_flags = connect_flags | 0x02
 
     if will_topic is not None:
+        will_topic = will_topic.encode('utf-8')
         remaining_length = remaining_length + 2 + len(will_topic) + 2 + len(will_payload)
         connect_flags = connect_flags | 0x04 | ((will_qos & 0x03) << 3)
         if will_retain:
             connect_flags = connect_flags | 32
 
     if username is not None:
+        username = username.encode('utf-8')
         remaining_length = remaining_length + 2 + len(username)
         connect_flags = connect_flags | 0x80
         if password is not None:
+            password = password.encode('utf-8')
             connect_flags = connect_flags | 0x40
             remaining_length = remaining_length + 2 + len(password)
 
     rl = pack_remaining_length(remaining_length)
     packet = struct.pack("!B" + str(len(rl)) + "s", 0x10, rl)
-    packet = packet + struct.pack("!H" + str(len(proto_name)) + "sBBH", len(proto_name), proto_name, proto_ver,
-                                  connect_flags, keepalive)
+    packet = packet + struct.pack("!H" + str(len(proto_name)) + "sBBH",
+                                  len(proto_name), proto_name.encode('utf-8'),
+                                  proto_ver, connect_flags, keepalive)
     if client_id is not None:
         packet = packet + struct.pack("!H" + str(len(client_id)) + "s", len(client_id), client_id)
 
@@ -255,6 +260,7 @@ def gen_connack(resv=0, rc=0):
 
 
 def gen_publish(topic, qos, payload=None, retain=False, dup=False, mid=0):
+    topic = topic.encode('utf-8')
     rl = 2 + len(topic)
     pack_format = "!BBH" + str(len(topic)) + "s"
     if qos > 0:
@@ -300,6 +306,7 @@ def gen_pubcomp(mid):
 
 
 def gen_subscribe(mid, topic, qos):
+    topic = topic.encode('utf-8')
     pack_format = "!BBHH" + str(len(topic)) + "sB"
     return struct.pack(pack_format, 130, 2 + 2 + len(topic) + 1, mid, len(topic), topic, qos)
 
@@ -309,6 +316,7 @@ def gen_suback(mid, qos):
 
 
 def gen_unsubscribe(mid, topic):
+    topic = topic.encode('utf-8')
     pack_format = "!BBHH" + str(len(topic)) + "s"
     return struct.pack(pack_format, 162, 2 + 2 + len(topic), mid, len(topic), topic)
 

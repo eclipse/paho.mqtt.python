@@ -21,7 +21,8 @@ mid = 16
 connect_packet = paho_test.gen_connect("retain-qos0-test", keepalive=keepalive)
 connack_packet = paho_test.gen_connack(rc=0)
 
-publish_packet = paho_test.gen_publish("retain/qos0/test", qos=0, payload="retained message", retain=True)
+publish_packet = paho_test.gen_publish(
+    "retain/qos0/test", qos=0, payload="retained message".encode('utf-8'), retain=True)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

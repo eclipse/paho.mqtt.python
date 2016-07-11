@@ -24,7 +24,7 @@ rc = 1
 keepalive = 60
 connect_packet = paho_test.gen_connect("01-will-unpwd-set",
         keepalive=keepalive, username="oibvvwqw", password="#'^2hg9a&nm38*us",
-        will_topic="will-topic", will_qos=2, will_payload="will message")
+        will_topic="will-topic", will_qos=2, will_payload="will message".encode('utf-8'))
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

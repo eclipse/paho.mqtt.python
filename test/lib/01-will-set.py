@@ -22,7 +22,9 @@ import paho_test
 
 rc = 1
 keepalive = 60
-connect_packet = paho_test.gen_connect("01-will-set", keepalive=keepalive, will_topic="topic/on/unexpected/disconnect", will_qos=1, will_retain=True, will_payload="will message")
+connect_packet = paho_test.gen_connect(
+    "01-will-set", keepalive=keepalive, will_topic="topic/on/unexpected/disconnect",
+    will_qos=1, will_retain=True, will_payload="will message".encode('utf-8'))
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

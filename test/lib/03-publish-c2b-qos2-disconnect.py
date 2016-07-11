@@ -23,8 +23,10 @@ connack_packet = paho_test.gen_connack(rc=0)
 disconnect_packet = paho_test.gen_disconnect()
 
 mid = 1
-publish_packet = paho_test.gen_publish("pub/qos2/test", qos=2, mid=mid, payload="message")
-publish_dup_packet = paho_test.gen_publish("pub/qos2/test", qos=2, mid=mid, payload="message", dup=True)
+publish_packet = paho_test.gen_publish(
+    "pub/qos2/test", qos=2, mid=mid, payload="message".encode('utf-8'))
+publish_dup_packet = paho_test.gen_publish(
+    "pub/qos2/test", qos=2, mid=mid, payload="message".encode('utf-8'), dup=True)
 pubrec_packet = paho_test.gen_pubrec(mid)
 pubrel_packet = paho_test.gen_pubrel(mid)
 pubrel_dup_packet = paho_test.gen_pubrel(mid, dup=True)
