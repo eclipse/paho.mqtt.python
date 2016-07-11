@@ -2408,12 +2408,9 @@ class Client(object):
 
         message.payload = packet
 
-        self._easy_log(
-            MQTT_LOG_DEBUG,
-            "Received PUBLISH (d"+str(message.dup)+
-            ", q"+str(message.qos)+", r"+str(message.retain)+
-            ", m"+str(message.mid)+", '"+message.topic+
-            "', ...  ("+str(len(message.payload))+" bytes)")
+        self._easy_log(MQTT_LOG_DEBUG, "Received PUBLISH (d%d, q%d, r%d, m%d), '%s', ...  (%d bytes)",
+            message.dup, message.qos, message.retain, message.mid, 
+            message.topic, len(message.payload))
 
         message.timestamp = time.time()
         if message.qos == 0:
