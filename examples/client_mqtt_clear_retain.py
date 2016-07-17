@@ -14,6 +14,8 @@
 # Copyright (c) 2010,2011 Roger Light <roger@atchoo.org>
 # All rights reserved.
 
+# This shows an example of an MQTT client that clears all of the retained messages it receives.
+
 import sys
 import getopt
 try:

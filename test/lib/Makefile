@@ -11,6 +11,7 @@ python python3 :
 	./01-will-set.py $@/01-will-set.test
 	./01-unpwd-set.py $@/01-unpwd-set.test
 	./01-will-unpwd-set.py $@/01-will-unpwd-set.test
+	./01-zero-length-clientid.py $@/01-zero-length-clientid.test
 	./01-no-clean-session.py $@/01-no-clean-session.test
 	./01-keepalive-pingreq.py $@/01-keepalive-pingreq.test
 	./02-subscribe-qos0.py $@/02-subscribe-qos0.test

@@ -14,7 +14,7 @@
 # Copyright (c) 2010,2011 Roger Light <roger@atchoo.org>
 # All rights reserved.
 
-# This shows a simple example of an MQTT subscriber.
+# This shows a simple example of an MQTT subscriber using connect_srv method.
 
 import sys
 try:
@@ -32,7 +32,7 @@ except ImportError:
     import paho.mqtt.client as mqtt
 
 def on_connect(mqttc, obj, flags, rc):
-    print "Connected to %s:%s" % (mqttc._host, mqttc._port)
+    print("Connected to %s:%s" % (mqttc._host, mqttc._port))
 
 def on_message(mqttc, obj, msg):
     print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))

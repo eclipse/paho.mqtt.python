@@ -1,0 +1,33 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+import socket
+import sys
+import time
+from struct import *
+
+import paho.mqtt.client as mqtt
+
+
+def on_connect(mqttc, obj, flags, rc):
+    if rc != 0:
+        exit(rc)
+    else:
+        mqttc.disconnect()
+
+def on_disconnect(mqttc, obj, rc):
+    mqttc.loop()
+    obj = rc
+
+
+run = -1
+mqttc = mqtt.Client("", run, protocol=mqtt.MQTTv311)
+mqttc.on_connect = on_connect
+mqttc.on_disconnect = on_disconnect
+
+mqttc.connect("localhost", 1888)
+while run == -1:
+    mqttc.loop()
+
+exit(run)
