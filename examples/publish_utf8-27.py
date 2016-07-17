@@ -13,7 +13,7 @@
 # Contributors:
 #    Roger Light - initial implementation
 
-# This shows an example of using the publish.single helper function.
+# This shows an example of using the publish.single helper function with unicode topic and payload.
 
 import sys
 try:
