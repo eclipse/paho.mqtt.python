@@ -1,4 +1,4 @@
-.PHONY: all test clean reallyclean
+.PHONY: all test clean
 
 all :
 
