@@ -523,6 +523,7 @@ class Client(object):
         self._tls_ca_certs = None
         self._tls_cert_reqs = None
         self._tls_ciphers = None
+        self._tls_server_hostname = None
         self._tls_version = tls_version
         self._tls_insecure = False
         # No default callbacks
@@ -550,7 +551,7 @@ class Client(object):
 
         self.__init__(client_id, clean_session, userdata)
 
-    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=cert_reqs, tls_version=tls_version, ciphers=None):
+    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=cert_reqs, tls_version=tls_version, ciphers=None, server_hostname=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -622,6 +623,7 @@ class Client(object):
         self._tls_cert_reqs = cert_reqs
         self._tls_version = tls_version
         self._tls_ciphers = ciphers
+        self._tls_server_hostname = server_hostname
 
     def tls_insecure_set(self, value):
         """Configure verification of the server hostname in the server certificate.
@@ -777,14 +779,15 @@ class Client(object):
                 raise
 
         if self._tls_ca_certs is not None:
-            sock = ssl.wrap_socket(
+            sock = ssl.SSLSocket(
                 sock,
                 certfile=self._tls_certfile,
                 keyfile=self._tls_keyfile,
                 ca_certs=self._tls_ca_certs,
                 cert_reqs=self._tls_cert_reqs,
                 ssl_version=self._tls_version,
-                ciphers=self._tls_ciphers)
+                ciphers=self._tls_ciphers,
+                server_hostname=self._tls_server_hostname)
 
             if self._tls_insecure is False:
                 if sys.version_info < (2,7,9) or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
