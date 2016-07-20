@@ -1750,6 +1750,8 @@ class Client(object):
                     print(err)
                     return 1
                 else:
+                    if len(byte) == 0:
+                        return 1
                     byte = struct.unpack("!B", byte)
                     byte = byte[0]
                     self._in_packet['remaining_count'].append(byte)
@@ -1781,6 +1783,8 @@ class Client(object):
                 print(err)
                 return 1
             else:
+                if len(data) == 0:
+                    return 1
                 self._in_packet['to_process'] = self._in_packet['to_process'] - len(data)
                 self._in_packet['packet'] = self._in_packet['packet'] + data
 
