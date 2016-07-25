@@ -16,18 +16,9 @@
 # PUBREL message. The client should respond to this with the correct PUBCOMP
 # message and then exit with return code=0.
 
-import inspect
-import os
-import subprocess
-import socket
-import sys
 import time
 
-# From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder
-cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"..")))
-if cmd_subfolder not in sys.path:
-    sys.path.insert(0, cmd_subfolder)
-
+import context
 import paho_test
 
 rc = 1
@@ -44,20 +35,9 @@ pubrec_packet = paho_test.gen_pubrec(mid)
 pubrel_packet = paho_test.gen_pubrel(mid)
 pubcomp_packet = paho_test.gen_pubcomp(mid)
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.settimeout(5)
-sock.bind(('', 1888))
-sock.listen(5)
+sock = paho_test.create_server_socket()
 
-client_args = sys.argv[1:]
-env = dict(os.environ)
-try:
-    pp = env['PYTHONPATH']
-except KeyError:
-    pp = ''
-env['PYTHONPATH'] = '../../src:'+pp
-client = subprocess.Popen(client_args, env=env)
+client = context.start_client()
 
 try:
     (conn, address) = sock.accept()

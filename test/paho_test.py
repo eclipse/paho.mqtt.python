@@ -1,4 +1,35 @@
 import struct
+import socket
+
+try:
+    import ssl
+except ImportError:
+    ssl = None
+
+
+def create_server_socket():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.settimeout(10)
+    sock.bind(('', 1888))
+    sock.listen(5)
+    return sock
+
+
+def create_server_socket_ssl(*args, **kwargs):
+    if ssl is None:
+        raise RuntimeError
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    ssock = ssl.wrap_socket(
+        sock, ca_certs="../ssl/all-ca.crt",
+        keyfile="../ssl/server.key", certfile="../ssl/server.crt",
+        server_side=True, ssl_version=ssl.PROTOCOL_TLSv1, **kwargs)
+    ssock.settimeout(10)
+    ssock.bind(('', 1888))
+    ssock.listen(5)
+    return ssock
 
 
 def expect_packet(sock, name, expected):
