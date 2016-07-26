@@ -12,6 +12,7 @@
 
 import context
 import paho_test
+from paho_test import ssl
 
 context.check_ssl()
 
