@@ -706,8 +706,19 @@ class Client(object):
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
         """
-        if host is None or len(host) == 0:
-            raise ValueError('Invalid host.')
+        import re
+
+        if host is None or len(host) == 0 or len(host) > 255:
+            raise ValueError('Invalid host "{0}": length should be between 1 and 255 characters.'.format(host))
+        if host[-1] == ".":
+            host = host[:-1] # strip exactly one dot from the right, if present
+
+        RE_VALID_IP_ADDRESS = re.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$", re.IGNORECASE)
+        RE_VALID_HOSTNAME = re.compile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", re.IGNORECASE)
+
+        if not RE_VALID_IP_ADDRESS.match(host) and not RE_VALID_HOSTNAME.match(host):
+            raise ValueError('Invalid host "{0}": does not appear to be neither IP address nor hostname.'.format(host))
+
         if port <= 0:
             raise ValueError('Invalid port number.')
         if keepalive < 0:
