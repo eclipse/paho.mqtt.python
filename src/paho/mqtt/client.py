@@ -39,6 +39,7 @@ import uuid
 import base64
 import string
 import hashlib
+import logging
 try:
     # Use monotionic clock if available
     time_func = time.monotonic
@@ -91,6 +92,13 @@ MQTT_LOG_NOTICE = 0x02
 MQTT_LOG_WARNING = 0x04
 MQTT_LOG_ERR = 0x08
 MQTT_LOG_DEBUG = 0x10
+LOGGING_LEVEL = {
+    MQTT_LOG_DEBUG: logging.DEBUG,
+    MQTT_LOG_INFO: logging.INFO,
+    MQTT_LOG_NOTICE: logging.INFO,  # This has no direct equivalent level
+    MQTT_LOG_WARNING: logging.WARNING,
+    MQTT_LOG_ERR: logging.ERROR,
+}
 
 # CONNACK codes
 CONNACK_ACCEPTED = 0
@@ -521,6 +529,7 @@ class Client(object):
         self._tls_ciphers = None
         self._tls_version = tls_version
         self._tls_insecure = False
+        self._logger = None
         # No default callbacks
         self._on_log = None
         self._on_connect = None
@@ -636,6 +645,17 @@ class Client(object):
             raise ValueError('This platform has no SSL/TLS.')
 
         self._tls_insecure = value
+
+    def enable_logger(self, logger=None):
+        if not logger:
+            if self._logger:
+                # Do not replace existing logger
+                return
+            logger = logging.getLogger(__name__)
+        self._logger = logger
+
+    def disable_logger(self):
+        self._logger = None
 
     def connect(self, host, port=1883, keepalive=60, bind_address=""):
         """Connect to a remote broker.
@@ -1792,6 +1812,9 @@ class Client(object):
         if self.on_log:
             buf = fmt % args
             self.on_log(self, self._userdata, level, buf)
+        if self._logger:
+            level_std = LOGGING_LEVEL[level]
+            self._logger.log(level_std, fmt, *args)
 
     def _check_keepalive(self):
         if self._keepalive == 0:
@@ -1920,8 +1943,11 @@ class Client(object):
         packet.extend(struct.pack("!B", command))
         if payload is None:
             remaining_length = 2+len(utopic)
-            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s' (NULL payload)",
-                dup, qos, retain, mid, topic)
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s' (NULL payload)",
+                dup, qos, retain, mid, topic
+            )
         else:
             if isinstance(payload, str):
                 upayload = payload.encode('utf-8')
@@ -1933,8 +1959,11 @@ class Client(object):
                 payloadlen = len(upayload)
 
             remaining_length = 2+len(utopic) + payloadlen
-            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s', ... (%d bytes)",
-                dup, qos, retain, mid, topic, payloadlen)
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s', ... (%d bytes)",
+                dup, qos, retain, mid, topic, payloadlen
+            )
 
         if qos > 0:
             # For message id
@@ -2035,14 +2064,18 @@ class Client(object):
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
-        self._easy_log(MQTT_LOG_DEBUG, "Sending CONNECT (u%d, p%d, wr%d, wq%d, wf%d, c%d, k%d) client_id=%s",
-                            (connect_flags&0x80)>>7, 
-                            (connect_flags&0x40)>>6,
-                            (connect_flags&0x20)>>5,
-                            (connect_flags&0x18)>>3,
-                            (connect_flags&0x4)>>2,
-                            (connect_flags&0x2)>>1,
-                            keepalive, self._client_id)
+        self._easy_log(
+            MQTT_LOG_DEBUG,
+            "Sending CONNECT (u%d, p%d, wr%d, wq%d, wf%d, c%d, k%d) client_id=%s",
+            (connect_flags & 0x80) >> 7,
+            (connect_flags & 0x40) >> 6,
+            (connect_flags & 0x20) >> 5,
+            (connect_flags & 0x18) >> 3,
+            (connect_flags & 0x4) >> 2,
+            (connect_flags & 0x2) >> 1,
+            keepalive,
+            self._client_id
+        )
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_disconnect(self):
@@ -2237,7 +2270,11 @@ class Client(object):
 
         (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
         if result == CONNACK_REFUSED_PROTOCOL_VERSION and self._protocol == MQTTv311:
-            self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK (%s, %s), attempting downgrade to MQTT v3.1.", flags, result)
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Received CONNACK (%s, %s), attempting downgrade to MQTT v3.1.",
+                flags, result
+            )
             # Downgrade to MQTT v3.1
             self._protocol = MQTTv31
             return self.reconnect()
@@ -2361,10 +2398,10 @@ class Client(object):
 
         self._easy_log(
             MQTT_LOG_DEBUG,
-            "Received PUBLISH (d"+str(message.dup)+
-            ", q"+str(message.qos)+", r"+str(message.retain)+
-            ", m"+str(message.mid)+", '"+message.topic+
-            "', ...  ("+str(len(message.payload))+" bytes)")
+            "Received PUBLISH (d%d, q%d, r%d, m%d), '%s', ...  (%d bytes)",
+            message.dup, message.qos, message.retain, message.mid,
+            message.topic, len(message.payload)
+        )
 
         message.timestamp = time_func()
         if message.qos == 0:
