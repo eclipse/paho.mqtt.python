@@ -1,20 +1,12 @@
 #!/usr/bin/env python
-# vim: set fileencoding=utf-8
+# -*- coding: utf-8 -*-
 
 # Test whether a client produces a correct connect with a unicode username and password.
 
-import inspect
-import os
-import subprocess
-import socket
-import sys
-import time
+# The client should connect to port 1888 with keepalive=60, clean session set,
+# client id 01-unpwd-unicode-set, username and password from corresponding variables
 
-# From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder
-cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"..")))
-if cmd_subfolder not in sys.path:
-    sys.path.insert(0, cmd_subfolder)
-
+import context
 import paho_test
 
 rc = 1
@@ -23,20 +15,9 @@ username=u"úsérnámé-hélló"
 password=u"hélló"
 connect_packet = paho_test.gen_connect("01-unpwd-unicode-set", keepalive=keepalive, username=username.encode('utf-8'), password=password.encode('utf-8'))
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.settimeout(10)
-sock.bind(('', 1888))
-sock.listen(5)
+sock = paho_test.create_server_socket()
 
-client_args = sys.argv[1:]
-env = dict(os.environ)
-try:
-    pp = env['PYTHONPATH']
-except KeyError:
-    pp = ''
-env['PYTHONPATH'] = '../../src:'+pp
-client = subprocess.Popen(client_args, env=env)
+client = context.start_client()
 
 try:
     (conn, address) = sock.accept()

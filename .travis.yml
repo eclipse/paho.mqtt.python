@@ -1,0 +1,17 @@
+sudo: false
+
+language: python
+
+python:
+  - 3.5
+  - 3.4
+  - 3.3
+  - 3.2
+  - 2.7
+  - 2.6
+
+install:
+  - echo No requirements
+
+script:
+  - make test
