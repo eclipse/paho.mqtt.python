@@ -143,6 +143,11 @@ if sys.version_info[0] < 3:
 else:
     sockpair_data = b"0"
 
+
+class WebsocketConnectionError(ValueError):
+    pass
+
+
 def error_string(mqtt_errno):
     """Return the error string associated with an mqtt error number."""
     if mqtt_errno == MQTT_ERR_SUCCESS:
@@ -841,8 +846,10 @@ class Client(object):
 
         if self._transport == "websockets":
             if self._tls_ca_certs is not None:
+                self._ssl.settimeout(self._keepalive)
                 self._ssl = WebsocketWrapper(self._ssl, self._host, self._port, True)
             else:
+                sock.settimeout(self._keepalive)
                 sock = WebsocketWrapper(sock, self._host, self._port, False)
 
         self._sock = sock
@@ -1380,7 +1387,7 @@ class Client(object):
             if self._state == mqtt_cs_connect_async:
                 try:
                     self.reconnect()
-                except socket.error:
+                except (socket.error, WebsocketConnectionError):
                     if not retry_first_connection:
                         raise
                     self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
@@ -1421,7 +1428,7 @@ class Client(object):
                     self._state_mutex.release()
                     try:
                         self.reconnect()
-                    except socket.error as err:
+                    except (socket.error, WebsocketConnectionError) as err:
                         pass
 
         return rc
@@ -2732,7 +2739,7 @@ class WebsocketWrapper:
                     # check upgrade
                     if b"connection" in str(self._readbuffer).lower().encode('utf-8'):
                         if b"upgrade" not in str(self._readbuffer).lower().encode('utf-8'):
-                            raise ValueError("WebSocket handshake error, connection not upgraded")
+                            raise WebsocketConnectionError("WebSocket handshake error, connection not upgraded")
                         else:
                             has_upgrade = True
 
@@ -2748,7 +2755,7 @@ class WebsocketWrapper:
                         client_hash = base64.b64encode(client_hash.digest())
 
                         if server_hash != client_hash:
-                            raise ValueError("WebSocket handshake error, invalid secret key")
+                            raise WebsocketConnectionError("WebSocket handshake error, invalid secret key")
                         else:
                             has_secret = True
                 else:
@@ -2760,10 +2767,10 @@ class WebsocketWrapper:
 
             # connection reset
             elif not byte:
-                raise ValueError("WebSocket handshake error")
+                raise WebsocketConnectionError("WebSocket handshake error")
 
         if not has_upgrade or not has_secret:
-            raise ValueError("WebSocket handshake error")
+            raise WebsocketConnectionError("WebSocket handshake error")
 
         self._readbuffer = bytearray()
         self.connected = True
