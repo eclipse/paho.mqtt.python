@@ -13,7 +13,6 @@ import os
 import subprocess
 import socket
 import sys
-import time
 
 # From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder
 cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"..")))
@@ -24,7 +23,7 @@ import paho_test
 
 rc = 1
 keepalive = 60
-connect_packet = paho_test.gen_connect("01-con-discon-success", keepalive=keepalive)
+connect_packet = paho_test.gen_connect("01-con-discon-success", keepalive=keepalive, proto_name="MQIsdp", proto_ver=3)
 connack_packet = paho_test.gen_connack(rc=0)
 
 disconnect_packet = paho_test.gen_disconnect()

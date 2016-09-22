@@ -5,7 +5,7 @@ from paho.mqtt import __version__
 from distutils.core import setup
 setup(name='paho-mqtt',
 	version=__version__,
-	description='MQTT version 3.1/3.1.1 client class',
+	description='MQTT version 3.1.1 client class',
 	author='Roger Light',
 	author_email='roger@atchoo.org',
 	url='http://eclipse.org/paho',

@@ -1,8 +1,34 @@
-v1.1.1 - 2015-xx-xx
-===================
+v1.2 - 2016-06-03
+=================
 
+- Client.publish() now returns an MQTTMessageInfo object. The MQTTMessageInfo
+  object behaves like a tuple of (rc, mid) for backwards compatibility but
+  also provides two functions: is_published() and wait_for_published().
+  This allows a client to determine whether any given message has been
+  published without need for a callback, and also allows the client to block
+  waiting until the message has been sent.
 - Further fix for Client constructor for the case where "localhost" is
   unresolvable.
+- Add paho.mqtt.subscribe module, with simple() and callback() helper
+  functions.
+- Allow ^C to interrupt client loop.
+- Fix for keepalive=0 causing an infinite disconnect/reconnect loop. Closes
+  #42.
+- Modify callbacks definition/structure to allow classical inheritence. Closes
+  #53, #54.
+- Add websockets support.
+- Default MQTT version is again changed to v3.1.1.
+- Client.subscribe() now accepts unicode type topic inputs on Python 2. Closes
+  #16.
+- paho.mqtt.publish() now raises an MQTTException on a CONNECT failure, rather
+  than blindly continuing. Closes #6.
+- Don't block on TLS sockets on Python 3. Closes #2.
+- Client.publish() now accepts bytes() payloads on Python 3. Closes #1.
+- Don't attempt to join() own thread. Closes #14.
+- Allow the use of Client.message_callback_add() from inside callbacks. Closes
+  #12.
+- Use a monotonic time source for keeping track of time, if available. Closes
+  #56.
 
 
 v1.1 - 2015-01-30
