@@ -2760,14 +2760,18 @@ class WebsocketWrapper:
     def _buffered_read(self, length):
 
         # try to recv and strore needed bytes
-        if self._readbuffer_head + length > len(self._readbuffer):
+        wanted_bytes = length - (len(self._readbuffer) - self._readbuffer_head)
+        if wanted_bytes > 0:
 
-            data = self._socket.recv(self._readbuffer_head + length - len(self._readbuffer))
+            data = self._socket.recv(wanted_bytes)
 
             if not data:
                 raise socket.error(errno.ECONNABORTED, 0)
             else:
                 self._readbuffer.extend(data)
+
+            if len(data) < wanted_bytes:
+                raise socket.error(errno.EAGAIN, 0)
 
         self._readbuffer_head += length
         return self._readbuffer[self._readbuffer_head-length:self._readbuffer_head]
