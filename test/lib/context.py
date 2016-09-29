@@ -52,6 +52,6 @@ def check_ssl():
         print("WARNING: SSL not available in current environment")
         exit(0)
 
-    if sys.version < '2.7':
-        print("WARNING: SSL not supported on Python 2.6")
+    if not hasattr(ssl, 'SSLContext'):
+        print("WARNING: SSL without SSLContext is not supported")
         exit(0)
