@@ -5,7 +5,7 @@ This document describes the source code for the `Eclipse Paho <http://eclipse.or
 
 This code provides a client class which enable applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
 
-It supports Python 2.7 or 3.x, with limited support for Python 2.6.
+It supports Python 2.7 or 3.2+, with limited support for Python 2.6.
 
 The MQTT protocol is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol. Designed as an extremely lightweight publish/subscribe messaging transport, it is useful for connections with remote locations where a small code footprint is required and/or network bandwidth is at a premium.
 
@@ -263,12 +263,11 @@ tls_set_context()
 Configure network encryption and authentication context. Enables SSL/TLS support.
 
 context
-    an ssl.SSLContext object, or a dictionary containing arguments for ``ssl.wrap_socket``. By default this is given by ``ssl.create_default_context()``, if available (added in Python 3.4).
+    an ssl.SSLContext object. By default, this is given by ``ssl.create_default_context()``, if available (added in Python 3.4).
 
 If you're unsure about using this method, then either use the default context, or use the ``tls_set`` method. See the ssl module documentation section about `security considerations <https://docs.python.org/3/library/ssl.html#ssl-security>`_ for more information.
 
 Must be called before ``connect*()``.
-
 
 tls_insecure_set()
 ''''''''''''''''''
@@ -276,14 +275,14 @@ tls_insecure_set()
 ::
 
     tls_insecure_set(value)
-    
+
 Configure verification of the server hostname in the server certificate.
 
 If ``value`` is set to ``True``, it is impossible to guarantee that the host you are connecting to is not impersonating your server. This can be useful in initial server testing, but makes it possible for a malicious third party to impersonate your server through DNS spoofing, for example.
 
 Do not use this function in a real system. Setting value to True means there is no point using encryption.
 
-Must be called before ``connect*)``.
+Must be called before ``connect*()`` and after ``tls_set()`` or ``tls_set_context()``.
 
 enable_logger()
 '''''''''''''''
@@ -382,7 +381,7 @@ host
 port
     the network port of the server host to connect to. Defaults to 1883. Note
     that the default port for MQTT over SSL/TLS is 8883 so if you are using
-    ``tls_set()`` the port may need providing manually
+    ``tls_set()`` or ``tls_set_context()``, the port may need providing manually
 
 keepalive
     maximum period in seconds allowed between communications with the broker.
