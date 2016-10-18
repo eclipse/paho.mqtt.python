@@ -2634,9 +2634,9 @@ class Client(object):
             if cert_host.count("*") != 1:
                 return False
 
-            host_match = host.split(".", 1)[1]
-            cert_match = cert_host.split(".", 1)[1]
-            if host_match == cert_match:
+            host_match = host.split(".", 1)
+            cert_match = cert_host.split(".", 1)
+            if len(host_match) == 2 and len(cert_match) == 2 and host_match[1] == cert_match[1]:
                 return True
             else:
                 return False
