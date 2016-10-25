@@ -833,6 +833,9 @@ class Client(object):
             try:
                 # Try with server_hostname, even it's not supported in certain scenarios
                 sock = self._ssl_context.wrap_socket(sock, server_hostname=self._host)
+            except ssl.CertificateError:
+                # CertificateError is derived from ValueError
+                raise
             except ValueError:
                 # Python version requires SNI in order to handle server_hostname, but SNI is not available
                 sock = self._ssl_context.wrap_socket(sock)
