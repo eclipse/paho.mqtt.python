@@ -50,9 +50,7 @@ def _do_publish(c):
 
 def _on_connect(c, userdata, flags, rc):
     """Internal callback"""
-    if rc == 0:
-        _do_publish(c)
-    else:
+    if rc != 0:
         raise mqtt.MQTTException(paho.connack_string(rc))
 
 
@@ -172,6 +170,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
                        ciphers=ciphers)
 
     client.connect(hostname, port, keepalive)
+    _do_publish(client)
     client.loop_forever()
 
 
