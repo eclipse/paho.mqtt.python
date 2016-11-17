@@ -70,9 +70,11 @@ MQTTv311 = 4
 PROTOCOL_NAMEv31 = "MQIsdp"
 PROTOCOL_NAMEv311 = "MQTT"
 
-# define some alias for python2 compatibility
-unicode = str
-basestring = str
+
+if sys.version_info[0] >= 3:
+    # define some alias for python2 compatibility
+    unicode = str
+    basestring = str
 
 
 # Message types
