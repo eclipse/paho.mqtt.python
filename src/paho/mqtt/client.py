@@ -16,6 +16,7 @@
 This is an MQTT v3.1 client module. MQTT is a lightweight pub/sub messaging
 protocol that is easy to implement and suitable for low powered devices.
 """
+import collections
 import errno
 import platform
 import random
@@ -502,7 +503,7 @@ class Client(object):
             "packet": b"",
             "to_process": 0,
             "pos": 0}
-        self._out_packet = []
+        self._out_packet = collections.deque()
         self._current_out_packet = None
         self._last_msg_in = time_func()
         self._last_msg_out = time_func()
@@ -795,7 +796,7 @@ class Client(object):
             "pos": 0}
 
         self._out_packet_mutex.acquire()
-        self._out_packet = []
+        self._out_packet = collections.deque()
         self._out_packet_mutex.release()
 
         self._current_out_packet_mutex.acquire()
@@ -884,7 +885,7 @@ class Client(object):
         self._current_out_packet_mutex.acquire()
         self._out_packet_mutex.acquire()
         if self._current_out_packet is None and len(self._out_packet) > 0:
-            self._current_out_packet = self._out_packet.pop(0)
+            self._current_out_packet = self._out_packet.popleft()
 
         if self._current_out_packet:
             wlist = [self._sock]
@@ -1830,7 +1831,7 @@ class Client(object):
 
                     self._out_packet_mutex.acquire()
                     if len(self._out_packet) > 0:
-                        self._current_out_packet = self._out_packet.pop(0)
+                        self._current_out_packet = self._out_packet.popleft()
                     else:
                         self._current_out_packet = None
                     self._out_packet_mutex.release()
@@ -2190,7 +2191,7 @@ class Client(object):
         self._out_packet.append(mpkt)
         if self._current_out_packet_mutex.acquire(False):
             if self._current_out_packet is None and len(self._out_packet) > 0:
-                self._current_out_packet = self._out_packet.pop(0)
+                self._current_out_packet = self._out_packet.popleft()
             self._current_out_packet_mutex.release()
         self._out_packet_mutex.release()
 
