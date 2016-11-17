@@ -21,15 +21,11 @@ import platform
 import random
 import select
 import socket
-HAVE_SSL = True
 try:
     import ssl
-    cert_reqs = ssl.CERT_REQUIRED
-    tls_version = ssl.PROTOCOL_TLSv1
-except:
-    HAVE_SSL = False
-    cert_reqs = None
-    tls_version = None
+except ImportError:
+    ssl = None
+
 import struct
 import sys
 import threading
@@ -41,16 +37,17 @@ import string
 import hashlib
 import logging
 try:
-    # Use monotionic clock if available
+    # Use monotonic clock if available
     time_func = time.monotonic
 except AttributeError:
     time_func = time.time
 
-HAVE_DNS = True
 try:
     import dns.resolver
 except ImportError:
     HAVE_DNS = False
+else:
+    HAVE_DNS = True
 
 from .matcher import MQTTMatcher
 
@@ -438,6 +435,7 @@ class Client(object):
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
+
     def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
@@ -537,13 +535,8 @@ class Client(object):
         self._thread = None
         self._thread_terminate = False
         self._ssl = False
-        self._tls_certfile = None
-        self._tls_keyfile = None
-        self._tls_ca_certs = None
-        self._tls_cert_reqs = None
-        self._tls_ciphers = None
-        self._tls_version = tls_version
-        self._tls_insecure = False
+        self._ssl_context = None
+        self._tls_insecure = False  # Only used when SSL context does not have check_hostname attribute
         self._logger = None
         # No default callbacks
         self._on_log = None
@@ -570,7 +563,33 @@ class Client(object):
 
         self.__init__(client_id, clean_session, userdata)
 
-    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=cert_reqs, tls_version=tls_version, ciphers=None):
+    def tls_set_context(self, context=None):
+        """Configure network encryption and authentication context. Enables SSL/TLS support.
+
+        context : an ssl.SSLContext object. By default this is given by
+        `ssl.create_default_context()`, if available.
+
+        Must be called before connect() or connect_async()."""
+        if self._ssl_context is not None:
+            raise ValueError('SSL/TLS has already been configured.')
+
+        # Assume that have SSL support, or at least that context input behaves like ssl.SSLContext
+        # in current versions of Python
+
+        if context is None:
+            if hasattr(ssl, 'create_default_context'):
+                context = ssl.create_default_context()
+            else:
+                raise ValueError('SSL/TLS context must be specified')
+
+        self._ssl = True
+        self._ssl_context = context
+
+        # Ensure _tls_insecure is consistent with check_hostname attribute
+        if hasattr(context, 'check_hostname'):
+            self._tls_insecure = not context.check_hostname
+
+    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -605,43 +624,36 @@ class Client(object):
         more information.
 
         Must be called before connect() or connect_async()."""
-        if HAVE_SSL is False:
+        if ssl is None:
             raise ValueError('This platform has no SSL/TLS.')
 
-        if sys.version < '2.7':
-            raise ValueError('Python 2.7 is the minimum supported version for TLS.')
+        if not hasattr(ssl, 'SSLContext'):
+            # Require Python version that has SSL context support in standard library
+            raise ValueError('Python 2.7.9 and 3.2 are the minimum supported versions for TLS.')
 
         if ca_certs is None:
             raise ValueError('ca_certs must not be None.')
 
-        try:
-            f = open(ca_certs, "r")
-        except IOError as err:
-            raise IOError(ca_certs+": "+err.strerror)
-        else:
-            f.close()
-        if certfile is not None:
-            try:
-                f = open(certfile, "r")
-            except IOError as err:
-                raise IOError(certfile+": "+err.strerror)
-            else:
-                f.close()
-        if keyfile is not None:
-            try:
-                f = open(keyfile, "r")
-            except IOError as err:
-                raise IOError(keyfile+": "+err.strerror)
-            else:
-                f.close()
+        # Create SSLContext object
+        if tls_version is None:
+            tls_version = ssl.PROTOCOL_TLSv1
+        context = ssl.SSLContext(tls_version)
 
-        self._ssl = True
-        self._tls_ca_certs = ca_certs
-        self._tls_certfile = certfile
-        self._tls_keyfile = keyfile
-        self._tls_cert_reqs = cert_reqs
-        self._tls_version = tls_version
-        self._tls_ciphers = ciphers
+        # Configure context
+        if certfile is not None:
+            context.load_cert_chain(certfile, keyfile)
+
+        context.verify_mode = ssl.CERT_REQUIRED if cert_reqs is None else cert_reqs
+
+        context.load_verify_locations(ca_certs)
+
+        if ciphers is not None:
+            context.set_ciphers(ciphers)
+
+        self.tls_set_context(context)
+
+        # Default to secure, sets context.check_hostname attribute if available
+        self.tls_insecure_set(False)
 
     def tls_insecure_set(self, value):
         """Configure verification of the server hostname in the server certificate.
@@ -655,11 +667,19 @@ class Client(object):
         Do not use this function in a real system. Setting value to true means
         there is no point using encryption.
 
-        Must be called before connect()."""
-        if HAVE_SSL is False:
-            raise ValueError('This platform has no SSL/TLS.')
+        Must be called before connect() and after either tls_set() or
+        tls_set_context()."""
+
+        if self._ssl_context is None:
+            raise ValueError('Must configure SSL context before using tls_insecure_set.')
 
         self._tls_insecure = value
+
+        # Ensure check_hostname is consistent with _tls_insecure attribute
+        if hasattr(self._ssl_context, 'check_hostname'):
+            # Rely on SSLContext to check host name
+            # If verify_mode is CERT_NONE then the host name will never be checked
+            self._ssl_context.check_hostname = not value
 
     def enable_logger(self, logger=None):
         if not logger:
@@ -791,6 +811,7 @@ class Client(object):
         self._state_mutex.acquire()
         self._state = mqtt_cs_new
         self._state_mutex.release()
+
         if self._sock:
             self._sock.close()
             self._sock = None
@@ -807,27 +828,30 @@ class Client(object):
             if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
                 raise
 
-        if self._tls_ca_certs is not None:
-            sock = ssl.wrap_socket(
-                sock,
-                certfile=self._tls_certfile,
-                keyfile=self._tls_keyfile,
-                ca_certs=self._tls_ca_certs,
-                cert_reqs=self._tls_cert_reqs,
-                ssl_version=self._tls_version,
-                ciphers=self._tls_ciphers)
+        if self._ssl:
+            # SSL is only supported when SSLContext is available (implies Python >= 2.7.9 or >= 3.2)
 
-            if self._tls_insecure is False:
-                if sys.version_info < (2,7,9) or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
-                    self._tls_match_hostname(sock)
-                else:
-                    ssl.match_hostname(sock.getpeercert(), self._host)
+            verify_host = not self._tls_insecure
+            try:
+                # Try with server_hostname, even it's not supported in certain scenarios
+                sock = self._ssl_context.wrap_socket(sock, server_hostname=self._host)
+            except ssl.CertificateError:
+                # CertificateError is derived from ValueError
+                raise
+            except ValueError:
+                # Python version requires SNI in order to handle server_hostname, but SNI is not available
+                sock = self._ssl_context.wrap_socket(sock)
+            else:
+                # If SSL context has already checked hostname, then don't need to do it again
+                if (hasattr(self._ssl_context, 'check_hostname') and
+                        self._ssl_context.check_hostname):
+                    verify_host = False
+
+            if verify_host:
+                ssl.match_hostname(sock.getpeercert(), self._host)
 
         if self._transport == "websockets":
-            if self._tls_ca_certs is not None:
-                sock = WebsocketWrapper(sock, self._host, self._port, True)
-            else:
-                sock = WebsocketWrapper(sock, self._host, self._port, False)
+            sock = WebsocketWrapper(sock, self._host, self._port, self._ssl)
 
         self._sock = sock
         self._sock.setblocking(0)
@@ -1219,7 +1243,7 @@ class Client(object):
 
         now = time_func()
         self._check_keepalive()
-        if self._last_retry_check+1 < now:
+        if self._last_retry_check + 1 < now:
             # Only check once a second at most
             self._message_retry_check()
             self._last_retry_check = now
@@ -1372,9 +1396,9 @@ class Client(object):
                 # so no other threads can access _current_out_packet,
                 # _out_packet or _messages.
                 if (self._thread_terminate is True
-                        and self._current_out_packet is None
-                        and len(self._out_packet) == 0
-                        and len(self._out_messages) == 0):
+                    and self._current_out_packet is None
+                    and len(self._out_packet) == 0
+                    and len(self._out_messages) == 0):
 
                     rc = 1
                     run = False
@@ -1703,7 +1727,7 @@ class Client(object):
                     byte, = struct.unpack("!B", byte)
                     self._in_packet['remaining_count'].append(byte)
                     # Max 4 bytes length for remaining length as defined by protocol.
-                     # Anything more likely means a broken/malicious client.
+                    # Anything more likely means a broken/malicious client.
                     if len(self._in_packet['remaining_count']) > 4:
                         return MQTT_ERR_PROTOCOL
 
@@ -1870,8 +1894,8 @@ class Client(object):
     @staticmethod
     def _topic_wildcard_len_check(topic):
         # Search for + or # in a topic. Return MQTT_ERR_INVAL if found.
-         # Also returns MQTT_ERR_INVAL if the topic string is too long.
-         # Returns MQTT_ERR_SUCCESS if everything is fine.
+        # Also returns MQTT_ERR_INVAL if the topic string is too long.
+        # Returns MQTT_ERR_SUCCESS if everything is fine.
         if b'+' in topic or b'#' in topic or len(topic) == 0 or len(topic) > 65535:
             return MQTT_ERR_INVAL
         else:
@@ -1933,12 +1957,12 @@ class Client(object):
         if self._sock is None:
             return MQTT_ERR_NO_CONN
 
-        command = PUBLISH | ((dup&0x1)<<3) | (qos<<1) | retain
+        command = PUBLISH | ((dup & 0x1) << 3) | (qos << 1) | retain
         packet = bytearray()
         packet.append(command)
 
         payloadlen = len(payload)
-        remaining_length = 2+len(topic) + payloadlen
+        remaining_length = 2 + len(topic) + payloadlen
 
         if payloadlen == 0:
             self._easy_log(
@@ -1974,7 +1998,7 @@ class Client(object):
 
     def _send_pubrel(self, mid, dup=False):
         self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREL (Mid: %d)", mid)
-        return self._send_command_with_mid(PUBREL|2, mid, dup)
+        return self._send_command_with_mid(PUBREL | 2, mid, dup)
 
     def _send_command_with_mid(self, command, mid, dup):
         # For PUBACK, PUBCOMP, PUBREC, and PUBREL
@@ -2000,21 +2024,21 @@ class Client(object):
             proto_ver = 4
         protocol = protocol.encode('utf-8')
 
-        remaining_length = 2+len(protocol) + 1+1+2 + 2+len(self._client_id)
+        remaining_length = 2 + len(protocol) + 1 + 1 + 2 + 2 + len(self._client_id)
         connect_flags = 0
         if clean_session:
             connect_flags |= 0x02
 
         if self._will:
-            remaining_length += 2+len(self._will_topic) + 2+len(self._will_payload)
-            connect_flags |= 0x04 | ((self._will_qos&0x03) << 3) | ((self._will_retain&0x01) << 5)
+            remaining_length += 2 + len(self._will_topic) + 2 + len(self._will_payload)
+            connect_flags |= 0x04 | ((self._will_qos & 0x03) << 3) | ((self._will_retain & 0x01) << 5)
 
         if self._username is not None:
-            remaining_length += 2+len(self._username)
+            remaining_length += 2 + len(self._username)
             connect_flags |= 0x80
             if self._password is not None:
                 connect_flags |= 0x40
-                remaining_length += 2+len(self._password)
+                remaining_length += 2 + len(self._password)
 
         command = CONNECT
         packet = bytearray()
@@ -2057,9 +2081,9 @@ class Client(object):
     def _send_subscribe(self, dup, topics):
         remaining_length = 2
         for t, _ in topics:
-            remaining_length += 2+len(t)+1
+            remaining_length += 2 + len(t) + 1
 
-        command = SUBSCRIBE | (dup<<3) | 0x2
+        command = SUBSCRIBE | (dup << 3) | 0x2
         packet = bytearray()
         packet.append(command)
         self._pack_remaining_length(packet, remaining_length)
@@ -2073,9 +2097,9 @@ class Client(object):
     def _send_unsubscribe(self, dup, topics):
         remaining_length = 2
         for t in topics:
-            remaining_length += 2+len(t)
+            remaining_length += 2 + len(t)
 
-        command = UNSUBSCRIBE | (dup<<3) | 0x2
+        command = UNSUBSCRIBE | (dup << 3) | 0x2
         packet = bytearray()
         packet.append(command)
         self._pack_remaining_length(packet, remaining_length)
@@ -2084,7 +2108,7 @@ class Client(object):
         for t in topics:
             self._pack_str16(packet, t)
 
-        #topics_repr = ", ".join("'"+topic.decode('utf8')+"'" for topic in topics)
+        # topics_repr = ", ".join("'"+topic.decode('utf8')+"'" for topic in topics)
         self._easy_log(MQTT_LOG_DEBUG, "Sending UNSUBSCRIBE (d%d) %s", dup, topics)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
@@ -2120,12 +2144,12 @@ class Client(object):
                 if m.qos == 0:
                     m.state = mqtt_ms_publish
                 elif m.qos == 1:
-                    #self._inflight_messages = self._inflight_messages + 1
+                    # self._inflight_messages = self._inflight_messages + 1
                     if m.state == mqtt_ms_wait_for_puback:
                         m.dup = True
                     m.state = mqtt_ms_publish
                 elif m.qos == 2:
-                    #self._inflight_messages = self._inflight_messages + 1
+                    # self._inflight_messages = self._inflight_messages + 1
                     if m.state == mqtt_ms_wait_for_pubcomp:
                         m.state = mqtt_ms_resend_pubrel
                         m.dup = True
@@ -2274,12 +2298,12 @@ class Client(object):
             for m in self._out_messages:
                 m.timestamp = time_func()
                 if m.state == mqtt_ms_queued:
-                    self.loop_write() # Process outgoing messages that have just been queued up
+                    self.loop_write()  # Process outgoing messages that have just been queued up
                     self._out_message_mutex.release()
                     return MQTT_ERR_SUCCESS
 
                 if m.qos == 0:
-                    self._in_callback = True # Don't call loop_write after _send_publish()
+                    self._in_callback = True  # Don't call loop_write after _send_publish()
                     rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
                     self._in_callback = False
                     if rc != 0:
@@ -2289,7 +2313,7 @@ class Client(object):
                     if m.state == mqtt_ms_publish:
                         self._inflight_messages += 1
                         m.state = mqtt_ms_wait_for_puback
-                        self._in_callback = True # Don't call loop_write after _send_publish()
+                        self._in_callback = True  # Don't call loop_write after _send_publish()
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
                         self._in_callback = False
                         if rc != 0:
@@ -2299,7 +2323,7 @@ class Client(object):
                     if m.state == mqtt_ms_publish:
                         self._inflight_messages += 1
                         m.state = mqtt_ms_wait_for_pubrec
-                        self._in_callback = True # Don't call loop_write after _send_publish()
+                        self._in_callback = True  # Don't call loop_write after _send_publish()
                         rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
                         self._in_callback = False
                         if rc != 0:
@@ -2308,13 +2332,13 @@ class Client(object):
                     elif m.state == mqtt_ms_resend_pubrel:
                         self._inflight_messages += 1
                         m.state = mqtt_ms_wait_for_pubcomp
-                        self._in_callback = True # Don't call loop_write after _send_pubrel()
+                        self._in_callback = True  # Don't call loop_write after _send_pubrel()
                         rc = self._send_pubrel(m.mid, m.dup)
                         self._in_callback = False
                         if rc != 0:
                             self._out_message_mutex.release()
                             return rc
-                self.loop_write() # Process outgoing messages that have just been queued up
+                self.loop_write()  # Process outgoing messages that have just been queued up
             self._out_message_mutex.release()
             return rc
         elif result > 0 and result < 6:
@@ -2324,9 +2348,9 @@ class Client(object):
 
     def _handle_suback(self):
         self._easy_log(MQTT_LOG_DEBUG, "Received SUBACK")
-        pack_format = "!H" + str(len(self._in_packet['packet'])-2) + 's'
+        pack_format = "!H" + str(len(self._in_packet['packet']) - 2) + 's'
         (mid, packet) = struct.unpack(pack_format, self._in_packet['packet'])
-        pack_format = "!" + "B"*len(packet)
+        pack_format = "!" + "B" * len(packet)
         granted_qos = struct.unpack(pack_format, packet)
 
         self._callback_mutex.acquire()
@@ -2343,13 +2367,13 @@ class Client(object):
 
         header = self._in_packet['command']
         message = MQTTMessage()
-        message.dup = (header & 0x08)>>3
-        message.qos = (header & 0x06)>>1
+        message.dup = (header & 0x08) >> 3
+        message.qos = (header & 0x06) >> 1
         message.retain = (header & 0x01)
 
-        pack_format = "!H" + str(len(self._in_packet['packet'])-2) + 's'
+        pack_format = "!H" + str(len(self._in_packet['packet']) - 2) + 's'
         (slen, packet) = struct.unpack(pack_format, self._in_packet['packet'])
-        pack_format = '!' + str(slen) + 's' + str(len(packet)-slen) + 's'
+        pack_format = '!' + str(slen) + 's' + str(len(packet) - slen) + 's'
         (message.topic, packet) = struct.unpack(pack_format, packet)
 
         if len(message.topic) == 0:
@@ -2359,7 +2383,7 @@ class Client(object):
             message.topic = message.topic.decode('utf-8')
 
         if message.qos > 0:
-            pack_format = "!H" + str(len(packet)-2) + 's'
+            pack_format = "!H" + str(len(packet) - 2) + 's'
             (message.mid, packet) = struct.unpack(pack_format, packet)
 
         message.payload = packet
@@ -2536,58 +2560,14 @@ class Client(object):
     def _thread_main(self):
         self.loop_forever(retry_first_connection=True)
 
-    def _host_matches_cert(self, host, cert_host):
-        if cert_host[0:2] == "*.":
-            if cert_host.count("*") != 1:
-                return False
-
-            host_match = host.split(".", 1)[1]
-            cert_match = cert_host.split(".", 1)[1]
-            return host_match == cert_match
-        else:
-            return host == cert_host
-
-    def _tls_match_hostname(self, sock):
-        try:
-            cert = sock.getpeercert()
-        except AttributeError:
-            # the getpeercert can throw Attribute error: object has no attribute 'peer_certificate'
-            # Don't let that crash the whole client. See also: http://bugs.python.org/issue13721
-            raise ssl.SSLError('Not connected')
-
-        san = cert.get('subjectAltName')
-        if san:
-            have_san_dns = False
-            for (key, value) in san:
-                if key == 'DNS':
-                    have_san_dns = True
-                    if self._host_matches_cert(self._host.lower(), value.lower()):
-                        return
-                if key == 'IP Address':
-                    have_san_dns = True
-                    if value.lower() == self._host.lower():
-                        return
-
-            if have_san_dns:
-                # Only check subject if subjectAltName dns not found.
-                raise ssl.SSLError('Certificate subject does not match remote hostname.')
-        subject = cert.get('subject')
-        if subject:
-            for ((key, value),) in subject:
-                if key == 'commonName':
-                    if self._host_matches_cert(self._host.lower(), value.lower()):
-                        return
-
-        raise ssl.SSLError('Certificate subject does not match remote hostname.')
-
 
 # Compatibility class for easy porting from mosquitto.py.
 class Mosquitto(Client):
     def __init__(self, client_id="", clean_session=True, userdata=None):
         super(Mosquitto, self).__init__(client_id, clean_session, userdata)
 
-class WebsocketWrapper:
 
+class WebsocketWrapper:
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1
     OPCODE_BINARY = 0x2
@@ -2623,13 +2603,13 @@ class WebsocketWrapper:
         sec_websocket_key = uuid.uuid4().bytes
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
-        header = b"GET /mqtt HTTP/1.1\r\n" +\
-                 b"Upgrade: websocket\r\n" +\
-                 b"Connection: Upgrade\r\n" +\
-                 b"Host: " + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" +\
+        header = b"GET /mqtt HTTP/1.1\r\n" + \
+                 b"Upgrade: websocket\r\n" + \
+                 b"Connection: Upgrade\r\n" + \
+                 b"Host: " + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" + \
                  b"Origin: http://" + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" +\
-                 b"Sec-WebSocket-Key: " + sec_websocket_key + b"\r\n" +\
-                 b"Sec-WebSocket-Version: 13\r\n" +\
+                 b"Sec-WebSocket-Key: " + sec_websocket_key + b"\r\n" + \
+                 b"Sec-WebSocket-Version: 13\r\n" + \
                  b"Sec-WebSocket-Protocol: mqtt\r\n\r\n"
 
         self._socket.send(header)
@@ -2732,7 +2712,7 @@ class WebsocketWrapper:
                 raise socket.error(errno.EAGAIN, 0)
 
         self._readbuffer_head += length
-        return self._readbuffer[self._readbuffer_head-length:self._readbuffer_head]
+        return self._readbuffer[self._readbuffer_head - length:self._readbuffer_head]
 
     def _recv_impl(self, length):
 
@@ -2857,5 +2837,5 @@ class WebsocketWrapper:
     def fileno(self):
         return self._socket.fileno()
 
-    def setblocking(self,flag):
+    def setblocking(self, flag):
         self._socket.setblocking(flag)

@@ -10,7 +10,7 @@ import ssl
 
 import paho.mqtt.client as mqtt
 
-if sys.version_info < (2, 7):
+if sys.version_info < (2, 7, 9):
     print("WARNING: SSL/TLS not supported on Python 2.6")
     exit(0)
 

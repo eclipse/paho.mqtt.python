@@ -88,23 +88,30 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
            If a tuple, then it must be of the form:
            ("<topic>", "<payload>", qos, retain)
+
     hostname : a string containing the address of the broker to connect to.
                Defaults to localhost.
+
     port : the port to connect to the broker on. Defaults to 1883.
+
     client_id : the MQTT client id to use. If "" or None, the Paho library will
                 generate a client id automatically.
+
     keepalive : the keepalive timeout value for the client. Defaults to 60
                 seconds.
+
     will : a dict containing will parameters for the client: will = {'topic':
            "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
            Topic is required, all other parameters are optional and will
            default to None, 0 and False respectively.
            Defaults to None, which indicates no will should be used.
+
     auth : a dict containing authentication parameters for the client:
            auth = {'username':"<username>", 'password':"<password>"}
            Username is required, password is optional and will default to None
            if not provided.
            Defaults to None, which indicates no authentication is to be used.
+
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
@@ -112,7 +119,10 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
+          Alternatively, tls input can be an SSLContext object, which will be
+          processed using the tls_set_context method.
           Defaults to None, which indicates that TLS should not be used.
+
     transport : set to "tcp" to use the default setting of transport which is
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
@@ -151,25 +161,11 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
         client.will_set(will_topic, will_payload, will_qos, will_retain)
 
     if tls is not None:
-        ca_certs = tls['ca_certs']
-        try:
-            certfile = tls['certfile']
-        except KeyError:
-            certfile = None
-        try:
-            keyfile = tls['keyfile']
-        except KeyError:
-            keyfile = None
-        try:
-            tls_version = tls['tls_version']
-        except KeyError:
-            tls_version = None
-        try:
-            ciphers = tls['ciphers']
-        except KeyError:
-            ciphers = None
-        client.tls_set(ca_certs, certfile, keyfile, tls_version=tls_version,
-                       ciphers=ciphers)
+        if isinstance(tls, dict):
+            client.tls_set(**tls)
+        else:
+            # Assume input is SSLContext object
+            client.tls_set_context(tls)
 
     client.connect(hostname, port, keepalive)
     client.loop_forever()
@@ -186,27 +182,37 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
 
     topic : the only required argument must be the topic string to which the
             payload will be published.
+
     payload : the payload to be published. If "" or None, a zero length payload
               will be published.
+
     qos : the qos to use when publishing,  default to 0.
+
     retain : set the message to be retained (True) or not (False).
+
     hostname : a string containing the address of the broker to connect to.
                Defaults to localhost.
+
     port : the port to connect to the broker on. Defaults to 1883.
+
     client_id : the MQTT client id to use. If "" or None, the Paho library will
                 generate a client id automatically.
+
     keepalive : the keepalive timeout value for the client. Defaults to 60
                 seconds.
+
     will : a dict containing will parameters for the client: will = {'topic':
            "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
            Topic is required, all other parameters are optional and will
            default to None, 0 and False respectively.
            Defaults to None, which indicates no will should be used.
+
     auth : a dict containing authentication parameters for the client:
            auth = {'username':"<username>", 'password':"<password>"}
            Username is required, password is optional and will default to None
            if not provided.
            Defaults to None, which indicates no authentication is to be used.
+
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
@@ -215,6 +221,9 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
           Defaults to None, which indicates that TLS should not be used.
+          Alternatively, tls input can be an SSLContext object, which will be
+          processed using the tls_set_context method.
+
     transport : set to "tcp" to use the default setting of transport which is
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
