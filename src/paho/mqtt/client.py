@@ -2836,6 +2836,7 @@ class WebsocketWrapper:
             self._readbuffer_head = 0
 
             result = None
+            payload = bytearray()
 
             chunk_startindex = self._payload_head
             chunk_endindex = self._payload_head + length
