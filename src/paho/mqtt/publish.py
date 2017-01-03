@@ -19,53 +19,45 @@ situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect and nothing else is required.
 """
 
+import ssl
 import paho.mqtt.client as paho
 import paho.mqtt as mqtt
 
 
-def _do_publish(c):
+def _do_publish(client):
     """Internal function"""
-    m = c._userdata.pop()
-    if type(m) is dict:
-        topic = m['topic']
-        try:
-            payload = m['payload']
-        except KeyError:
-            payload = None
-        try:
-            qos = m['qos']
-        except KeyError:
-            qos = 0
-        try:
-            retain = m['retain']
-        except KeyError:
-            retain = False
-    elif type(m) is tuple:
-        (topic, payload, qos, retain) = m
+    message = client._userdata.pop()
+
+    if isinstance(message, dict):
+        client.publish(message['topic'],
+                       message.get('payload'),
+                       message.get('qos', 0),
+                       message.get('retain', False))
+    elif isinstance(message, tuple):
+        client.publish(message[0], message[1], message[2], message[3])
     else:
         raise ValueError('message must be a dict or a tuple')
 
-    c.publish(topic, payload, qos, retain)
 
-
-def _on_connect(c, userdata, flags, rc):
+def _on_connect(client, userdata, flags, rc):
     """Internal callback"""
     if rc == 0:
-        _do_publish(c)
+        _do_publish(client)
     else:
         raise mqtt.MQTTException(paho.connack_string(rc))
 
 
-def _on_publish(c, userdata, mid):
+def _on_publish(client, userdata, mid):
     """Internal callback"""
     if len(userdata) == 0:
-        c.disconnect()
+        client.disconnect()
     else:
-        _do_publish(c)
+        _do_publish(client)
 
 
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None, protocol=paho.MQTTv311, transport="tcp"):
+             will=None, auth=None, tls=None, protocol=paho.MQTTv311,
+             transport="tcp"):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -117,59 +109,30 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
-    if type(msgs) is not list:
+    if not isinstance(msgs, list):
         raise ValueError('msgs must be a list')
 
     client = paho.Client(client_id=client_id,
                          userdata=msgs, protocol=protocol, transport=transport)
+
     client.on_publish = _on_publish
     client.on_connect = _on_connect
 
     if auth is not None:
-        username = auth['username']
-        try:
-            password = auth['password']
-        except KeyError:
-            password = None
-        client.username_pw_set(username, password)
+        client.username_pw_set(auth['username'], auth.get('password'))
 
     if will is not None:
-        will_topic = will['topic']
-        try:
-            will_payload = will['payload']
-        except KeyError:
-            will_payload = None
-        try:
-            will_qos = will['qos']
-        except KeyError:
-            will_qos = 0
-        try:
-            will_retain = will['retain']
-        except KeyError:
-            will_retain = False
-
-        client.will_set(will_topic, will_payload, will_qos, will_retain)
+        client.will_set(will['topic'],
+                        will.get('payload'),
+                        will.get('qos', 0),
+                        will.get('retain', False))
 
     if tls is not None:
-        ca_certs = tls['ca_certs']
-        try:
-            certfile = tls['certfile']
-        except KeyError:
-            certfile = None
-        try:
-            keyfile = tls['keyfile']
-        except KeyError:
-            keyfile = None
-        try:
-            tls_version = tls['tls_version']
-        except KeyError:
-            tls_version = None
-        try:
-            ciphers = tls['ciphers']
-        except KeyError:
-            ciphers = None
-        client.tls_set(ca_certs, certfile, keyfile, tls_version=tls_version,
-                       ciphers=ciphers)
+        client.tls_set(tls['ca_certs'],
+                       tls.get('certfile'),
+                       tls.get('keyfile'),
+                       tls_version=tls.get('tls_version', ssl.PROTOCOL_SSLv23),
+                       ciphers=tls.get('ciphers'))
 
     client.connect(hostname, port, keepalive)
     client.loop_forever()
@@ -220,5 +183,6 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
     """
 
     msg = {'topic':topic, 'payload':payload, 'qos':qos, 'retain':retain}
-    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls, protocol, transport)
 
+    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls,
+             protocol, transport)
