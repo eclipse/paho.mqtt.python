@@ -19,7 +19,6 @@ situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect and nothing else is required.
 """
 
-import ssl
 import paho.mqtt.client as paho
 import paho.mqtt as mqtt
 
