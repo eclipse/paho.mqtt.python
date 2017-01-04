@@ -25,6 +25,7 @@ import paho.mqtt as mqtt
 
 def _do_publish(client):
     """Internal function"""
+
     message = client._userdata.pop()
 
     if isinstance(message, dict):
@@ -40,6 +41,8 @@ def _do_publish(client):
 
 def _on_connect(client, userdata, flags, rc):
     """Internal callback"""
+    #pylint: disable=invalid-name, unused-argument
+
     if rc == 0:
         _do_publish(client)
     else:
@@ -48,6 +51,8 @@ def _on_connect(client, userdata, flags, rc):
 
 def _on_publish(client, userdata, mid):
     """Internal callback"""
+    #pylint: disable=unused-argument
+
     if len(userdata) == 0:
         client.disconnect()
     else:
@@ -128,13 +133,10 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     client.on_connect = _on_connect
 
     if auth is not None:
-        client.username_pw_set(auth['username'], auth.get('password'))
+        client.username_pw_set(**auth)
 
     if will is not None:
-        client.will_set(will['topic'],
-                        will.get('payload'),
-                        will.get('qos', 0),
-                        will.get('retain', False))
+        client.will_set(**will)
 
     if tls is not None:
         if isinstance(tls, dict):

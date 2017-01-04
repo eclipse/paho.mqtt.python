@@ -19,7 +19,6 @@ returns one or messages matching a set of topics, and callback() which allows
 you to pass a callback for processing of messages.
 """
 
-import ssl
 import paho.mqtt.client as paho
 import paho.mqtt as mqtt
 
@@ -129,20 +128,16 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         'qos':qos,
         'userdata':userdata}
 
-    client = paho.Client(client_id=client_id,
-                         userdata=callback_userdata, protocol=protocol, transport=transport)
+    client = paho.Client(client_id=client_id, userdata=callback_userdata,
+                         protocol=protocol, transport=transport)
     client.on_message = _on_message_callback
     client.on_connect = _on_connect
 
     if auth is not None:
-        client.username_pw_set(auth['username'],
-                               auth.get('password'))
+        client.username_pw_set(**auth)
 
     if will is not None:
-        client.will_set(will['topic'],
-                        will.get('payload'),
-                        will.get('qos', 0),
-                        will.get('retain', False))
+        client.will_set(**will)
 
     if tls is not None:
         if isinstance(tls, dict):
