@@ -29,10 +29,7 @@ def _do_publish(client):
     message = client._userdata.pop()
 
     if isinstance(message, dict):
-        client.publish(message['topic'],
-                       message.get('payload'),
-                       message.get('qos', 0),
-                       message.get('retain', False))
+        client.publish(**message)
     elif isinstance(message, tuple):
         client.publish(message[0], message[1], message[2], message[3])
     else:
