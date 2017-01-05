@@ -47,7 +47,7 @@ def _on_message_simple(client, userdata, message):
         return
 
     # Don't process stale retained messages if 'retained' was false
-    if userdata['retained'] is False and message.retain is True:
+    if message.retain and not userdata['retained']:
         return
 
     userdata['msg_count'] = userdata['msg_count'] - 1
