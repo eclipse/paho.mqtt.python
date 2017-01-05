@@ -31,7 +31,7 @@ def _do_publish(client):
     if isinstance(message, dict):
         client.publish(**message)
     elif isinstance(message, tuple):
-        client.publish(message[0], message[1], message[2], message[3])
+        client.publish(*message)
     else:
         raise ValueError('message must be a dict or a tuple')
 
