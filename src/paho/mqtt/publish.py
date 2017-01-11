@@ -23,49 +23,42 @@ import paho.mqtt.client as paho
 import paho.mqtt as mqtt
 
 
-def _do_publish(c):
+def _do_publish(client):
     """Internal function"""
-    m = c._userdata.pop()
-    if type(m) is dict:
-        topic = m['topic']
-        try:
-            payload = m['payload']
-        except KeyError:
-            payload = None
-        try:
-            qos = m['qos']
-        except KeyError:
-            qos = 0
-        try:
-            retain = m['retain']
-        except KeyError:
-            retain = False
-    elif type(m) is tuple:
-        (topic, payload, qos, retain) = m
+
+    message = client._userdata.pop()
+
+    if isinstance(message, dict):
+        client.publish(**message)
+    elif isinstance(message, tuple):
+        client.publish(*message)
     else:
         raise ValueError('message must be a dict or a tuple')
 
-    c.publish(topic, payload, qos, retain)
 
-
-def _on_connect(c, userdata, flags, rc):
+def _on_connect(client, userdata, flags, rc):
     """Internal callback"""
+    #pylint: disable=invalid-name, unused-argument
+
     if rc == 0:
-        _do_publish(c)
+        _do_publish(client)
     else:
         raise mqtt.MQTTException(paho.connack_string(rc))
 
 
-def _on_publish(c, userdata, mid):
+def _on_publish(client, userdata, mid):
     """Internal callback"""
+    #pylint: disable=unused-argument
+
     if len(userdata) == 0:
-        c.disconnect()
+        client.disconnect()
     else:
-        _do_publish(c)
+        _do_publish(client)
 
 
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None, protocol=paho.MQTTv311, transport="tcp"):
+             will=None, auth=None, tls=None, protocol=paho.MQTTv311,
+             transport="tcp"):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -127,38 +120,20 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
-    if type(msgs) is not list:
+    if not isinstance(msgs, list):
         raise ValueError('msgs must be a list')
 
     client = paho.Client(client_id=client_id,
                          userdata=msgs, protocol=protocol, transport=transport)
+
     client.on_publish = _on_publish
     client.on_connect = _on_connect
 
     if auth is not None:
-        username = auth['username']
-        try:
-            password = auth['password']
-        except KeyError:
-            password = None
-        client.username_pw_set(username, password)
+        client.username_pw_set(**auth)
 
     if will is not None:
-        will_topic = will['topic']
-        try:
-            will_payload = will['payload']
-        except KeyError:
-            will_payload = None
-        try:
-            will_qos = will['qos']
-        except KeyError:
-            will_qos = 0
-        try:
-            will_retain = will['retain']
-        except KeyError:
-            will_retain = False
-
-        client.will_set(will_topic, will_payload, will_qos, will_retain)
+        client.will_set(**will)
 
     if tls is not None:
         if isinstance(tls, dict):
@@ -229,5 +204,6 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
     """
 
     msg = {'topic':topic, 'payload':payload, 'qos':qos, 'retain':retain}
-    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls, protocol, transport)
 
+    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls,
+             protocol, transport)
