@@ -590,7 +590,7 @@ class Client(object):
         if hasattr(context, 'check_hostname'):
             self._tls_insecure = not context.check_hostname
 
-    def tls_set(self, ca_certs, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None):
+    def tls_set(self, ca_certs=None, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -601,6 +601,9 @@ class Client(object):
         communicate using TLS v1, but will not attempt any form of
         authentication. This provides basic network encryption but may not be
         sufficient depending on how the broker is configured.
+        By default, on Python 2.7.9+ or 3.4+, the default certification
+        authority of the system is used. On older Python version this parameter
+        is mandatory.
 
         certfile and keyfile are strings pointing to the PEM encoded client
         certificate and private keys respectively. If these arguments are not
@@ -632,7 +635,7 @@ class Client(object):
             # Require Python version that has SSL context support in standard library
             raise ValueError('Python 2.7.9 and 3.2 are the minimum supported versions for TLS.')
 
-        if ca_certs is None:
+        if ca_certs is None and not hasattr(ssl.SSLContext, 'load_default_certs'):
             raise ValueError('ca_certs must not be None.')
 
         # Create SSLContext object
@@ -646,7 +649,10 @@ class Client(object):
 
         context.verify_mode = ssl.CERT_REQUIRED if cert_reqs is None else cert_reqs
 
-        context.load_verify_locations(ca_certs)
+        if ca_certs is not None:
+            context.load_verify_locations(ca_certs)
+        else:
+            context.load_default_certs()
 
         if ciphers is not None:
             context.set_ciphers(ciphers)
