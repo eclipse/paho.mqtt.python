@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = []
-test_requirements = []
+test_requirements = ['tox']
 
 setup(
     name='paho-mqtt',
