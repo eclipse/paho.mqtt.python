@@ -9,7 +9,12 @@ python:
   - 2.7
 
 install:
-  - echo No requirements
+  - pip install --disable-pip-version-check --upgrade pip
+  - pip install -r requirements.txt
+
+before_script:
+  - python ./setup.py develop
 
 script:
-  - make test
+  - py.test
+  - make -C test test
