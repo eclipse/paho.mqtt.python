@@ -34,16 +34,13 @@ except ImportError:
     import paho_test
 
 env = dict(os.environ)
-try:
-    pp = env['PYTHONPATH']
-except KeyError:
-    pp = ''
-env['PYTHONPATH'] = '../../src:' + pp
+pp = env.get('PYTHONPATH', '')
+env['PYTHONPATH'] = '../../src' + os.pathsep + pp
 
 
 def start_client():
-    args = (sys.argv[1:],)
-    client = subprocess.Popen(*args, env=env)
+    args = [sys.executable, ] + sys.argv[1:]
+    client = subprocess.Popen(args, env=env)
     return client
 
 
