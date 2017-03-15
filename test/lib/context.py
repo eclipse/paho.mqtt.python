@@ -39,7 +39,7 @@ env['PYTHONPATH'] = '../../src' + os.pathsep + pp
 
 
 def start_client():
-    args = ['python', ] + sys.argv[1:]
+    args = [sys.executable, ] + sys.argv[1:]
     client = subprocess.Popen(args, env=env)
     return client
 
