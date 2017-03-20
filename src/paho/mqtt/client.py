@@ -63,12 +63,8 @@ VERSION_NUMBER=(VERSION_MAJOR*1000000+VERSION_MINOR*1000+VERSION_REVISION)
 MQTTv31 = 3
 MQTTv311 = 4
 
-if sys.version_info[0] < 3:
-    PROTOCOL_NAMEv31 = "MQIsdp"
-    PROTOCOL_NAMEv311 = "MQTT"
-else:
-    PROTOCOL_NAMEv31 = b"MQIsdp"
-    PROTOCOL_NAMEv311 = b"MQTT"
+PROTOCOL_NAMEv31 = "MQIsdp"
+PROTOCOL_NAMEv311 = "MQTT"
 
 # Message types
 CONNECT = 0x10
@@ -1052,7 +1048,7 @@ class Client(object):
                 message.info.rc = rc
                 return message.info
             else:
-                message.state = mqtt_ms_queued;
+                message.state = mqtt_ms_queued
                 self._out_message_mutex.release()
                 message.info.rc = MQTT_ERR_SUCCESS
                 return message.info
@@ -2088,6 +2084,7 @@ class Client(object):
         else:
             protocol = PROTOCOL_NAMEv311
             proto_ver = 4
+        protocol = protocol.encode('utf-8')
         remaining_length = 2+len(protocol) + 1+1+2 + 2+len(self._client_id)
         connect_flags = 0
         if clean_session:
