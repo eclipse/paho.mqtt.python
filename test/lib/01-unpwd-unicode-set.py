@@ -13,7 +13,7 @@ rc = 1
 keepalive = 60
 username=u"úsérnámé-hélló"
 password=u"hélló"
-connect_packet = paho_test.gen_connect("01-unpwd-unicode-set", keepalive=keepalive, username=username.encode('utf-8'), password=password.encode('utf-8'))
+connect_packet = paho_test.gen_connect("01-unpwd-unicode-set", keepalive=keepalive, username=username, password=password)
 
 sock = paho_test.create_server_socket()
 
