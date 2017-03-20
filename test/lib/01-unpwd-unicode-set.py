@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Test whether a client produces a correct connect with a unicode username and password.
 
@@ -13,8 +12,8 @@ import paho_test
 
 rc = 1
 keepalive = 60
-username = "úsérnámé-hélló"
-password = "hélló"
+username = "\u00fas\u00e9rn\u00e1m\u00e9-h\u00e9ll\u00f3"
+password = "h\u00e9ll\u00f3"
 connect_packet = paho_test.gen_connect(
     "01-unpwd-unicode-set", keepalive=keepalive, username=username, password=password)
 
