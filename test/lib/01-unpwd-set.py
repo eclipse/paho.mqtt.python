@@ -12,7 +12,8 @@ rc = 1
 keepalive = 60
 username = "uname"
 password = ";'[08gn=#"
-connect_packet = paho_test.gen_connect("01-unpwd-set", keepalive=keepalive, username=username, password=password)
+connect_packet = paho_test.gen_connect(
+    "01-unpwd-set", keepalive=keepalive, username=username, password=password)
 
 sock = paho_test.create_server_socket()
 
@@ -32,4 +33,3 @@ finally:
     sock.close()
 
 exit(rc)
-

@@ -6,14 +6,17 @@
 # The client should connect to port 1888 with keepalive=60, clean session set,
 # client id 01-unpwd-unicode-set, username and password from corresponding variables
 
+from __future__ import unicode_literals
+
 import context
 import paho_test
 
 rc = 1
 keepalive = 60
-username=u"úsérnámé-hélló"
-password=u"hélló"
-connect_packet = paho_test.gen_connect("01-unpwd-unicode-set", keepalive=keepalive, username=username, password=password)
+username = "úsérnámé-hélló"
+password = "hélló"
+connect_packet = paho_test.gen_connect(
+    "01-unpwd-unicode-set", keepalive=keepalive, username=username, password=password)
 
 sock = paho_test.create_server_socket()
 
@@ -33,4 +36,3 @@ finally:
     sock.close()
 
 exit(rc)
-
