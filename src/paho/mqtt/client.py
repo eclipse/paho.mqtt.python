@@ -437,7 +437,8 @@ class Client(object):
 
     """
 
-    def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp"):
+    def __init__(self, client_id="", clean_session=True, userdata=None,
+            protocol=MQTTv311, transport="tcp", get_auth_headers=None):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -547,6 +548,8 @@ class Client(object):
         self._on_publish = None
         self._on_unsubscribe = None
         self._on_disconnect = None
+
+        self._get_auth_headers = get_auth_headers
 
     def __del__(self):
         pass
@@ -858,7 +861,8 @@ class Client(object):
                 ssl.match_hostname(sock.getpeercert(), self._host)
 
         if self._transport == "websockets":
-            sock = WebsocketWrapper(sock, self._host, self._port, self._ssl)
+            sock = WebsocketWrapper(sock, self._host, self._port,
+                self._get_auth_headers)
 
         self._sock = sock
         self._sock.setblocking(0)
@@ -2582,7 +2586,7 @@ class WebsocketWrapper:
     OPCODE_PING = 0x9
     OPCODE_PONG = 0xa
 
-    def __init__(self, socket, host, port, is_ssl):
+    def __init__(self, socket, host, port, get_auth_headers):
 
         self.connected = False
 
@@ -2598,28 +2602,38 @@ class WebsocketWrapper:
         self._payload_head = 0
         self._readbuffer_head = 0
 
-        self._do_handshake()
+        self._do_handshake(get_auth_headers)
 
     def __del__(self):
 
         self._sendbuffer = None
         self._readbuffer = None
 
-    def _do_handshake(self):
+    def _do_handshake(self, get_auth_headers):
 
         sec_websocket_key = uuid.uuid4().bytes
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
-        header = b"GET /mqtt HTTP/1.1\r\n" + \
-                 b"Upgrade: websocket\r\n" + \
-                 b"Connection: Upgrade\r\n" + \
-                 b"Host: " + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" + \
-                 b"Origin: http://" + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" +\
-                 b"Sec-WebSocket-Key: " + sec_websocket_key + b"\r\n" + \
-                 b"Sec-WebSocket-Version: 13\r\n" + \
-                 b"Sec-WebSocket-Protocol: mqtt\r\n\r\n"
+        websocket_headers = {
+            "Host": "{self._host:s}:{self._port:d}".format(self=self),
+            "Upgrade": "websocket",
+            "Connection": "Upgrade",
+            "Origin": "https://{self._host:s}:{self._port:d}".format(self=self),
+            "Sec-WebSocket-Key": sec_websocket_key,
+            "Sec-Websocket-Version": "13",
+            "Sec-Websocket-Protocol": "mqtt",
+        }
 
-        self._socket.send(header)
+        if get_auth_headers:
+            websocket_headers = get_auth_headers(websocket_headers)
+
+        header = "\r\n".join([
+            "GET /mqtt HTTP/1.1",
+            "\r\n".join(sorted("{}: {}".format(i, j) for i, j in websocket_headers.items())),
+            "\r\n",
+        ]).encode("utf8")
+
+        sent = self._socket.send(header)
 
         has_secret = False
         has_upgrade = False
@@ -2722,6 +2736,8 @@ class WebsocketWrapper:
         return self._readbuffer[self._readbuffer_head - length:self._readbuffer_head]
 
     def _recv_impl(self, length):
+
+        payload = ""
 
         # try to decode websocket payload part from data
         try:
