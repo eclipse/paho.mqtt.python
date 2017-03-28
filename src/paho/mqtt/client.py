@@ -881,14 +881,15 @@ class Client(object):
         if timeout < 0.0:
             raise ValueError('Invalid timeout.')
 
-        with self._current_out_packet_mutex, self._out_packet_mutex:
-            if self._current_out_packet is None and len(self._out_packet) > 0:
-                self._current_out_packet = self._out_packet.popleft()
+        with self._current_out_packet_mutex:
+            with self._out_packet_mutex:
+                if self._current_out_packet is None and len(self._out_packet) > 0:
+                    self._current_out_packet = self._out_packet.popleft()
 
-            if self._current_out_packet:
-                wlist = [self._sock]
-            else:
-                wlist = []
+                if self._current_out_packet:
+                    wlist = [self._sock]
+                else:
+                    wlist = []
 
         # sockpairR is used to break out of select() before the timeout, on a
         # call to publish() etc.
