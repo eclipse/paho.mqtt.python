@@ -861,7 +861,7 @@ class Client(object):
                 ssl.match_hostname(sock.getpeercert(), self._host)
 
         if self._transport == "websockets":
-            sock = WebsocketWrapper(sock, self._host, self._port,
+            sock = WebsocketWrapper(sock, self._host, self._port, self._ssl,
                 self._get_auth_headers)
 
         self._sock = sock
@@ -2586,7 +2586,7 @@ class WebsocketWrapper:
     OPCODE_PING = 0x9
     OPCODE_PONG = 0xa
 
-    def __init__(self, socket, host, port, get_auth_headers):
+    def __init__(self, socket, host, port, is_ssl, get_auth_headers):
 
         self.connected = False
 
