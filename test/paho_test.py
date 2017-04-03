@@ -20,12 +20,16 @@ def create_server_socket_ssl(*args, **kwargs):
     if ssl is None:
         raise RuntimeError
 
+    ssl_version = ssl.PROTOCOL_TLSv1
+    if hasattr(ssl, "PROTOCOL_TLS"):
+        ssl_version = ssl.PROTOCOL_TLS
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     ssock = ssl.wrap_socket(
         sock, ca_certs="../ssl/all-ca.crt",
         keyfile="../ssl/server.key", certfile="../ssl/server.crt",
-        server_side=True, ssl_version=ssl.PROTOCOL_TLSv1, **kwargs)
+        server_side=True, ssl_version=ssl_version, **kwargs)
     ssock.settimeout(10)
     ssock.bind(('', 1888))
     ssock.listen(5)
