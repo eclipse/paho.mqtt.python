@@ -232,7 +232,7 @@ tls_set()
 ::
 
     tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED,
-        tls_version=ssl.PROTOCOL_TLSv1, ciphers=None)
+        tls_version=ssl.PROTOCOL_TLS, ciphers=None)
 
 Configure network encryption and authentication options. Enables SSL/TLS support.
 
@@ -246,7 +246,7 @@ cert_reqs
     defines the certificate requirements that the client imposes on the broker. By default this is ``ssl.CERT_REQUIRED``, which means that the broker must provide a certificate. See the ssl pydoc for more information on this parameter.
 
 tls_version
-    specifies the version of the SSL/TLS protocol to be used. By default TLS v1 is used. Previous versions (all versions beginning with SSL) are possible but not recommended due to possible security problems.
+    specifies the version of the SSL/TLS protocol to be used. By default (if the python version supports it) the highest TLS version is detected. If unavailable, TLS v1 is used. Previous versions (all versions beginning with SSL) are possible but not recommended due to possible security problems.
 
 ciphers
     a string specifying which encryption ciphers are allowable for this connection, or ``None`` to use the defaults. See the ssl pydoc for more information.
