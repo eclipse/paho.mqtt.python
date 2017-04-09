@@ -1,0 +1,5 @@
+paho-mqtt-python (1.1.1) unstable; urgency=low
+  - Initial release
+  - This is my first Debian package.
+
+ -- Martin Naughton  <martin.oneachtain@gmail.com>  Sat, 19 Mar 2016 12:00:31 +0000

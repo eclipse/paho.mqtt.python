@@ -1,0 +1,12 @@
+Package: paho-mqtt-python
+Source: paho-mqtt-python
+Version: 1.1.1
+Section: python
+Priority: optional
+Architecture: all
+Depends: python
+Maintainer: Roger Light <roger@atchoo.org>
+Homepage: https://github.com/eclipse/paho.mqtt.python
+Built-Using: fakeroot
+Description: Paho client library for python
+ to provide a subscriber and publisher
