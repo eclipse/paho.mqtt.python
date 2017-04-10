@@ -24,6 +24,8 @@ test :
 	python ./03-publish-c2b-qos2-disconnect.py python/03-publish-c2b-qos2-disconnect.test
 	python ./03-publish-b2c-qos1.py python/03-publish-b2c-qos1.test
 	python ./03-publish-b2c-qos2.py python/03-publish-b2c-qos2.test
+	python ./03-publish-helper-qos0.py python/03-publish-helper-qos0.test
+	python ./03-publish-helper-qos1-disconnect.py python/03-publish-helper-qos1-disconnect.test
 	python ./04-retain-qos0.py python/04-retain-qos0.test
 	python ./08-ssl-connect-no-auth.py python/08-ssl-connect-no-auth.test
 	python ./08-ssl-connect-cert-auth.py python/08-ssl-connect-cert-auth.test
