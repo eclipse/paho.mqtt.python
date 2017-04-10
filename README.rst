@@ -1277,7 +1277,7 @@ Example
 Reporting bugs
 --------------
 
-Please report bugs under the "MQTT-Python" Component in `Eclipse Bugzilla <http://bugs.eclipse.org/bugs/>`_ for the Paho Technology project.
+Please report bugs in the issues tracker at https://github.com/eclipse/paho.mqtt.python/issues.
 
 More information
 ----------------
