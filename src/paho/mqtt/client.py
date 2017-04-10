@@ -500,6 +500,7 @@ class Client(object):
         self._last_retry_check = 0
         self._clean_session = clean_session
 
+        # [MQTT-3.1.3-4] Client Id must be UTF-8 encoded string.
         if client_id == "" or client_id is None:
             if protocol == MQTTv31:
                 self._client_id = base62(uuid.uuid4().int, padding=22)
@@ -1086,10 +1087,14 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id.
-        password: The password to authenticate with. Optional, set to None if not required.
+        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
+            [MQTT-3.1.3-11].
+        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
+            will be encoded as UTF-8.
         """
-        self._username = username
+
+        # [MQTT-3.1.3-11] User name must be UTF-8 encoded string
+        self._username = username.encode('utf-8')
         self._password = password
         if isinstance(self._password, unicode):
             self._password = self._password.encode('utf-8')
@@ -1766,8 +1771,7 @@ class Client(object):
                 else:
                     if len(byte) == 0:
                         return 1
-                    byte = struct.unpack("!B", byte)
-                    byte = byte[0]
+                    byte, = struct.unpack("!B", byte)
                     self._in_packet['remaining_count'].append(byte)
                     # Max 4 bytes length for remaining length as defined by protocol.
                     # Anything more likely means a broken/malicious client.
@@ -1796,8 +1800,8 @@ class Client(object):
             else:
                 if len(data) == 0:
                     return 1
-                self._in_packet['to_process'] = self._in_packet['to_process'] - len(data)
-                self._in_packet['packet'] = self._in_packet['packet'] + data
+                self._in_packet['to_process'] -= len(data)
+                self._in_packet['packet'] += data
 
         # All data for this packet is read.
         self._in_packet['pos'] = 0
@@ -2078,13 +2082,11 @@ class Client(object):
             connect_flags |= 0x04 | ((self._will_qos & 0x03) << 3) | ((self._will_retain & 0x01) << 5)
 
         if self._username:
-            uusername = self._username.encode('utf-8')
-            remaining_length = remaining_length + 2 + len(uusername)
+            remaining_length += 2 + len(self._username)
             connect_flags = connect_flags | 0x80
             if self._password:
                 connect_flags = connect_flags | 0x40
-                upassword = self._password  # already encoded
-                remaining_length = remaining_length + 2 + len(upassword)
+                remaining_length += 2 + len(self._password)
 
         command = CONNECT
         packet = bytearray()
