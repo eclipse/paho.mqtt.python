@@ -7,6 +7,7 @@ v2.x - 2017-xx-xx
 - Add SSLContext support, including SNI. Closes #11.
 - Remove support for SSL without SSLContext (Requires Python 2.7.9+ or 3.2+).
   Closes #115.
+- Move unit tests to pytest (#164)
 
 
 v1.2.1 - 2017-04-03

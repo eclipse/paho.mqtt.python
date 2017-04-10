@@ -1,6 +1,6 @@
 import pytest
 
-import paho.mqtt.client as mqtt
+import paho.mqtt.client as client
 
 
 @pytest.mark.parametrize("sub,topic", [
@@ -15,7 +15,7 @@ import paho.mqtt.client as mqtt
     ("$SYS/bar", "$SYS/bar"),
 ])
 def test_matching(sub, topic):
-    assert mqtt.topic_matches_sub(sub, topic)
+    assert client.topic_matches_sub(sub, topic)
 
 
 @pytest.mark.parametrize("sub,topic", [
@@ -29,4 +29,4 @@ def test_matching(sub, topic):
     ("$BOB/bar", "$SYS/bar"),
 ])
 def test_not_matching(sub, topic):
-    assert not mqtt.topic_matches_sub(sub, topic)
+    assert not client.topic_matches_sub(sub, topic)

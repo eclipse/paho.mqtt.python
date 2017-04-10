@@ -2,7 +2,7 @@ import os
 import sys
 import inspect
 
-import paho.mqtt.client as mqtt
+import paho.mqtt.client as client
 
 # From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder
 cmd_subfolder = os.path.realpath(
@@ -21,8 +21,8 @@ from testsupport.broker import fake_broker
 
 class Test_connect:
     def test_01_con_discon_success(self, fake_broker):
-        mqttc = mqtt.Client(
-            "01-con-discon-success", protocol=mqtt.MQTTv31)
+        mqttc = client.Client(
+            "01-con-discon-success", protocol=client.MQTTv31)
 
         def on_connect(mqttc, obj, flags, rc):
             assert rc == 0
