@@ -2081,11 +2081,11 @@ class Client(object):
             remaining_length += 2 + len(self._will_topic) + 2 + len(self._will_payload)
             connect_flags |= 0x04 | ((self._will_qos & 0x03) << 3) | ((self._will_retain & 0x01) << 5)
 
-        if self._username:
+        if self._username is not None:
             remaining_length += 2 + len(self._username)
-            connect_flags = connect_flags | 0x80
-            if self._password:
-                connect_flags = connect_flags | 0x40
+            connect_flags |= 0x80
+            if self._password is not None:
+                connect_flags |= 0x40
                 remaining_length += 2 + len(self._password)
 
         command = CONNECT
