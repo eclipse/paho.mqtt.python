@@ -40,7 +40,10 @@ def _on_connect(client, userdata, flags, rc):
     """Internal callback"""
     #pylint: disable=invalid-name, unused-argument
 
-    if rc != 0:
+    if rc == 0:
+        if len(userdata) > 0:
+            _do_publish(client)
+    else:
         raise mqtt.MQTTException(paho.connack_string(rc))
 
 
@@ -141,7 +144,6 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
             client.tls_set_context(tls)
 
     client.connect(hostname, port, keepalive)
-    _do_publish(client)
     client.loop_forever()
 
 
