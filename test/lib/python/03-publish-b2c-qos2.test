@@ -9,6 +9,11 @@ from struct import *
 
 import paho.mqtt.client as mqtt
 
+if sys.version_info[0] < 3:
+    expected_payload = "message"
+else:
+    expected_payload = b"message"
+
 
 def on_message(mqttc, obj, msg):
     global run
@@ -18,7 +23,7 @@ def on_message(mqttc, obj, msg):
     if msg.topic != "pub/qos2/receive":
         print("Invalid topic ("+str(msg.topic)+")")
         exit(1)
-    if msg.payload != "message":
+    if msg.payload != expected_payload:
         print("Invalid payload ("+str(msg.payload)+")")
         exit(1)
     if msg.qos != 2:
