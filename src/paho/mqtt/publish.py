@@ -123,13 +123,14 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     client.on_publish = _on_publish
     client.on_connect = _on_connect
 
-    if auth is not None:
-        username = auth['username']
-        try:
-            password = auth['password']
-        except KeyError:
-            password = None
-        client.username_pw_set(username, password)
+    if auth:
+        username = auth.get('username')
+        if username:
+            password = auth.get('password')
+            client.username_pw_set(username, password)
+        else:
+            raise KeyError("The 'username' key was not found, this is "
+                           "required for auth")
 
     if will is not None:
         will_topic = will['topic']
