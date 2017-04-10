@@ -258,7 +258,7 @@ def _socketpair_compat():
     return (sock1, sock2)
 
 
-class MQTTMessageInfo:
+class MQTTMessageInfo(object):
     """This is a class returned from Client.publish() and can be used to find
     out the mid of the message that was published, and to determine whether the
     message has been published, and/or wait until it is published.
@@ -319,7 +319,7 @@ class MQTTMessageInfo:
             return self._published
 
 
-class MQTTMessage:
+class MQTTMessage(object):
     """ This is a class that describes an incoming or outgoing message. It is
     passed to the on_message callback as the message parameter.
 
@@ -2578,7 +2578,7 @@ class Mosquitto(Client):
         super(Mosquitto, self).__init__(client_id, clean_session, userdata)
 
 
-class WebsocketWrapper:
+class WebsocketWrapper(object):
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1
     OPCODE_BINARY = 0x2
