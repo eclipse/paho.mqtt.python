@@ -8,6 +8,9 @@ test :
 	python ./01-con-discon-success-mqtt311.py python/01-con-discon-success-mqtt311.test
 	python ./01-will-set.py python/01-will-set.test
 	python ./01-unpwd-set.py python/01-unpwd-set.test
+	python ./01-unpwd-unicode-set.py python/01-unpwd-unicode-set.test
+	python ./01-unpwd-empty-password-set.py python/01-unpwd-empty-password-set.test
+	python ./01-unpwd-empty-set.py python/01-unpwd-empty-set.test
 	python ./01-will-unpwd-set.py python/01-will-unpwd-set.test
 	python ./01-zero-length-clientid.py python/01-zero-length-clientid.test
 	python ./01-no-clean-session.py python/01-no-clean-session.test

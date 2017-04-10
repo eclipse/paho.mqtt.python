@@ -1,4 +1,4 @@
-v1.x - 2016-xx-xx
+v2.x - 2017-xx-xx
 =================
 
 - Allow username and password to be zero length (as opposed to not being
@@ -7,6 +7,22 @@ v1.x - 2016-xx-xx
 - Add SSLContext support, including SNI. Closes #11.
 - Remove support for SSL without SSLContext (Requires Python 2.7.9+ or 3.2+).
   Closes #115.
+
+
+v1.2.1 - 2017-04-03
+===================
+
+- Handle unicode username and passwords correctly. Closes #79.
+- Fix handling of invalid UTF-8 topics on incoming messages - the library now
+  does not attempt to decode the topic - this will happen when the user
+  accesses msg.topic in the on_message callback. If the topic is not valid
+  UTF-8, an exception will be raised. Closes #75.
+- Fix issue with WebSocket connection in case of network issue (timeout or
+  connection broken). Closes #105.
+- Fix issue with SSL connection, where latest incoming message may be delayed
+  or never processed. Closes #131.
+- Fix possible message lost with publish.single and publish.multiple. Closes
+  #119.
 
 
 v1.2 - 2016-06-03
