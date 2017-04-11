@@ -1,3 +1,9 @@
+v1.2.2 - 2017-04-11
+===================
+
+- Fix message lost when using paho.mqtt.publish helper with QoS=0 message.
+  Closes #172.
+
 v1.2.1 - 2017-04-03
 ===================
 
