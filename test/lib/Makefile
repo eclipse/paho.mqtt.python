@@ -4,8 +4,6 @@
 all :
 
 test :
-	python ./01-con-discon-success.py python/01-con-discon-success.test
-	python ./01-con-discon-success-mqtt311.py python/01-con-discon-success-mqtt311.test
 	python ./01-will-set.py python/01-will-set.test
 	python ./01-unpwd-set.py python/01-unpwd-set.test
 	python ./01-unpwd-unicode-set.py python/01-unpwd-unicode-set.test
