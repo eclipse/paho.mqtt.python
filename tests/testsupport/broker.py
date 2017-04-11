@@ -33,22 +33,19 @@ class FakeBroker:
             self._sock.close()
             self._sock = None
 
-    def expect_packet(self, packet_expected):
+    def receive_packet(self, num_bytes):
         if self._conn is None:
             raise ValueError('Connection is not open')
 
-        packet_in = self._conn.recv(len(packet_expected))
-        if not packet_in:
-            raise RuntimeError('Connection was closed')
-        assert packet_in == packet_expected
+        packet_in = self._conn.recv(num_bytes)
+        return packet_in
 
     def send_packet(self, packet_out):
         if self._conn is None:
             raise ValueError('Connection is not open')
 
         count = self._conn.send(packet_out)
-        if not count:
-            raise RuntimeError('Connection was closed')
+        return count
 
 
 @pytest.fixture

@@ -33,17 +33,28 @@ class Test_connect:
         mqttc.connect_async("localhost", 1888)
         mqttc.loop_start()
 
-        fake_broker.start()
+        try:
+            fake_broker.start()
 
-        connect_packet = paho_test.gen_connect(
-            "01-con-discon-success", keepalive=60,
-            proto_name="MQIsdp", proto_ver=3)
-        fake_broker.expect_packet(connect_packet)
+            connect_packet = paho_test.gen_connect(
+                "01-con-discon-success", keepalive=60,
+                proto_name="MQIsdp", proto_ver=3)
+            packet_in = fake_broker.receive_packet(1000)
+            assert packet_in  # Check connection was not closed
+            assert packet_in == connect_packet
 
-        connack_packet = paho_test.gen_connack(rc=0)
-        fake_broker.send_packet(connack_packet)
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
 
-        disconnect_packet = paho_test.gen_disconnect()
-        fake_broker.expect_packet(disconnect_packet)
+            disconnect_packet = paho_test.gen_disconnect()
+            packet_in = fake_broker.receive_packet(1000)
+            assert packet_in  # Check connection was not closed
+            assert packet_in == disconnect_packet
 
-        mqttc.loop_stop()
+        finally:
+            mqttc.loop_stop()
+
+        packet_in = fake_broker.receive_packet(1)
+        assert not packet_in  # Check connection is closed
