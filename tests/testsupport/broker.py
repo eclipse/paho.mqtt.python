@@ -50,10 +50,10 @@ class FakeBroker:
 
 @pytest.fixture
 def fake_broker():
-    # print('Setup server')
-    server = FakeBroker()
+    # print('Setup broker')
+    broker = FakeBroker()
 
-    yield server
+    yield broker
 
-    # print('Teardown server')
-    server.finish()
+    # print('Teardown broker')
+    broker.finish()
