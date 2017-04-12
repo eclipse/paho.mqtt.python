@@ -528,7 +528,7 @@ class Client(object):
         self._last_msg_out = time_func()
         self._ping_t = 0
         self._last_mid = 0
-        self._istate = mqtt_cs_new
+        self._state = mqtt_cs_new
         self._out_messages = []
         self._in_messages = []
         self._max_inflight_messages = 20
@@ -546,9 +546,8 @@ class Client(object):
         self._in_callback = threading.Lock()
         self._strict_protocol = False
         self._callback_mutex = threading.RLock()
-        self._state_mutex = threading.Lock()
         self._out_packet_mutex = threading.Lock()
-        self._current_out_packet_mutex = threading.Lock()
+        self._current_out_packet_mutex = threading.RLock()
         self._msgtime_mutex = threading.Lock()
         self._out_message_mutex = threading.RLock()
         self._in_message_mutex = threading.Lock()
@@ -1478,16 +1477,6 @@ class Client(object):
         if threading.current_thread() != self._thread:
             self._thread.join()
             self._thread = None
-
-    @property
-    def _state(self):
-        with self._state_mutex:
-            return self._istate
-
-    @_state.setter
-    def _state(self, new_state):
-        with self._state_mutex:
-            self._istate = new_state
 
     @property
     def on_log(self):
