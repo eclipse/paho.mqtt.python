@@ -550,7 +550,7 @@ class Client(object):
         self._out_packet_mutex = threading.Lock()
         self._current_out_packet_mutex = threading.Lock()
         self._msgtime_mutex = threading.Lock()
-        self._out_message_mutex = threading.Lock()
+        self._out_message_mutex = threading.RLock()
         self._in_message_mutex = threading.Lock()
         self._thread = None
         self._thread_terminate = False
@@ -1040,37 +1040,32 @@ class Client(object):
             message.retain = retain
             message.dup = False
 
-            self._out_message_mutex.acquire()
+            with self._out_message_mutex:
+                if self._max_queued_messages > 0 and len(self._out_messages) >= self._max_queued_messages:
+                    return (MQTT_ERR_QUEUE_SIZE, local_mid)
 
-            if self._max_queued_messages > 0 and len(self._out_messages) >= self._max_queued_messages:
-                self._out_message_mutex.release()
-                return (MQTT_ERR_QUEUE_SIZE, local_mid)
+                self._out_messages.append(message)
+                if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
+                    self._inflight_messages += 1
+                    if qos == 1:
+                        message.state = mqtt_ms_wait_for_puback
+                    elif qos == 2:
+                        message.state = mqtt_ms_wait_for_pubrec
 
-            self._out_messages.append(message)
-            if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
-                self._inflight_messages += 1
-                if qos == 1:
-                    message.state = mqtt_ms_wait_for_puback
-                elif qos == 2:
-                    message.state = mqtt_ms_wait_for_pubrec
-                self._out_message_mutex.release()
+                    rc = self._send_publish(message.mid, message.topic, message.payload, message.qos, message.retain,
+                                            message.dup)
 
-                rc = self._send_publish(message.mid, message.topic, message.payload, message.qos, message.retain,
-                                        message.dup)
-
-                # remove from inflight messages so it will be send after a connection is made
-                if rc is MQTT_ERR_NO_CONN:
-                    with self._out_message_mutex:
+                    # remove from inflight messages so it will be send after a connection is made
+                    if rc is MQTT_ERR_NO_CONN:
                         self._inflight_messages -= 1
                         message.state = mqtt_ms_publish
 
-                message.info.rc = rc
-                return message.info
-            else:
-                message.state = mqtt_ms_queued
-                self._out_message_mutex.release()
-                message.info.rc = MQTT_ERR_SUCCESS
-                return message.info
+                    message.info.rc = rc
+                    return message.info
+                else:
+                    message.state = mqtt_ms_queued
+                    message.info.rc = MQTT_ERR_SUCCESS
+                    return message.info
 
     def username_pw_set(self, username, password=None):
         """Set a username and optionally a password for broker authentication.
@@ -2526,10 +2521,8 @@ class Client(object):
     def _do_on_publish(self, idx, mid):
         with self._callback_mutex:
             if self.on_publish:
-                self._out_message_mutex.release()
                 with self._in_callback:
                     self.on_publish(self, self._userdata, mid)
-                self._out_message_mutex.acquire()
 
         msg = self._out_messages.pop(idx)
         if msg.qos > 0:
