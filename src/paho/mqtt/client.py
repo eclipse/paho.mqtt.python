@@ -567,6 +567,7 @@ class Client(object):
         self._on_publish = None
         self._on_unsubscribe = None
         self._on_disconnect = None
+        self._websocket_path = "/mqtt"
 
         self._get_auth_headers = get_auth_headers
 
@@ -585,6 +586,9 @@ class Client(object):
             self._sockpairW = None
 
         self.__init__(client_id, clean_session, userdata)
+
+    def ws_set_options(self, path="/mqtt"):
+        self._websocket_path = path
 
     def tls_set_context(self, context=None):
         """Configure network encryption and authentication context. Enables SSL/TLS support.
@@ -887,7 +891,7 @@ class Client(object):
         if self._transport == "websockets":
             sock.settimeout(self._keepalive)
             sock = WebsocketWrapper(sock, self._host, self._port, self._ssl,
-                self._get_auth_headers)
+                self._websocket_path, self._get_auth_headers)
 
         self._sock = sock
         self._sock.setblocking(0)
@@ -2639,7 +2643,7 @@ class WebsocketWrapper:
     OPCODE_PING = 0x9
     OPCODE_PONG = 0xa
 
-    def __init__(self, socket, host, port, is_ssl, get_auth_headers):
+    def __init__(self, socket, host, port, is_ssl, path, get_auth_headers):
 
         self.connected = False
 
@@ -2647,6 +2651,7 @@ class WebsocketWrapper:
         self._host = host
         self._port = port
         self._socket = socket
+        self._path = path
 
         self._sendbuffer = bytearray()
         self._readbuffer = bytearray()
@@ -2681,7 +2686,7 @@ class WebsocketWrapper:
             websocket_headers = get_auth_headers(websocket_headers)
 
         header = "\r\n".join([
-            "GET /mqtt HTTP/1.1",
+            "GET {self._path} HTTP/1.1".format(self=self),
             "\r\n".join(sorted("{}: {}".format(i, j) for i, j in websocket_headers.items())),
             "\r\n",
         ]).encode("utf8")
