@@ -598,7 +598,13 @@ class Client(object):
         function and the result is used as the new headers.
         """
         self._websocket_path = path
-        self._websocket_extra_headers = headers
+
+        if extra_headers is not None:
+            if isinstance(extra_headers, dict) or \
+            callable(extra_headers):
+                self._websocket_extra_headers = headers
+            else:
+                raise ValueError("'headers' option to ws_set_options has to be either a dictionary or callable")
 
     def tls_set_context(self, context=None):
         """Configure network encryption and authentication context. Enables SSL/TLS support.
