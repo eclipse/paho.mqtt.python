@@ -599,9 +599,9 @@ class Client(object):
         """
         self._websocket_path = path
 
-        if extra_headers is not None:
-            if isinstance(extra_headers, dict) or \
-            callable(extra_headers):
+        if headers is not None:
+            if isinstance(headers, dict) or \
+            callable(headers):
                 self._websocket_extra_headers = headers
             else:
                 raise ValueError("'headers' option to ws_set_options has to be either a dictionary or callable")
