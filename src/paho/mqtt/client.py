@@ -600,8 +600,7 @@ class Client(object):
         self._websocket_path = path
 
         if headers is not None:
-            if isinstance(headers, dict) or \
-            callable(headers):
+            if isinstance(headers, dict) or callable(headers):
                 self._websocket_extra_headers = headers
             else:
                 raise ValueError("'headers' option to ws_set_options has to be either a dictionary or callable")
@@ -2698,11 +2697,12 @@ class WebsocketWrapper:
             "Sec-Websocket-Protocol": "mqtt",
         }
 
-        if extra_headers is not None:
-            if isinstance(extra_headers, dict):
-                websocket_headers.update(extra_headers)
-            elif callable(extra_headers):
-                websocket_headers = extra_headers(websocket_headers)
+        # This is checked in ws_set_options so it will either be None, a
+        # dictionary, or a callable
+        if isinstance(extra_headers, dict):
+            websocket_headers.update(extra_headers)
+        elif callable(extra_headers):
+            websocket_headers = extra_headers(websocket_headers)
 
         header = "\r\n".join([
             "GET {self._path} HTTP/1.1".format(self=self),
