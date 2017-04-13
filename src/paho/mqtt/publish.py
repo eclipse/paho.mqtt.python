@@ -41,7 +41,8 @@ def _on_connect(client, userdata, flags, rc):
     #pylint: disable=invalid-name, unused-argument
 
     if rc == 0:
-        _do_publish(client)
+        if len(userdata) > 0:
+            _do_publish(client)
     else:
         raise mqtt.MQTTException(paho.connack_string(rc))
 

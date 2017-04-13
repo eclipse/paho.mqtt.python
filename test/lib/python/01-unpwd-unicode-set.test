@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+from __future__ import unicode_literals
+
+import paho.mqtt.client as mqtt
+
+mqttc = mqtt.Client("01-unpwd-unicode-set")
+
+run = -1
+username = "\u00fas\u00e9rn\u00e1m\u00e9-h\u00e9ll\u00f3"
+password = "h\u00e9ll\u00f3"
+mqttc.username_pw_set(username, password)
+mqttc.connect("localhost", 1888)
+while run == -1:
+    mqttc.loop()
+
+exit(run)

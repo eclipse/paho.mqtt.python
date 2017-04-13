@@ -1,4 +1,4 @@
-__version__ = "1.2"
+__version__ = "1.2.2"
 
 class MQTTException(Exception):
     def __init__(self, *args, **kwargs):

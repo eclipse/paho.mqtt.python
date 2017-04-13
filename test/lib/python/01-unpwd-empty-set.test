@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+import paho.mqtt.client as mqtt
+
+mqttc = mqtt.Client("01-unpwd-set")
+
+run = -1
+mqttc.username_pw_set("", "")
+mqttc.connect("localhost", 1888)
+while run == -1:
+    mqttc.loop()
+
+exit(run)
