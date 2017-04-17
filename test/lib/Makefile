@@ -4,8 +4,6 @@
 all :
 
 test :
-	python ./01-con-discon-success.py python/01-con-discon-success.test
-	python ./01-con-discon-success-mqtt311.py python/01-con-discon-success-mqtt311.test
 	python ./01-will-set.py python/01-will-set.test
 	python ./01-unpwd-set.py python/01-unpwd-set.test
 	python ./01-unpwd-unicode-set.py python/01-unpwd-unicode-set.test
@@ -33,4 +31,3 @@ test :
 	python ./08-ssl-connect-no-auth.py python/08-ssl-connect-no-auth.test
 	python ./08-ssl-connect-cert-auth.py python/08-ssl-connect-cert-auth.test
 	python ./08-ssl-bad-cacert.py python/08-ssl-bad-cacert.test
-	python ./09-util-topic-matching.py python/09-util-topic-matching.test

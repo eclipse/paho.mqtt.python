@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 from setuptools import setup, find_packages
 
-import sys
 sys.path.insert(0, 'src')
 from paho.mqtt import __version__
 
@@ -11,7 +11,8 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = []
-test_requirements = []
+test_requirements = ['pytest']
+setup_requirements = ['pytest-runner']
 
 setup(
     name='paho-mqtt',
@@ -47,5 +48,6 @@ setup(
         'Topic :: Internet',
     ],
     test_suite='tests',
-    tests_require=test_requirements
+    tests_require=test_requirements,
+    setup_requires=setup_requirements
 )
