@@ -21,6 +21,11 @@ broker, then disconnect and nothing else is required.
 
 import paho.mqtt.client as paho
 import paho.mqtt as mqtt
+HAVE_SSL = True
+try:
+    import ssl
+except:
+    HAVE_SSL = False
 
 
 def _do_publish(c):
@@ -164,7 +169,9 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
         try:
             tls_version = tls['tls_version']
         except KeyError:
-            tls_version = None
+            if not HAVE_SSL:
+                raise ValueError('This platform has no SSL/TLS.')
+            tls_version = ssl.PROTOCOL_TLSv1
         try:
             ciphers = tls['ciphers']
         except KeyError:
