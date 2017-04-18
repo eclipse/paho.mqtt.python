@@ -7,8 +7,8 @@ from setuptools import setup, find_packages
 sys.path.insert(0, 'src')
 from paho.mqtt import __version__
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
+with open('README.rst', 'rb') as readme_file:
+    readme = readme_file.read().decode('utf-8')
 
 requirements = []
 test_requirements = ['pytest', 'pytest-cov', 'pytest-flakes']

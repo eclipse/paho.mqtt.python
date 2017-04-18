@@ -865,18 +865,28 @@ class Client(object):
             verify_host = not self._tls_insecure
             try:
                 # Try with server_hostname, even it's not supported in certain scenarios
-                sock = self._ssl_context.wrap_socket(sock, server_hostname=self._host)
+                sock = self._ssl_context.wrap_socket(
+                    sock,
+                    server_hostname=self._host,
+                    do_handshake_on_connect=False,
+                )
             except ssl.CertificateError:
                 # CertificateError is derived from ValueError
                 raise
             except ValueError:
                 # Python version requires SNI in order to handle server_hostname, but SNI is not available
-                sock = self._ssl_context.wrap_socket(sock)
+                sock = self._ssl_context.wrap_socket(
+                    sock,
+                    do_handshake_on_connect=False,
+                )
             else:
                 # If SSL context has already checked hostname, then don't need to do it again
                 if (hasattr(self._ssl_context, 'check_hostname') and
                         self._ssl_context.check_hostname):
                     verify_host = False
+
+            sock.settimeout(self._keepalive)
+            sock.do_handshake()
 
             if verify_host:
                 ssl.match_hostname(sock.getpeercert(), self._host)
@@ -2897,6 +2907,15 @@ class WebsocketWrapper:
 
     def fileno(self):
         return self._socket.fileno()
+
+    def pending(self):
+        # Fix for bug #131: a SSL socket may still have data available
+        # for reading without select() being aware of it.
+        if self._ssl:
+            return self._socket.pending()
+        else:
+            # normal socket rely only on select()
+            return 0
 
     def setblocking(self, flag):
         self._socket.setblocking(flag)
