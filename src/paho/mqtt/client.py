@@ -1464,7 +1464,7 @@ class Client(object):
                     self._state_mutex.release()
                     try:
                         self.reconnect()
-                    except (socket.error, WebsocketConnectionError) as err:
+                    except (socket.error, WebsocketConnectionError):
                         pass
 
         return rc

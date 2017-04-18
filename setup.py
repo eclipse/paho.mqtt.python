@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = []
-test_requirements = ['pytest']
+test_requirements = ['pytest', 'pytest-cov', 'pytest-flakes']
 setup_requirements = ['pytest-runner']
 
 setup(
