@@ -2968,5 +2968,14 @@ class WebsocketWrapper:
     def fileno(self):
         return self._socket.fileno()
 
+    def pending(self):
+        # Fix for bug #131: a SSL socket may still have data available
+        # for reading without select() being aware of it.
+        if self._ssl:
+            return self._socket.pending()
+        else:
+            # normal socket rely only on select()
+            return 0
+
     def setblocking(self,flag):
         self._socket.setblocking(flag)
