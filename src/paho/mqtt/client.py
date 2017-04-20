@@ -142,10 +142,7 @@ MQTT_ERR_UNKNOWN = 13
 MQTT_ERR_ERRNO = 14
 MQTT_ERR_QUEUE_SIZE = 15
 
-if sys.version_info[0] < 3:
-    sockpair_data = "0"
-else:
-    sockpair_data = b"0"
+sockpair_data = b"0"
 
 
 class WebsocketConnectionError(ValueError):
