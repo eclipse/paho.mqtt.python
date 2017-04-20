@@ -832,7 +832,10 @@ class Client(object):
                 ca_certs=self._tls_ca_certs,
                 cert_reqs=self._tls_cert_reqs,
                 ssl_version=self._tls_version,
-                ciphers=self._tls_ciphers)
+                ciphers=self._tls_ciphers,
+                do_handshake_on_connect=False)
+            self._ssl.settimeout(self._keepalive)
+            self._ssl.do_handshake()
 
             if self._tls_insecure is False:
                 if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2):
@@ -2967,6 +2970,15 @@ class WebsocketWrapper:
 
     def fileno(self):
         return self._socket.fileno()
+
+    def pending(self):
+        # Fix for bug #131: a SSL socket may still have data available
+        # for reading without select() being aware of it.
+        if self._ssl:
+            return self._socket.pending()
+        else:
+            # normal socket rely only on select()
+            return 0
 
     def setblocking(self,flag):
         self._socket.setblocking(flag)
