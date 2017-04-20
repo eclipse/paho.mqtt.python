@@ -20,16 +20,16 @@ import paho_test
 from testsupport.broker import fake_broker
 
 
-@pytest.mark.parametrize("proto_ver,proto_name", [
-    (client.MQTTv31, "MQIsdp"),
-    (client.MQTTv311, "MQTT"),
+@pytest.mark.parametrize("proto_ver", [
+    (client.MQTTv31),
+    (client.MQTTv311),
 ])
 class Test_connect(object):
     """
     Tests on connect/disconnect behaviour of the client
     """
 
-    def test_01_con_discon_success(self, proto_ver, proto_name, fake_broker):
+    def test_01_con_discon_success(self, proto_ver, fake_broker):
         mqttc = client.Client(
             "01-con-discon-success", protocol=proto_ver)
 
@@ -47,7 +47,7 @@ class Test_connect(object):
 
             connect_packet = paho_test.gen_connect(
                 "01-con-discon-success", keepalive=60,
-                proto_name=proto_name, proto_ver=proto_ver)
+                proto_ver=proto_ver)
             packet_in = fake_broker.receive_packet(1000)
             assert packet_in  # Check connection was not closed
             assert packet_in == connect_packet
@@ -68,7 +68,7 @@ class Test_connect(object):
         packet_in = fake_broker.receive_packet(1)
         assert not packet_in  # Check connection is closed
 
-    def test_01_con_failure_rc(self, proto_ver, proto_name, fake_broker):
+    def test_01_con_failure_rc(self, proto_ver, fake_broker):
         mqttc = client.Client(
             "01-con-failure-rc", protocol=proto_ver)
 
@@ -85,7 +85,7 @@ class Test_connect(object):
 
             connect_packet = paho_test.gen_connect(
                 "01-con-failure-rc", keepalive=60,
-                proto_name=proto_name, proto_ver=proto_ver)
+                proto_ver=proto_ver)
             packet_in = fake_broker.receive_packet(1000)
             assert packet_in  # Check connection was not closed
             assert packet_in == connect_packet

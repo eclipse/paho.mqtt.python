@@ -62,9 +62,6 @@ else:
 MQTTv31 = 3
 MQTTv311 = 4
 
-PROTOCOL_NAMEv31 = "MQIsdp"
-PROTOCOL_NAMEv311 = "MQTT"
-
 if sys.version_info[0] >= 3:
     # define some alias for python2 compatibility
     unicode = str
@@ -2041,14 +2038,11 @@ class Client(object):
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_connect(self, keepalive, clean_session):
-        if self._protocol == MQTTv31:
-            protocol = PROTOCOL_NAMEv31
-            proto_ver = 3
-        else:
-            protocol = PROTOCOL_NAMEv311
-            proto_ver = 4
-        protocol = protocol.encode('utf-8')
+        proto_ver = self._protocol
+        protocol = b"MQTT" if proto_ver >= MQTTv311 else b"MQIsdp"  # hard-coded UTF-8 encoded string
+
         remaining_length = 2 + len(protocol) + 1 + 1 + 2 + 2 + len(self._client_id)
+
         connect_flags = 0
         if clean_session:
             connect_flags |= 0x02
