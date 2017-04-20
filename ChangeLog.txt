@@ -1,3 +1,15 @@
+v1.2.3 - 2017-04-20
+===================
+
+- Fix possible hang of TLS connection during handshake.
+  Closes #3.
+- Fix issue with publish helper with TLS connection.
+  Closes #180.
+- Fix installation issue on non-UTF-8 system.
+  Closes #181.
+- Fix non-working Websocket over TLS connection.
+  Closes #182.
+
 v1.2.2 - 2017-04-11
 ===================
 
