@@ -33,6 +33,7 @@ except:
 import struct
 import sys
 import threading
+import logging
 
 import time
 import uuid
@@ -54,6 +55,8 @@ if platform.system() == 'Windows':
     EAGAIN = errno.WSAEWOULDBLOCK
 else:
     EAGAIN = errno.EAGAIN
+
+logger = logging.getLogger(__name__)
 
 VERSION_MAJOR=1
 VERSION_MINOR=2
@@ -462,11 +465,6 @@ class Client(object):
     on_unsubscribe(client, userdata, mid): called when the broker responds to an unsubscribe
       request. The mid variable matches the mid variable returned from the
       corresponding unsubscribe() call.
-
-    on_log(client, userdata, level, buf): called when the client has log information. Define
-      to allow debugging. The level variable gives the severity of the message
-      and will be one of MQTT_LOG_INFO, MQTT_LOG_NOTICE, MQTT_LOG_WARNING,
-      MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
     """
     def __init__(self, client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp"):
@@ -1208,6 +1206,7 @@ class Client(object):
         for i in range(0, max_packets):
             rc = self._packet_read()
             if rc > 0:
+                logger.error("Error reading packet from stream")
                 return self._loop_rc_handle(rc)
             elif rc == MQTT_ERR_AGAIN:
                 return MQTT_ERR_SUCCESS
@@ -1233,6 +1232,7 @@ class Client(object):
         for i in range(0, max_packets):
             rc = self._packet_write()
             if rc > 0:
+                logger.error("Error writing packet to stream")
                 return self._loop_rc_handle(rc)
             elif rc == MQTT_ERR_AGAIN:
                 return MQTT_ERR_SUCCESS
@@ -1399,7 +1399,7 @@ class Client(object):
                 except (socket.error, WebsocketConnectionError):
                     if not retry_first_connection:
                         raise
-                    self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
+                    logger.debug("Connection failed, retrying")
                     time.sleep(1)
             else:
                 break
@@ -1469,28 +1469,6 @@ class Client(object):
         if threading.current_thread() != self._thread:
             self._thread.join()
             self._thread = None
-
-    @property
-    def on_log(self):
-        """If implemented, called when the client has log information.
-        Defined to allow debugging."""
-        return self._on_log
-
-    @on_log.setter
-    def on_log(self, func):
-        """ Define the logging callback implementation.
-
-        Expected signature is:
-            log_callback(client, userdata, level, buf)
-
-        client:     the client instance for this callback
-        userdata:   the private user data as set in Client() or userdata_set()
-        level:      gives the severity of the message and will be one of
-                    MQTT_LOG_INFO, MQTT_LOG_NOTICE, MQTT_LOG_WARNING,
-                    MQTT_LOG_ERR, and MQTT_LOG_DEBUG.
-        buf:        the message itself
-        """
-        self._on_log = func
 
     @property
     def on_connect(self):
@@ -1733,10 +1711,11 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                logger.exception("Got socket error")
                 return 1
             else:
                 if len(command) == 0:
+                    logger.error("Tried to read a byte from socket, but got nothing")
                     return 1
                 command = struct.unpack("!B", command)
                 self._in_packet['command'] = command[0]
@@ -1756,7 +1735,7 @@ class Client(object):
                         return MQTT_ERR_AGAIN
                     if err.errno == EAGAIN:
                         return MQTT_ERR_AGAIN
-                    print(err)
+                    logger.exception("Got socket error")
                     return 1
                 else:
                     if len(byte) == 0:
@@ -1789,7 +1768,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                logger.exception("Got socket error")
                 return 1
             else:
                 if len(data) == 0:
@@ -1837,7 +1816,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                logger.exception("Got socket error")
                 return 1
 
             if write_length > 0:
@@ -1894,10 +1873,6 @@ class Client(object):
 
         return MQTT_ERR_SUCCESS
 
-    def _easy_log(self, level, buf):
-        if self.on_log:
-            self.on_log(self, self._userdata, level, buf)
-
     def _check_keepalive(self):
         if self._keepalive == 0:
             return MQTT_ERR_SUCCESS
@@ -1949,22 +1924,22 @@ class Client(object):
             return MQTT_ERR_SUCCESS
 
     def _send_pingreq(self):
-        self._easy_log(MQTT_LOG_DEBUG, "Sending PINGREQ")
+        logger.debug("Queueing PINGREQ")
         rc = self._send_simple_command(PINGREQ)
         if rc == MQTT_ERR_SUCCESS:
             self._ping_t = time_func()
         return rc
 
     def _send_pingresp(self):
-        self._easy_log(MQTT_LOG_DEBUG, "Sending PINGRESP")
+        logger.debug("Queueing PINGRESP")
         return self._send_simple_command(PINGRESP)
 
     def _send_puback(self, mid):
-        self._easy_log(MQTT_LOG_DEBUG, "Sending PUBACK (Mid: "+str(mid)+")")
+        logger.debug("Queueing PUBACK (Mid: "+str(mid)+")")
         return self._send_command_with_mid(PUBACK, mid, False)
 
     def _send_pubcomp(self, mid):
-        self._easy_log(MQTT_LOG_DEBUG, "Sending PUBCOMP (Mid: "+str(mid)+")")
+        logger.debug("Queueing PUBCOMP (Mid: "+str(mid)+")")
         return self._send_command_with_mid(PUBCOMP, mid, False)
 
     def _pack_remaining_length(self, packet, remaining_length):
@@ -2018,7 +1993,7 @@ class Client(object):
         packet.extend(struct.pack("!B", command))
         if payload is None:
             remaining_length = 2+len(utopic)
-            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
+            logger.debug("Queueing PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"' (NULL payload)")
         else:
             if isinstance(payload, str):
                 upayload = payload.encode('utf-8')
@@ -2030,7 +2005,7 @@ class Client(object):
                 payloadlen = len(upayload)
 
             remaining_length = 2+len(utopic) + payloadlen
-            self._easy_log(MQTT_LOG_DEBUG, "Sending PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(payloadlen)+" bytes)")
+            logger.debug("Queueing PUBLISH (d"+str(dup)+", q"+str(qos)+", r"+str(int(retain))+", m"+str(mid)+", '"+topic+"', ... ("+str(payloadlen)+" bytes)")
 
         if qos > 0:
             # For message id
@@ -2055,14 +2030,15 @@ class Client(object):
             else:
                 raise TypeError('payload must be a string, unicode or a bytearray.')
 
+        logger.debug("Queueing PUBLISH packet")
         return self._packet_queue(PUBLISH, packet, mid, qos, info)
 
     def _send_pubrec(self, mid):
-        self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREC (Mid: "+str(mid)+")")
+        logger.debug("Queueing PUBREC (Mid: "+str(mid)+")")
         return self._send_command_with_mid(PUBREC, mid, False)
 
     def _send_pubrel(self, mid, dup=False):
-        self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREL (Mid: "+str(mid)+")")
+        logger.debug("Queueing PUBREL (Mid: "+str(mid)+")")
         return self._send_command_with_mid(PUBREL|2, mid, dup)
 
     def _send_command_with_mid(self, command, mid, dup):
@@ -2133,6 +2109,7 @@ class Client(object):
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
+        logger.debug("Queueing CONNECT packet")
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_disconnect(self):
@@ -2152,6 +2129,7 @@ class Client(object):
         for t in topics:
             self._pack_str16(packet, t[0])
             packet.extend(struct.pack("B", t[1]))
+        logger.debug("Queueing SUBSCRIBE packet")
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2167,6 +2145,7 @@ class Client(object):
         packet.extend(struct.pack("!H", local_mid))
         for t in topics:
             self._pack_str16(packet, t)
+        logger.debug("Queueing UNSUBSCRIBE packet")
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _message_retry_check_actual(self, messages, mutex):
@@ -2288,7 +2267,7 @@ class Client(object):
             return self._handle_unsuback()
         else:
             # If we don't recognise the command, return an error straight away.
-            self._easy_log(MQTT_LOG_ERR, "Error: Unrecognised command "+str(cmd))
+            logger.error("Error: Unrecognised command "+str(cmd))
             return MQTT_ERR_PROTOCOL
 
     def _handle_pingreq(self):
@@ -2296,7 +2275,7 @@ class Client(object):
             if self._in_packet['remaining_length'] != 0:
                 return MQTT_ERR_PROTOCOL
 
-        self._easy_log(MQTT_LOG_DEBUG, "Received PINGREQ")
+        logger.debug("Received PINGREQ")
         return self._send_pingresp()
 
     def _handle_pingresp(self):
@@ -2306,7 +2285,7 @@ class Client(object):
 
         # No longer waiting for a PINGRESP.
         self._ping_t = 0
-        self._easy_log(MQTT_LOG_DEBUG, "Received PINGRESP")
+        logger.debug("Received PINGRESP")
         return MQTT_ERR_SUCCESS
 
     def _handle_connack(self):
@@ -2319,7 +2298,7 @@ class Client(object):
 
         (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
         if result == CONNACK_REFUSED_PROTOCOL_VERSION and self._protocol == MQTTv311:
-            self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(flags)+", "+str(result)+"), attempting downgrade to MQTT v3.1.")
+            logger.debug("Received CONNACK ("+str(flags)+", "+str(result)+"), attempting downgrade to MQTT v3.1.")
             # Downgrade to MQTT v3.1
             self._protocol = MQTTv31
             return self.reconnect()
@@ -2327,7 +2306,7 @@ class Client(object):
         if result == 0:
             self._state = mqtt_cs_connected
 
-        self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK ("+str(flags)+", "+str(result)+")")
+        logger.debug("Received CONNACK ("+str(flags)+", "+str(result)+")")
         self._callback_mutex.acquire()
         if self.on_connect:
             self._in_callback = True
@@ -2400,7 +2379,7 @@ class Client(object):
             return MQTT_ERR_PROTOCOL
 
     def _handle_suback(self):
-        self._easy_log(MQTT_LOG_DEBUG, "Received SUBACK")
+        logger.debug("Received SUBACK")
         pack_format = "!H" + str(len(self._in_packet['packet'])-2) + 's'
         (mid, packet) = struct.unpack(pack_format, self._in_packet['packet'])
         pack_format = "!" + "B"*len(packet)
@@ -2452,8 +2431,7 @@ class Client(object):
 
         message.payload = packet
 
-        self._easy_log(
-            MQTT_LOG_DEBUG,
+        logger.debug(
             "Received PUBLISH (d"+str(message.dup)+
             ", q"+str(message.qos)+", r"+str(message.retain)+
             ", m"+str(message.mid)+", '"+print_topic+
@@ -2487,7 +2465,7 @@ class Client(object):
 
         mid = struct.unpack("!H", self._in_packet['packet'])
         mid = mid[0]
-        self._easy_log(MQTT_LOG_DEBUG, "Received PUBREL (Mid: "+str(mid)+")")
+        logger.debug("Received PUBREL (Mid: "+str(mid)+")")
 
         self._in_message_mutex.acquire()
         for i in range(len(self._in_messages)):
@@ -2536,7 +2514,7 @@ class Client(object):
 
         mid = struct.unpack("!H", self._in_packet['packet'])
         mid = mid[0]
-        self._easy_log(MQTT_LOG_DEBUG, "Received PUBREC (Mid: "+str(mid)+")")
+        logger.debug("Received PUBREC (Mid: "+str(mid)+")")
 
         self._out_message_mutex.acquire()
         for m in self._out_messages:
@@ -2556,7 +2534,7 @@ class Client(object):
 
         mid = struct.unpack("!H", self._in_packet['packet'])
         mid = mid[0]
-        self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: "+str(mid)+")")
+        logger.debug("Received UNSUBACK (Mid: "+str(mid)+")")
         self._callback_mutex.acquire()
         if self.on_unsubscribe:
             self._in_callback = True
@@ -2591,7 +2569,7 @@ class Client(object):
 
         mid = struct.unpack("!H", self._in_packet['packet'])
         mid = mid[0]
-        self._easy_log(MQTT_LOG_DEBUG, "Received "+cmd+" (Mid: "+str(mid)+")")
+        logger.debug("Received "+cmd+" (Mid: "+str(mid)+")")
 
         self._out_message_mutex.acquire()
         for i in range(len(self._out_messages)):
@@ -2757,6 +2735,8 @@ class WebsocketWrapper:
                         else:
                             has_upgrade = True
 
+                        logger.debug("Successfully upgraded connection")
+
                     # check key hash
                     if b"sec-websocket-accept" in str(self._readbuffer).lower().encode('utf-8'):
                         GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -2772,6 +2752,8 @@ class WebsocketWrapper:
                             raise WebsocketConnectionError("WebSocket handshake error, invalid secret key")
                         else:
                             has_secret = True
+
+                        logger.debug("Successfully got secret")
                 else:
                     # ending linebreak
                     break
@@ -2788,6 +2770,8 @@ class WebsocketWrapper:
 
         self._readbuffer = bytearray()
         self.connected = True
+
+        logger.debug("Connected to broker")
 
     def _create_frame(self, opcode, data, do_masking=1):
 
