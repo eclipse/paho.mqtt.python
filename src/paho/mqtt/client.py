@@ -541,6 +541,7 @@ class Client(object):
         self._will_retain = False
         self._on_message_filtered = MQTTMatcher()
         self._host = ""
+        self._path = "/mqtt"
         self._port = 1883
         self._bind_address = ""
         self._in_callback = False
@@ -893,7 +894,7 @@ class Client(object):
 
         if self._transport == "websockets":
             sock.settimeout(self._keepalive)
-            sock = WebsocketWrapper(sock, self._host, self._port, self._ssl)
+            sock = WebsocketWrapper(sock, self._host, self._path, self._port, self._ssl)
 
         self._sock = sock
         self._sock.setblocking(0)
@@ -1090,6 +1091,9 @@ class Client(object):
                 self._out_message_mutex.release()
                 message.info.rc = MQTT_ERR_SUCCESS
                 return message.info
+
+    def endpoint_url_path_set(self, path):
+        self._path=path
 
     def username_pw_set(self, username, password=None):
         """Set a username and optionally a password for broker authentication.
@@ -2645,12 +2649,13 @@ class WebsocketWrapper:
     OPCODE_PING = 0x9
     OPCODE_PONG = 0xa
 
-    def __init__(self, socket, host, port, is_ssl):
+    def __init__(self, socket, host, path, port, is_ssl):
 
         self.connected = False
 
         self._ssl = is_ssl
         self._host = host
+        self._path = path
         self._port = port
         self._socket = socket
 
@@ -2673,7 +2678,7 @@ class WebsocketWrapper:
         sec_websocket_key = uuid.uuid4().bytes
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
-        header = b"GET /mqtt HTTP/1.1\r\n" + \
+        header = b"GET " + str(self._path).encode('utf-8') + b" HTTP/1.1\r\n" +\
                  b"Upgrade: websocket\r\n" + \
                  b"Connection: Upgrade\r\n" + \
                  b"Host: " + str(self._host).encode('utf-8') + b":" + str(self._port).encode('utf-8') + b"\r\n" + \
