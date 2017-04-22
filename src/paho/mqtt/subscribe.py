@@ -133,8 +133,14 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
     client.on_message = _on_message_callback
     client.on_connect = _on_connect
 
-    if auth is not None:
-        client.username_pw_set(**auth)
+    if auth:
+        username = auth.get('username')
+        if username:
+            password = auth.get('password')
+            client.username_pw_set(username, password)
+        else:
+            raise KeyError("The 'username' key was not found, this is "
+                           "required for auth")
 
     if will is not None:
         client.will_set(**will)
