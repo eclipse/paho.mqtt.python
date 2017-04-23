@@ -2420,7 +2420,7 @@ class Client(object):
             MQTT_LOG_DEBUG,
             "Received PUBLISH (d%d, q%d, r%d, m%d), '%s', ...  (%d bytes)",
             message.dup, message.qos, message.retain, message.mid,
-            message.topic, len(message.payload)
+            print_topic, len(message.payload)
         )
 
         message.timestamp = time_func()
@@ -2558,10 +2558,16 @@ class Client(object):
     def _handle_on_message(self, message):
         matched = False
         with self._callback_mutex:
-            for callback in self._on_message_filtered.iter_match(message.topic):
-                with self._in_callback:
-                    callback(self, self._userdata, message)
-                matched = True
+            try:
+                topic = message.topic
+            except UnicodeDecodeError:
+                topic = None
+
+            if topic is not None:
+                for callback in self._on_message_filtered.iter_match(message.topic):
+                    with self._in_callback:
+                        callback(self, self._userdata, message)
+                    matched = True
 
             if matched == False and self.on_message:
                 with self._in_callback:
