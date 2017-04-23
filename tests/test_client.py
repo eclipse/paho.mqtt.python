@@ -74,6 +74,7 @@ class Test_connect(object):
 
         def on_connect(mqttc, obj, flags, rc):
             assert rc == 1
+            mqttc.disconnect()
 
         mqttc.on_connect = on_connect
 
@@ -95,11 +96,11 @@ class Test_connect(object):
             assert count  # Check connection was not closed
             assert count == len(connack_packet)
 
+            packet_in = fake_broker.receive_packet(1)
+            assert not packet_in  # Check connection is closed
+
         finally:
             mqttc.loop_stop()
-
-        packet_in = fake_broker.receive_packet(1)
-        assert not packet_in  # Check connection is closed
 
 
 class TestPublishBroker2Client(object):
