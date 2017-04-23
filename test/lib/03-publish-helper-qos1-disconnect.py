@@ -16,10 +16,10 @@ connack_packet = paho_test.gen_connack(rc=0)
 
 mid = 1
 publish_packet = paho_test.gen_publish(
-    "pub/qos1/test", qos=1, mid=mid, payload="message".encode('utf-8'),
+    u"pub/qos1/test", qos=1, mid=mid, payload="message".encode('utf-8'),
 )
 publish_packet_dup = paho_test.gen_publish(
-    "pub/qos1/test", qos=1, mid=mid, payload="message".encode('utf-8'),
+    u"pub/qos1/test", qos=1, mid=mid, payload="message".encode('utf-8'),
     dup=True,
 )
 puback_packet = paho_test.gen_puback(mid)

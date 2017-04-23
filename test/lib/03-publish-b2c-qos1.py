@@ -25,7 +25,7 @@ disconnect_packet = paho_test.gen_disconnect()
 
 mid = 123
 publish_packet = paho_test.gen_publish(
-    "pub/qos1/receive", qos=1, mid=mid, payload="message".encode('utf-8'))
+    u"pub/qos1/receive", qos=1, mid=mid, payload="message".encode('utf-8'))
 puback_packet = paho_test.gen_puback(mid)
 
 sock = paho_test.create_server_socket()
