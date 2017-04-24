@@ -23,7 +23,7 @@ connect_packet = paho_test.gen_connect(
 connack_packet = paho_test.gen_connack(rc=0)
 
 publish_packet = paho_test.gen_publish(
-    "pub/qos0/test", qos=0, payload="message".encode('utf-8'),
+    u"pub/qos0/test", qos=0, payload="message".encode('utf-8'),
 )
 
 disconnect_packet = paho_test.gen_disconnect()

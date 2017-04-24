@@ -5,5 +5,5 @@ all :
 test :
 	$(MAKE) -C lib test
 
-clean : 
+clean :
 	$(MAKE) -C lib clean

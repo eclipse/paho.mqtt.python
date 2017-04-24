@@ -1,10 +1,16 @@
 import struct
 import socket
+import sys
 
 try:
     import ssl
 except ImportError:
     ssl = None
+
+
+if sys.version_info[0] >= 3:
+    # define some alias for python2 compatibility
+    unicode = str
 
 
 def create_server_socket():
@@ -295,7 +301,8 @@ def gen_connack(resv=0, rc=0):
 
 
 def gen_publish(topic, qos, payload=None, retain=False, dup=False, mid=0):
-    topic = topic.encode('utf-8')
+    if isinstance(topic, unicode):
+        topic = topic.encode('utf-8')
     rl = 2 + len(topic)
     pack_format = "!BBH" + str(len(topic)) + "s"
     if qos > 0:

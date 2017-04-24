@@ -18,7 +18,7 @@ keepalive = 60
 connect_packet = paho_test.gen_connect("publish-qos0-test-np", keepalive=keepalive)
 connack_packet = paho_test.gen_connack(rc=0)
 
-publish_packet = paho_test.gen_publish("pub/qos0/no-payload/test", qos=0)
+publish_packet = paho_test.gen_publish(u"pub/qos0/no-payload/test", qos=0)
 
 disconnect_packet = paho_test.gen_disconnect()
 

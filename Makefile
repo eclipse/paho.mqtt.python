@@ -9,7 +9,6 @@ all :
 install : all
 	python ./setup.py install --root=${DESTDIR}
 
-
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
 
@@ -32,6 +31,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 
 test :
+	python setup.py test
 	$(MAKE) -C test test
 
 upload : test
