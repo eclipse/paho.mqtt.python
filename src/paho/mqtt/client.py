@@ -2662,7 +2662,7 @@ class WebsocketWrapper:
 
         header = "\r\n".join([
             "GET {self._path} HTTP/1.1".format(self=self),
-            "\r\n".join(sorted("{}: {}".format(i, j) for i, j in websocket_headers.items())),
+            "\r\n".join("{}: {}".format(i, j) for i, j in websocket_headers.items()),
             "\r\n",
         ]).encode("utf8")
 
