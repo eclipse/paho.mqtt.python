@@ -2666,7 +2666,7 @@ class WebsocketWrapper:
             "\r\n",
         ]).encode("utf8")
 
-        sent = self._socket.send(header)
+        self._socket.send(header)
 
         has_secret = False
         has_upgrade = False
