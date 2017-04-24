@@ -30,7 +30,7 @@ disconnect_packet = paho_test.gen_disconnect()
 
 mid = 13423
 publish_packet = paho_test.gen_publish(
-    "pub/qos2/receive", qos=2, mid=mid, payload="message".encode('utf-8'))
+    u"pub/qos2/receive", qos=2, mid=mid, payload="message".encode('utf-8'))
 pubrec_packet = paho_test.gen_pubrec(mid)
 pubrel_packet = paho_test.gen_pubrel(mid)
 pubcomp_packet = paho_test.gen_pubcomp(mid)

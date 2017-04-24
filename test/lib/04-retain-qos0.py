@@ -12,7 +12,7 @@ connect_packet = paho_test.gen_connect("retain-qos0-test", keepalive=keepalive)
 connack_packet = paho_test.gen_connack(rc=0)
 
 publish_packet = paho_test.gen_publish(
-    "retain/qos0/test", qos=0, payload="retained message".encode('utf-8'), retain=True)
+    u"retain/qos0/test", qos=0, payload="retained message".encode('utf-8'), retain=True)
 
 sock = paho_test.create_server_socket()
 
