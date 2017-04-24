@@ -3,6 +3,9 @@ import hashlib
 import datetime
 import base64
 import uuid
+import functools
+
+from paho.mqtt.client import Client
 
 
 def get_amazon_auth_headers(access_key, secret_key, region, host, port, headers=None):
@@ -97,3 +100,29 @@ def get_amazon_auth_headers(access_key, secret_key, region, host, port, headers=
     headers["Authorization"] = authorization_header
 
     return headers
+
+
+def example_use():
+    access_key = os.environ["AWS_ACCESS_KEY_ID"]
+    secret_key = os.environ["AWS_SECRET_ACCESS_KEY"]
+    port = 8883
+
+    region = "eu-west-1"
+
+    # This is specific to your AWS account
+    host = "abc123def456.iot.{0:s}.amazonaws.com".format(region)
+
+    extra_headers = functools.partial(
+        get_amazon_auth_headers,
+        access_key,
+        secret_key,
+        region,
+        host,
+        port,
+    )
+
+    client = Client(transport="websockets")
+
+    client.ws_set_options(headers=extra_headers)
+
+    # Use client as normal from here
