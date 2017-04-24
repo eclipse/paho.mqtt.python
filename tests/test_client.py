@@ -74,7 +74,6 @@ class Test_connect(object):
 
         def on_connect(mqttc, obj, flags, rc):
             assert rc == 1
-            mqttc.disconnect()
 
         mqttc.on_connect = on_connect
 
