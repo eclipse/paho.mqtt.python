@@ -79,15 +79,8 @@ class FakeWebsocketBroker(threading.Thread):
         self.handler_cls = False
 
     @contextlib.contextmanager
-    def serve(self, data):
-        class MyTCPHandler(socketserver.BaseRequestHandler):
-            def handle(_self):
-                self.data = _self.request.recv(1024).strip()
-                print("Received '{:s}'".format(self.data.decode("utf8")))
-                # Respond with data passed in to serve()
-                _self.request.sendall(data)
-
-        self._server = ThreadedTCPServer((self.host, self.port), MyTCPHandler)
+    def serve(self, tcphandler):
+        self._server = ThreadedTCPServer((self.host, self.port), tcphandler)
 
         try:
             self.start()
