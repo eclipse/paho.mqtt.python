@@ -2648,7 +2648,7 @@ class WebsocketWrapper:
             "Upgrade": "websocket",
             "Connection": "Upgrade",
             "Origin": "https://{self._host:s}:{self._port:d}".format(self=self),
-            "Sec-WebSocket-Key": sec_websocket_key,
+            "Sec-WebSocket-Key": sec_websocket_key.decode("utf8"),
             "Sec-Websocket-Version": "13",
             "Sec-Websocket-Protocol": "mqtt",
         }
