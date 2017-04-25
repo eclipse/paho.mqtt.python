@@ -1,4 +1,7 @@
 import socket
+from six.moves import socketserver
+import threading
+import contextlib
 
 import pytest
 
@@ -53,7 +56,59 @@ def fake_broker():
     # print('Setup broker')
     broker = FakeBroker()
 
-    yield broker
+    try:
+        yield broker
+    finally:
+        # print('Teardown broker')
+        broker.finish()
 
-    # print('Teardown broker')
-    broker.finish()
+
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    pass
+
+
+class FakeWebsocketBroker(threading.Thread):
+    def __init__(self):
+        super(FakeWebsocketBroker, self).__init__()
+
+        self.host = "localhost"
+        self.port = 1888
+
+        self._server = None
+        self._running = True
+        self.handler_cls = False
+
+    @contextlib.contextmanager
+    def serve(self, data):
+        class MyTCPHandler(socketserver.BaseRequestHandler):
+            def handle(_self):
+                self.data = _self.request.recv(1024).strip()
+                print("Received {:s}".format(self.data))
+                # Respond with data passed in to serve()
+                _self.request.sendall(data)
+
+        self._server = ThreadedTCPServer((self.host, self.port), MyTCPHandler)
+
+        try:
+            self.start()
+
+            if not self._running:
+                raise RuntimeError("Error starting server")
+            yield
+        finally:
+            if self._server:
+                self._server.shutdown()
+                self._server.server_close()
+
+    def run(self):
+        self._running = True
+        self._server.serve_forever()
+
+
+@pytest.fixture
+def fake_websocket_broker():
+    socketserver.TCPServer.allow_reuse_address = True
+
+    broker = FakeWebsocketBroker()
+
+    yield broker

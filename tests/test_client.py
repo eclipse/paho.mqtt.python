@@ -1,9 +1,11 @@
 import os
 import sys
 import inspect
+from collections import OrderedDict
 
 import pytest
 import paho.mqtt.client as client
+from paho.mqtt.client import WebsocketConnectionError
 
 # From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder
 cmd_subfolder = os.path.realpath(
@@ -17,7 +19,7 @@ if cmd_subfolder not in sys.path:
 import paho_test
 
 # Import test fixture
-from testsupport.broker import fake_broker
+from testsupport.broker import fake_broker, fake_websocket_broker
 
 
 @pytest.mark.parametrize("proto_ver,proto_name", [
@@ -147,3 +149,95 @@ class TestPublishBroker2Client(object):
 
         packet_in = fake_broker.receive_packet(1)
         assert not packet_in  # Check connection is closed
+
+
+@pytest.mark.parametrize("proto_ver,proto_name", [
+    (client.MQTTv31, "MQIsdp"),
+    (client.MQTTv311, "MQTT"),
+])
+class TestWebsocketHeaders(object):
+    def setup(self):
+        # A good response from the server
+        self.response_headers = OrderedDict({
+            "Upgrade": "websocket",
+            "Connection": "Upgrade",
+            # This is wrong, but tests should override it
+            "Sec-WebSocket-Accept": "3tkwofepkwfpoek",
+            "Sec-WebSocket-Protocol": "chat",
+        })
+
+    def _get_response_headers(self):
+        """ Get a websocket response header from the self.response_headers """
+
+        # From client.py
+        header = "\r\n".join([
+            "HTTP/1.1 101 Switching Protocols",
+            "\r\n".join("{}: {}".format(i, j) for i, j in self.response_headers.items()),
+            "\r\n",
+        ]).encode("utf8")
+
+        return header
+
+    def test_unexpected_response(self, proto_ver, proto_name, fake_websocket_broker):
+        """ Server doesn't respond with expected headers """
+
+        mqttc = client.Client(
+            "test_unexpected_response",
+            protocol=proto_ver,
+            transport="websockets"
+            )
+
+        mqttc.ws_set_options(
+            headers={"Authorization": "test123"},
+        )
+
+        with fake_websocket_broker.serve("not real\n"):
+            with pytest.raises(WebsocketConnectionError) as exc:
+                mqttc.connect("localhost", 1888, keepalive=10)
+
+        assert str(exc.value) == "WebSocket handshake error"
+
+    def test_no_upgrade(self, proto_ver, proto_name, fake_websocket_broker):
+        """ Server doesn't respond with 'connection: upgrade' """
+
+        mqttc = client.Client(
+            "test_no_upgrade",
+            protocol=proto_ver,
+            transport="websockets"
+            )
+
+        mqttc.ws_set_options(
+            headers={"Authorization": "test123"},
+        )
+
+        self.response_headers["Connection"] = "bad"
+        response = self._get_response_headers()
+
+        with fake_websocket_broker.serve(response):
+            with pytest.raises(WebsocketConnectionError) as exc:
+                mqttc.connect("localhost", 1888, keepalive=10)
+
+        assert str(exc.value) == "WebSocket handshake error, connection not upgraded"
+
+    def test_bad_secret_key(self, proto_ver, proto_name, fake_websocket_broker):
+        """ Server doesn't give anything after connection: upgrade """
+
+        mqttc = client.Client(
+            "test_bad_secret_key",
+            protocol=proto_ver,
+            transport="websockets"
+            )
+
+        mqttc.ws_set_options(
+            headers={"Authorization": "test123"},
+        )
+
+        response = self._get_response_headers()
+
+        with fake_websocket_broker.serve(response):
+            with pytest.raises(WebsocketConnectionError) as exc:
+                mqttc.connect("localhost", 1888, keepalive=10)
+
+        assert str(exc.value) == "WebSocket handshake error, invalid secret key"
+
+    # TODO test bad path, with normally successful connection
