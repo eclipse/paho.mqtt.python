@@ -158,13 +158,13 @@ class TestPublishBroker2Client(object):
 class TestWebsocketHeaders(object):
     def setup(self):
         # A good response from the server
-        self.response_headers = OrderedDict({
-            "Upgrade": "websocket",
-            "Connection": "Upgrade",
+        self.response_headers = OrderedDict([
+            ("Upgrade", "websocket"),
+            ("Connection", "Upgrade"),
             # This is wrong, but tests should override it
-            "Sec-WebSocket-Accept": "3tkwofepkwfpoek",
-            "Sec-WebSocket-Protocol": "chat",
-        })
+            ("Sec-WebSocket-Accept", "badwebsocketkey"),
+            ("Sec-WebSocket-Protocol", "chat"),
+        ])
 
     def _get_response_headers(self):
         """ Get a websocket response header from the self.response_headers """

@@ -83,7 +83,7 @@ class FakeWebsocketBroker(threading.Thread):
         class MyTCPHandler(socketserver.BaseRequestHandler):
             def handle(_self):
                 self.data = _self.request.recv(1024).strip()
-                print("Received {:s}".format(self.data))
+                print("Received '{:s}'".format(self.data.decode("utf8")))
                 # Respond with data passed in to serve()
                 _self.request.sendall(data)
 
