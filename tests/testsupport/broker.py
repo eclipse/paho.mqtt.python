@@ -56,11 +56,10 @@ def fake_broker():
     # print('Setup broker')
     broker = FakeBroker()
 
-    try:
-        yield broker
-    finally:
-        # print('Teardown broker')
-        broker.finish()
+    yield broker
+
+    # print('Teardown broker')
+    broker.finish()
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
