@@ -205,10 +205,11 @@ class TestValidHeaders(object):
     @pytest.mark.parametrize("auth_headers", [
         {"Authorization": "test123"},
         {"Authorization": "test123", "auth2": "abcdef"},
+        # Won't be checked, but make sure it still works even if the user passes it
         None,
     ])
     def test_correct_auth(self, proto_ver, proto_name, fake_websocket_broker, auth_headers):
-        """ Make sure it can connect on user specified paths """
+        """ Make sure it sends the right auth headers """
 
         mqttc = client.Client(
             "test_correct_path",
