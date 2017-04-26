@@ -11,6 +11,34 @@ from paho.mqtt.client import WebsocketConnectionError
 from testsupport.broker import fake_websocket_broker
 
 
+@pytest.fixture
+def init_response_headers():
+    # "Normal" websocket response from server
+    response_headers = OrderedDict([
+        ("Upgrade", "websocket"),
+        ("Connection", "Upgrade"),
+        ("Sec-WebSocket-Accept", "testwebsocketkey"),
+        ("Sec-WebSocket-Protocol", "chat"),
+    ])
+
+    return response_headers
+
+
+def get_websocket_response(response_headers):
+    """ Takes headers and constructs HTTP response
+
+    'HTTP/1.1 101 Switching Protocols' is the headers for the response,
+    as expected in client.py
+    """
+    response = "\r\n".join([
+        "HTTP/1.1 101 Switching Protocols",
+        "\r\n".join("{}: {}".format(i, j) for i, j in response_headers.items()),
+        "\r\n",
+    ]).encode("utf8")
+
+    return response
+
+
 @pytest.mark.parametrize("proto_ver,proto_name", [
     (client.MQTTv31, "MQIsdp"),
     (client.MQTTv311, "MQTT"),
@@ -39,26 +67,12 @@ class TestInvalidWebsocketResponse(object):
 class TestBadWebsocketHeaders(object):
     """ Testing for basic functionality in checking for headers """
 
-    def setup(self):
-        # A good response from the server
-        self.response_headers = OrderedDict([
-            ("Upgrade", "websocket"),
-            ("Connection", "Upgrade"),
-            ("Sec-WebSocket-Accept", "badwebsocketkey"),
-            ("Sec-WebSocket-Protocol", "chat"),
-        ])
-
-    def _get_basic_handler(self):
+    def _get_basic_handler(self, response_headers):
         """ Get a basic BaseRequestHandler which returns the information in
         self._response_headers
         """
 
-        # From client.py
-        response = "\r\n".join([
-            "HTTP/1.1 101 Switching Protocols",
-            "\r\n".join("{}: {}".format(i, j) for i, j in self.response_headers.items()),
-            "\r\n",
-        ]).encode("utf8")
+        response = get_websocket_response(response_headers)
 
         class WebsocketHandler(socketserver.BaseRequestHandler):
             def handle(_self):
@@ -69,7 +83,8 @@ class TestBadWebsocketHeaders(object):
 
         return WebsocketHandler
 
-    def test_no_upgrade(self, proto_ver, proto_name, fake_websocket_broker):
+    def test_no_upgrade(self, proto_ver, proto_name, fake_websocket_broker,
+                        init_response_headers):
         """ Server doesn't respond with 'connection: upgrade' """
 
         mqttc = client.Client(
@@ -78,8 +93,8 @@ class TestBadWebsocketHeaders(object):
             transport="websockets"
             )
 
-        self.response_headers["Connection"] = "bad"
-        response = self._get_basic_handler()
+        init_response_headers["Connection"] = "bad"
+        response = self._get_basic_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response):
             with pytest.raises(WebsocketConnectionError) as exc:
@@ -87,7 +102,8 @@ class TestBadWebsocketHeaders(object):
 
         assert str(exc.value) == "WebSocket handshake error, connection not upgraded"
 
-    def test_bad_secret_key(self, proto_ver, proto_name, fake_websocket_broker):
+    def test_bad_secret_key(self, proto_ver, proto_name, fake_websocket_broker,
+                            init_response_headers):
         """ Server doesn't give anything after connection: upgrade """
 
         mqttc = client.Client(
@@ -96,7 +112,7 @@ class TestBadWebsocketHeaders(object):
             transport="websockets"
             )
 
-        response = self._get_basic_handler()
+        response = self._get_basic_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response):
             with pytest.raises(WebsocketConnectionError) as exc:
@@ -112,16 +128,7 @@ class TestBadWebsocketHeaders(object):
 class TestValidHeaders(object):
     """ Testing for functionality in request/response headers """
 
-    def setup(self):
-        # A good response from the server
-        self.response_headers = OrderedDict([
-            ("Upgrade", "websocket"),
-            ("Connection", "Upgrade"),
-            ("Sec-WebSocket-Accept", "testwebsocketkey"),
-            ("Sec-WebSocket-Protocol", "chat"),
-        ])
-
-    def _get_callback_handler(self, check_request=None):
+    def _get_callback_handler(self, response_headers, check_request=None):
         """ Get a basic BaseRequestHandler which returns the information in
         self._response_headers
         """
@@ -144,20 +151,18 @@ class TestValidHeaders(object):
                 hashed = hashlib.sha1(to_hash.encode("utf8"))
                 encoded = base64.b64encode(hashed.digest()).decode("utf8")
 
-                self.response_headers["Sec-WebSocket-Accept"] = encoded
+                response_headers["Sec-WebSocket-Accept"] = encoded
 
                 # Respond with the correct hash
-                response = "\r\n".join([
-                    "HTTP/1.1 101 Switching Protocols",
-                    "\r\n".join("{}: {}".format(i, j) for i, j in self.response_headers.items()),
-                    "\r\n",
-                ]).encode("utf8")
+                response = get_websocket_response(response_headers)
 
                 _self.request.sendall(response)
 
         return WebsocketHandler
 
-    def test_successful_connection(self, proto_ver, proto_name, fake_websocket_broker):
+    def test_successful_connection(self, proto_ver, proto_name,
+                                   fake_websocket_broker,
+                                   init_response_headers):
         """ Connect successfully, on correct path """
 
         mqttc = client.Client(
@@ -166,7 +171,7 @@ class TestValidHeaders(object):
             transport="websockets"
             )
 
-        response = self._get_callback_handler()
+        response = self._get_callback_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response):
             mqttc.connect("localhost", 1888, keepalive=10)
@@ -178,7 +183,8 @@ class TestValidHeaders(object):
         "/special",
         None,
     ])
-    def test_correct_path(self, proto_ver, proto_name, fake_websocket_broker, mqtt_path):
+    def test_correct_path(self, proto_ver, proto_name, fake_websocket_broker,
+                          mqtt_path, init_response_headers):
         """ Make sure it can connect on user specified paths """
 
         mqttc = client.Client(
@@ -195,7 +201,7 @@ class TestValidHeaders(object):
             # Make sure it connects to the right path
             assert re.search("GET {:s} HTTP/1.1".format(mqtt_path), decoded, re.IGNORECASE) is not None
 
-        response = self._get_callback_handler()
+        response = self._get_callback_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response):
             mqttc.connect("localhost", 1888, keepalive=10)
@@ -208,7 +214,8 @@ class TestValidHeaders(object):
         # Won't be checked, but make sure it still works even if the user passes it
         None,
     ])
-    def test_correct_auth(self, proto_ver, proto_name, fake_websocket_broker, auth_headers):
+    def test_correct_auth(self, proto_ver, proto_name, fake_websocket_broker,
+                          auth_headers, init_response_headers):
         """ Make sure it sends the right auth headers """
 
         mqttc = client.Client(
@@ -226,7 +233,7 @@ class TestValidHeaders(object):
             for h in auth_headers:
                 assert re.search("{:s}: {:s}".format(h, auth_headers[h]), decoded, re.IGNORECASE) is not None
 
-        response = self._get_callback_handler()
+        response = self._get_callback_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response):
             mqttc.connect("localhost", 1888, keepalive=10)
