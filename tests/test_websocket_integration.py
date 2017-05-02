@@ -61,7 +61,7 @@ class TestInvalidWebsocketResponse(object):
             transport="websockets"
             )
 
-        with fake_websocket_broker.serve("200 OK\n"):
+        with fake_websocket_broker.serve("200 OK\n".encode("utf8")):
             with pytest.raises(WebsocketConnectionError) as exc:
                 mqttc.connect("localhost", 1888, keepalive=10)
 
@@ -209,7 +209,10 @@ class TestValidHeaders(object):
             # Make sure it connects to the right path
             assert re.search("GET {:s} HTTP/1.1".format(mqtt_path), decoded, re.IGNORECASE) is not None
 
-        response = self._get_callback_handler(init_response_headers)
+        response = self._get_callback_handler(
+            init_response_headers,
+            check_request=create_response_hash,
+        )
 
         with fake_websocket_broker.serve(response):
             mqttc.connect("localhost", 1888, keepalive=10)
@@ -241,7 +244,10 @@ class TestValidHeaders(object):
             for h in auth_headers:
                 assert re.search("{:s}: {:s}".format(h, auth_headers[h]), decoded, re.IGNORECASE) is not None
 
-        response = self._get_callback_handler(init_response_headers)
+        response = self._get_callback_handler(
+            init_response_headers,
+            check_request=create_response_hash,
+        )
 
         with fake_websocket_broker.serve(response):
             mqttc.connect("localhost", 1888, keepalive=10)
