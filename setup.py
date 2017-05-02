@@ -14,6 +14,9 @@ requirements = []
 test_requirements = ['pytest']
 setup_requirements = ['pytest-runner']
 
+if sys.version_info < (3, 0):
+    test_requirements += ['mock']
+
 setup(
     name='paho-mqtt',
     version=__version__,
