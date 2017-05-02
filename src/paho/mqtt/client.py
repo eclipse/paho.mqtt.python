@@ -59,16 +59,8 @@ if platform.system() == 'Windows':
 else:
     EAGAIN = errno.EAGAIN
 
-VERSION_MAJOR = 1
-VERSION_MINOR = 2
-VERSION_REVISION = 2
-VERSION_NUMBER = (VERSION_MAJOR * 1000000 + VERSION_MINOR * 1000 + VERSION_REVISION)
-
 MQTTv31 = 3
 MQTTv311 = 4
-
-PROTOCOL_NAMEv31 = "MQIsdp"
-PROTOCOL_NAMEv311 = "MQTT"
 
 if sys.version_info[0] >= 3:
     # define some alias for python2 compatibility
@@ -150,10 +142,7 @@ MQTT_ERR_UNKNOWN = 13
 MQTT_ERR_ERRNO = 14
 MQTT_ERR_QUEUE_SIZE = 15
 
-if sys.version_info[0] < 3:
-    sockpair_data = "0"
-else:
-    sockpair_data = b"0"
+sockpair_data = b"0"
 
 
 class WebsocketConnectionError(ValueError):
@@ -263,7 +252,7 @@ def _socketpair_compat():
     return (sock1, sock2)
 
 
-class MQTTMessageInfo:
+class MQTTMessageInfo(object):
     """This is a class returned from Client.publish() and can be used to find
     out the mid of the message that was published, and to determine whether the
     message has been published, and/or wait until it is published.
@@ -324,7 +313,7 @@ class MQTTMessageInfo:
             return self._published
 
 
-class MQTTMessage:
+class MQTTMessage(object):
     """ This is a class that describes an incoming or outgoing message. It is
     passed to the on_message callback as the message parameter.
 
@@ -2046,14 +2035,11 @@ class Client(object):
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_connect(self, keepalive, clean_session):
-        if self._protocol == MQTTv31:
-            protocol = PROTOCOL_NAMEv31
-            proto_ver = 3
-        else:
-            protocol = PROTOCOL_NAMEv311
-            proto_ver = 4
-        protocol = protocol.encode('utf-8')
+        proto_ver = self._protocol
+        protocol = b"MQTT" if proto_ver >= MQTTv311 else b"MQIsdp"  # hard-coded UTF-8 encoded string
+
         remaining_length = 2 + len(protocol) + 1 + 1 + 2 + 2 + len(self._client_id)
+
         connect_flags = 0
         if clean_session:
             connect_flags |= 0x02
@@ -2583,7 +2569,7 @@ class Mosquitto(Client):
         super(Mosquitto, self).__init__(client_id, clean_session, userdata)
 
 
-class WebsocketWrapper:
+class WebsocketWrapper(object):
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1
     OPCODE_BINARY = 0x2

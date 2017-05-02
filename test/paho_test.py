@@ -248,7 +248,9 @@ def to_string(packet):
 
 
 def gen_connect(client_id, clean_session=True, keepalive=60, username=None, password=None, will_topic=None, will_qos=0,
-                will_retain=False, will_payload="", proto_name="MQTT", proto_ver=4):
+                will_retain=False, will_payload="", proto_name=None, proto_ver=4):
+    proto_name = b"MQTT" if proto_ver >= 4 else b"MQIsdp"
+
     if client_id is None:
         remaining_length = 12
     else:
@@ -277,7 +279,7 @@ def gen_connect(client_id, clean_session=True, keepalive=60, username=None, pass
     rl = pack_remaining_length(remaining_length)
     packet = struct.pack("!B" + str(len(rl)) + "s", 0x10, rl)
     packet = packet + struct.pack("!H" + str(len(proto_name)) + "sBBH",
-                                  len(proto_name), proto_name.encode('utf-8'),
+                                  len(proto_name), proto_name,
                                   proto_ver, connect_flags, keepalive)
     if client_id is not None:
         packet = packet + struct.pack("!H" + str(len(client_id)) + "s", len(client_id), client_id)
