@@ -11,6 +11,14 @@ from paho.mqtt.client import WebsocketConnectionError
 from testsupport.broker import fake_websocket_broker
 
 
+pytestmark = [
+    pytest.mark.skipif(
+        not pytest.config.getoption("--run-integration-tests"),
+        reason="Specify --run-integration-tests to run these tests",
+    ),
+]
+
+
 @pytest.fixture
 def init_response_headers():
     # "Normal" websocket response from server
@@ -239,4 +247,3 @@ class TestValidHeaders(object):
             mqttc.connect("localhost", 1888, keepalive=10)
 
             mqttc.disconnect()
-
