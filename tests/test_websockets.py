@@ -1,11 +1,10 @@
 import socket
 import sys
-import contextlib
 
 if sys.version_info < (3, 0):
-    from mock import patch, Mock
+    from mock import Mock
 else:
-    from unittest.mock import patch, Mock
+    from unittest.mock import Mock
 
 import pytest
 from paho.mqtt.client import WebsocketWrapper, WebsocketConnectionError
