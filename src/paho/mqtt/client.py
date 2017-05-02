@@ -2676,6 +2676,7 @@ class WebsocketWrapper:
             byte = self._socket.recv(1)
 
             self._readbuffer.extend(byte)
+
             # line end
             if byte == b"\n":
                 if len(self._readbuffer) > 2:
