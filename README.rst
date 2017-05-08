@@ -227,6 +227,24 @@ Set the time in seconds before a message with QoS>0 is retried, if the broker do
 
 This is set to 5 seconds by default and should not normally need changing.
 
+ws_set_options()
+''''''''''''''''
+
+::
+
+    ws_set_options(self, path="/mqtt", headers=None)
+
+Set websocket connection options. These options will only be used if ``transport="websockets"`` was passed into the ``Client()`` constructor.
+
+path
+    The mqtt path to use on the broker.
+
+headers
+    Either a dictionary specifying a list of extra headers which should be appended to the standard websocket headers, or a callable that takes the normal websocket headers and returns a new dictionary with a set of headers to connect to the broker.
+
+Must be called before ``connect*()``. An example of how this can be used with the AWS IoT platform is in the **examples** folder.
+
+
 tls_set()
 '''''''''
 
