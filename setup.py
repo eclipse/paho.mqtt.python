@@ -11,7 +11,7 @@ with open('README.rst', 'rb') as readme_file:
     readme = readme_file.read().decode('utf-8')
 
 requirements = []
-test_requirements = ['pytest']
+test_requirements = ['pytest', 'pylama']
 setup_requirements = ['pytest-runner']
 
 if sys.version_info < (3, 0):
