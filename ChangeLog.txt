@@ -2,13 +2,20 @@ v1.3.x - 2017-xx-xx
 ===================
 
 - **BREAKING** Requires Python 2.7 or 3.4+. Closes #163.
+- **BREAKING** Remove support for SSL without SSLContext (Requires Python 2.7.9+ or 3.2+).
+  Closes #115.
+- **BREAKING** tls_insecure_set() must now be called *after* tls_set()
 - Allow username and password to be zero length (as opposed to not being
   present). Closes #80.
 - Allow zero length client ids when using MQTT v3.1.1.
 - Add SSLContext support, including SNI. Closes #11.
-- Remove support for SSL without SSLContext (Requires Python 2.7.9+ or 3.2+).
-  Closes #115.
+- Improved support for unicode topic and binary payload.
+  Closes #15, #16.
+- Allow arbitrary Websocket headers and path.
+  Closes #169.
+- Fix issue with large inbound payload over Websocket. Closes #107.
 - Move unit tests to pytest (#164) and tox (#187)
+- Add support for standard Python logging. Closes #95.
 
 v1.2.3 - 2017-04-20
 ===================
