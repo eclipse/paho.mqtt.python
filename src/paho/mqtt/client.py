@@ -450,7 +450,7 @@ class Client(object):
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
         a zero length client id will be sent to the broker and the broker will
-        generate a random for the client. If using MQGG v3.1 then an id will be
+        generate a random for the client. If using MQTT v3.1 then an id will be
         randomly generated. In both cases, clean_session must be True. If this
         is not the case a ValueError will be raised.
 
