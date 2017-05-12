@@ -277,7 +277,7 @@ tls_set_context()
 
 ::
 
-    tls_set_context(context)
+    tls_set_context(context=None)
 
 Configure network encryption and authentication context. Enables SSL/TLS support.
 
@@ -308,7 +308,7 @@ enable_logger()
 
 ::
 
-    enable_logger(logger)
+    enable_logger(logger=None)
 
 Enable logging using the standard python logging package (See PEP 282). This may be used at the same time as the ``on_log`` callback method.
 
