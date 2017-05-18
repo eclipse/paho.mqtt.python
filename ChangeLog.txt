@@ -14,6 +14,7 @@ v1.3.x - 2017-xx-xx
 - Allow arbitrary Websocket headers and path.
   Closes #169.
 - Fix issue with large inbound payload over Websocket. Closes #107.
+- Add exponential delay for reconnection. Closes #195.
 - Move unit tests to pytest (#164) and tox (#187)
 - Add support for standard Python logging. Closes #95.
 
