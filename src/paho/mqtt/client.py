@@ -516,6 +516,9 @@ class Client(object):
         self._current_out_packet = None
         self._last_msg_in = time_func()
         self._last_msg_out = time_func()
+        self._reconnect_min_delay = 1
+        self._reconnect_max_delay = 120
+        self._reconnect_delay = None
         self._ping_t = 0
         self._last_mid = 0
         self._state = mqtt_cs_new
@@ -541,6 +544,7 @@ class Client(object):
         self._msgtime_mutex = threading.Lock()
         self._out_message_mutex = threading.RLock()
         self._in_message_mutex = threading.Lock()
+        self._reconnect_delay_mutex = threading.Lock()
         self._thread = None
         self._thread_terminate = False
         self._ssl = False
@@ -813,6 +817,19 @@ class Client(object):
         self._bind_address = bind_address
 
         self._state = mqtt_cs_connect_async
+
+    def reconnect_delay_set(self, min_delay=1, max_delay=120):
+        """ Configure the exponential reconnect delay
+
+            When connection is lost, wait initially min_delay seconds and
+            double this time every attempt. The wait is capped at max_delay.
+            Once the client is fully connected (e.g. not only TCP socket, but
+            received a success CONNACK), the wait timer is reset to min_delay.
+        """
+        with self._reconnect_delay_mutex:
+            self._reconnect_min_delay = min_delay
+            self._reconnect_max_delay = min_delay
+            self._reconnect_delay = None
 
     def reconnect(self):
         """Reconnect the client after a disconnect. Can only be called after
@@ -1433,7 +1450,7 @@ class Client(object):
                     if not retry_first_connection:
                         raise
                     self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
-                    time.sleep(1)
+                    self._reconnect_wait()
             else:
                 break
 
@@ -1460,7 +1477,7 @@ class Client(object):
             if should_exit():
                 run = False
             else:
-                time.sleep(1)
+                self._reconnect_wait()
 
                 if should_exit():
                     run = False
@@ -2310,6 +2327,7 @@ class Client(object):
 
         if result == 0:
             self._state = mqtt_cs_connected
+            self._reconnect_delay = None
 
         self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
 
@@ -2584,6 +2602,28 @@ class Client(object):
 
     def _thread_main(self):
         self.loop_forever(retry_first_connection=True)
+
+    def _reconnect_wait(self):
+        # See reconnect_delay_set for details
+        now = time_func()
+        with self._reconnect_delay_mutex:
+            if self._reconnect_delay is None:
+                self._reconnect_delay = self._reconnect_min_delay
+            else:
+                self._reconnect_delay = min(
+                    self._reconnect_delay * 2,
+                    self._reconnect_max_delay,
+                )
+
+            target_time = now + self._reconnect_delay
+
+        remaining = target_time - now
+        while (self._state != mqtt_cs_disconnecting
+                and not self._thread_terminate
+                and remaining > 0):
+
+            time.sleep(min(remaining, 1))
+            remaining = target_time - time_func()
 
 
 # Compatibility class for easy porting from mosquitto.py.

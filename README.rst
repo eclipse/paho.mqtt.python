@@ -383,6 +383,23 @@ retain
 Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if ``topic`` is
 ``None`` or has zero string length.
 
+reconnect_delay_set
+'''''''''''''''''''
+
+::
+
+    reconnect_delay_set(min_delay=1, max_delay=120)
+
+The client will automatically retry connection. Between each attempt
+it will wait a number of seconds between ``min_delay`` and ``max_delay``.
+
+When the connection is lost, initially the reconnection attempt is delayed of
+``min_delay`` seconds. It's doubled between subsequent attempt up to ``max_delay``.
+
+The delay is reset to ``min_delay`` when the connection complete (e.g. the CONNACK is
+received, not just the TCP connection is established).
+
+
 Connect / reconnect / disconnect
 ````````````````````````````````
 
