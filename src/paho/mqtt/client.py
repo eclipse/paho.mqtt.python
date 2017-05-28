@@ -2333,19 +2333,10 @@ class Client(object):
 
         with self._callback_mutex:
             if self.on_connect:
-                if sys.version_info[0] < 3:
-                    argcount = self.on_connect.func_code.co_argcount
-                else:
-                    argcount = self.on_connect.__code__.co_argcount
-
-                if argcount == 3:
-                    with self._in_callback:
-                        self.on_connect(self, self._userdata, result)
-                else:
-                    flags_dict = {}
-                    flags_dict['session present'] = flags & 0x01
-                    with self._in_callback:
-                        self.on_connect(self, self._userdata, flags_dict, result)
+                flags_dict = {}
+                flags_dict['session present'] = flags & 0x01
+                with self._in_callback:
+                    self.on_connect(self, self._userdata, flags_dict, result)
 
         if result == 0:
             rc = 0

@@ -4,6 +4,8 @@ v1.3.x - 2017-xx-xx
 - **BREAKING** Requires Python 2.7 or 3.4+. Closes #163.
 - **BREAKING** Remove support for SSL without SSLContext (Requires Python 2.7.9+ or 3.2+).
   Closes #115.
+- **BREAKING** on_connect callback is now always called flags. Previously this
+  callback could accepts 3 OR 4 arguments, now it must accepts 4. Closes #197.
 - **BREAKING** tls_insecure_set() must now be called *after* tls_set()
 - Allow username and password to be zero length (as opposed to not being
   present). Closes #80.
