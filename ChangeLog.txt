@@ -19,6 +19,7 @@ v1.3.x - 2017-xx-xx
 - Add exponential delay for reconnection. Closes #195.
 - Move unit tests to pytest (#164) and tox (#187)
 - Add support for standard Python logging. Closes #95.
+- Fix duplicate incoming QoS==2 message. Closes #194.
 
 v1.2.3 - 2017-04-20
 ===================
