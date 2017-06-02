@@ -341,6 +341,16 @@ class MQTTMessage(object):
         self.retain = False
         self.info = MQTTMessageInfo(mid)
 
+    def __eq__(self, other):
+        """Override the default Equals behavior"""
+        if isinstance(other, self.__class__):
+            return self.mid == other.mid
+        return False
+
+    def __ne__(self, other):
+        """Define a non-equality test"""
+        return not self.__eq__(other)
+
     @property
     def topic(self):
         if sys.version_info[0] >= 3:
@@ -2453,7 +2463,8 @@ class Client(object):
             rc = self._send_pubrec(message.mid)
             message.state = mqtt_ms_wait_for_pubrel
             with self._in_message_mutex:
-                self._in_messages.append(message)
+                if message not in self._in_messages:
+                    self._in_messages.append(message)
             return rc
         else:
             return MQTT_ERR_PROTOCOL
