@@ -1,4 +1,4 @@
-v1.3.x - 2017-xx-xx
+v1.3.0 - 2017-06-20
 ===================
 
 - **BREAKING** Requires Python 2.7 or 3.4+. Closes #163.
