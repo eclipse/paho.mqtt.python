@@ -37,6 +37,7 @@ import uuid
 import base64
 import string
 import hashlib
+import types
 import logging
 
 try:
@@ -455,7 +456,7 @@ class Client(object):
     """
 
     def __init__(self, client_id="", clean_session=True, userdata=None,
-            protocol=MQTTv311, transport="tcp"):
+                 protocol=MQTTv311, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -722,7 +723,6 @@ class Client(object):
 
         Must be called before connect() and after either tls_set() or
         tls_set_context()."""
-
         if self._ssl_context is None:
             raise ValueError('Must configure SSL context before using tls_insecure_set.')
 
@@ -817,8 +817,8 @@ class Client(object):
         if keepalive < 0:
             raise ValueError('Keepalive must be >=0.')
         if bind_address != "" and bind_address is not None:
-            if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (
-                        sys.version_info[0] == 3 and sys.version_info[1] < 2):
+            if ((sys.version_info[0] == 2 and sys.version_info[1] < 7) or
+                    (sys.version_info[0] == 3 and sys.version_info[1] < 2)):
                 raise ValueError('bind_address requires Python 2.7 or 3.2.')
 
         self._host = host
@@ -881,7 +881,7 @@ class Client(object):
 
         try:
             if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (
-                        sys.version_info[0] == 3 and sys.version_info[1] < 2):
+                    sys.version_info[0] == 3 and sys.version_info[1] < 2):
                 sock = socket.create_connection((self._host, self._port))
             else:
                 sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
@@ -924,7 +924,8 @@ class Client(object):
         if self._transport == "websockets":
             sock.settimeout(self._keepalive)
             sock = WebsocketWrapper(sock, self._host, self._port, self._ssl,
-                self._websocket_path, self._websocket_extra_headers)
+                                    self._websocket_path,
+                                    self._websocket_extra_headers)
 
         self._sock = sock
         self._sock.setblocking(0)
@@ -1121,9 +1122,9 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
+        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode
             [MQTT-3.1.3-11].
-        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
+        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it
             will be encoded as UTF-8.
         """
 
@@ -1341,7 +1342,7 @@ class Client(object):
             with self._callback_mutex:
                 if self.on_disconnect:
                     with self._in_callback:
-                        self.on_disconnect(self, self._userdata, rc)
+                        self.on_disconnect(self._userdata, rc)
 
             return MQTT_ERR_CONN_LOST
 
@@ -1473,16 +1474,16 @@ class Client(object):
                 # in multi threaded mode when loop_stop() has been called and
                 # so no other threads can access _current_out_packet,
                 # _out_packet or _messages.
-                if (self._thread_terminate is True
-                    and self._current_out_packet is None
-                    and len(self._out_packet) == 0
-                    and len(self._out_messages) == 0):
+                if (self._thread_terminate is True and
+                    self._current_out_packet is None and
+                    len(self._out_packet) == 0 and
+                        len(self._out_messages) == 0):
                     rc = 1
                     run = False
 
-
             def should_exit():
-                return self._state == mqtt_cs_disconnecting or run is False or self._thread_terminate is True
+                return (self._state == mqtt_cs_disconnecting or
+                        run is False or self._thread_terminate is True)
 
             if should_exit():
                 run = False
@@ -1547,7 +1548,7 @@ class Client(object):
                     MQTT_LOG_ERR, and MQTT_LOG_DEBUG.
         buf:        the message itself
         """
-        self._on_log = func
+        self._on_log = types.MethodType(func, self)
 
     @property
     def on_connect(self):
@@ -1751,7 +1752,7 @@ class Client(object):
             with self._callback_mutex:
                 if self.on_disconnect:
                     with self._in_callback:
-                        self.on_disconnect(self, self._userdata, rc)
+                        self.on_disconnect(self._userdata, rc)
         return rc
 
     def _packet_read(self):
@@ -1881,7 +1882,7 @@ class Client(object):
                         with self._callback_mutex:
                             if self.on_publish:
                                 with self._in_callback:
-                                    self.on_publish(self, self._userdata, packet['mid'])
+                                    self.on_publish(self._userdata, packet['mid'])
 
                         packet['info']._set_as_published()
 
@@ -1894,7 +1895,7 @@ class Client(object):
                         with self._callback_mutex:
                             if self.on_disconnect:
                                 with self._in_callback:
-                                    self.on_disconnect(self, self._userdata, 0)
+                                    self.on_disconnect(self._userdata, 0)
 
                         if self._sock:
                             self._sock.close()
@@ -1919,7 +1920,7 @@ class Client(object):
     def _easy_log(self, level, fmt, *args):
         if self.on_log:
             buf = fmt % args
-            self.on_log(self, self._userdata, level, buf)
+            self.on_log(self._userdata, level, buf)
         if self._logger:
             level_std = LOGGING_LEVEL[level]
             self._logger.log(level_std, fmt, *args)
@@ -1952,7 +1953,7 @@ class Client(object):
                 with self._callback_mutex:
                     if self.on_disconnect:
                         with self._in_callback:
-                            self.on_disconnect(self, self._userdata, rc)
+                            self.on_disconnect(self._userdata, rc)
 
     def _mid_generate(self):
         self._last_mid += 1
@@ -1972,9 +1973,9 @@ class Client(object):
 
     @staticmethod
     def _filter_wildcard_len_check(sub):
-        if (len(sub) == 0 or len(sub) > 65535
-            or any(b'+' in p or b'#' in p for p in sub.split(b'/') if len(p) > 1)
-            or b'#/' in sub):
+        if (len(sub) == 0 or len(sub) > 65535 or
+            any(b'+' in p or b'#' in p for p in sub.split(b'/') if len(p) > 1) or
+                b'#/' in sub):
             return MQTT_ERR_INVAL
         else:
             return MQTT_ERR_SUCCESS
@@ -2346,7 +2347,7 @@ class Client(object):
                 flags_dict = {}
                 flags_dict['session present'] = flags & 0x01
                 with self._in_callback:
-                    self.on_connect(self, self._userdata, flags_dict, result)
+                    self.on_connect(self._userdata, flags_dict, result)
 
         if result == 0:
             rc = 0
@@ -2403,7 +2404,7 @@ class Client(object):
         with self._callback_mutex:
             if self.on_subscribe:
                 with self._in_callback:  # Don't call loop_write after _send_publish()
-                    self.on_subscribe(self, self._userdata, mid, granted_qos)
+                    self.on_subscribe(self._userdata, mid, granted_qos)
 
         return MQTT_ERR_SUCCESS
 
@@ -2543,14 +2544,14 @@ class Client(object):
         with self._callback_mutex:
             if self.on_unsubscribe:
                 with self._in_callback:
-                    self.on_unsubscribe(self, self._userdata, mid)
+                    self.on_unsubscribe(self._userdata, mid)
         return MQTT_ERR_SUCCESS
 
     def _do_on_publish(self, idx, mid):
         with self._callback_mutex:
             if self.on_publish:
                 with self._in_callback:
-                    self.on_publish(self, self._userdata, mid)
+                    self.on_publish(self._userdata, mid)
 
         msg = self._out_messages.pop(idx)
         if msg.qos > 0:
@@ -2595,12 +2596,12 @@ class Client(object):
             if topic is not None:
                 for callback in self._on_message_filtered.iter_match(message.topic):
                     with self._in_callback:
-                        callback(self, self._userdata, message)
+                        callback(self._userdata, message)
                     matched = True
 
-            if matched == False and self.on_message:
+            if matched is False and self.on_message:
                 with self._in_callback:
-                    self.on_message(self, self._userdata, message)
+                    self.on_message(self._userdata, message)
 
     def _thread_main(self):
         self.loop_forever(retry_first_connection=True)
@@ -2620,10 +2621,9 @@ class Client(object):
             target_time = now + self._reconnect_delay
 
         remaining = target_time - now
-        while (self._state != mqtt_cs_disconnecting
-                and not self._thread_terminate
-                and remaining > 0):
-
+        while (self._state != mqtt_cs_disconnecting and
+               not self._thread_terminate and
+               remaining > 0):
             time.sleep(min(remaining, 1))
             remaining = target_time - time_func()
 
