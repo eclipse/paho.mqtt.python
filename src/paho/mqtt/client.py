@@ -491,10 +491,7 @@ class Client(object):
             raise ValueError('transport must be "websockets" or "tcp", not %s' % transport)
         self._transport = transport.lower()
         self._protocol = protocol
-        if isinstance(userdata, collections.Iterable) and not isinstance(userdata, basestring):
-            self._userdata = collections.deque(userdata)
-        else:
-            self._userdata = userdata
+        self._userdata = userdata
         self._sock = None
         self._sockpairR, self._sockpairW = _socketpair_compat()
         self._keepalive = 60
@@ -1374,10 +1371,7 @@ class Client(object):
 
     def user_data_set(self, userdata):
         """Set the user data variable passed to callbacks. May be any data type."""
-        if isinstance(userdata, collections.Iterable) and not isinstance(userdata, basestring):
-            self._userdata = collections.deque(userdata)
-        else:
-            self._userdata = userdata
+        self._userdata = userdata
 
     def will_set(self, topic, payload=None, qos=0, retain=False):
         """Set a Will to be sent by the broker in case the client disconnects unexpectedly.

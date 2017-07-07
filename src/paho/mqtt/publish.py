@@ -18,10 +18,12 @@ of messages in a one-shot manner. In other words, they are useful for the
 situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect and nothing else is required.
 """
+from __future__ import absolute_import
 
-import paho.mqtt.client as paho
-import paho.mqtt as mqtt
+import collections
 
+from . import client as paho
+from .. import mqtt
 
 def _do_publish(client):
     """Internal function"""
@@ -30,10 +32,10 @@ def _do_publish(client):
 
     if isinstance(message, dict):
         client.publish(**message)
-    elif isinstance(message, tuple):
+    elif isinstance(message, (tuple, list)):
         client.publish(*message)
     else:
-        raise ValueError('message must be a dict or a tuple')
+        raise TypeError('message must be a dict, tuple, or list')
 
 
 def _on_connect(client, userdata, flags, rc):
@@ -121,11 +123,11 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
-    if not isinstance(msgs, list):
-        raise ValueError('msgs must be a list')
+    if not isinstance(msgs, collections.Iterable):
+        raise TypeError('msgs must be an iterable')
 
-    client = paho.Client(client_id=client_id,
-                         userdata=msgs, protocol=protocol, transport=transport)
+    client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
+                         protocol=protocol, transport=transport)
 
     client.on_publish = _on_publish
     client.on_connect = _on_connect
