@@ -18,6 +18,7 @@ protocol that is easy to implement and suitable for low powered devices.
 """
 import collections
 import errno
+import logging
 import platform
 import random
 import select
@@ -144,6 +145,7 @@ MQTT_ERR_QUEUE_SIZE = 15
 
 sockpair_data = b"0"
 
+LOGGER = logging.getLogger(__name__)
 
 class WebsocketConnectionError(ValueError):
     pass
@@ -1773,7 +1775,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                LOGGER.error('failed to receive on socket: %s', err)
                 return 1
             else:
                 if len(command) == 0:
@@ -1793,7 +1795,7 @@ class Client(object):
                         return MQTT_ERR_AGAIN
                     if err.errno == EAGAIN:
                         return MQTT_ERR_AGAIN
-                    print(err)
+                    LOGGER.error('failed to receive on socket: %s', err)
                     return 1
                 else:
                     if len(byte) == 0:
@@ -1822,7 +1824,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                LOGGER.error('failed to receive on socket: %s', err)
                 return 1
             else:
                 if len(data) == 0:
@@ -1866,7 +1868,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                LOGGER.error('failed to receive on socket: %s', err)
                 return 1
 
             if write_length > 0:
