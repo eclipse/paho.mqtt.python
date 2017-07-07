@@ -353,10 +353,7 @@ class MQTTMessage(object):
 
     @property
     def topic(self):
-        if sys.version_info[0] >= 3:
-            return self._topic.decode('utf-8')
-        else:
-            return self._topic
+        return self._topic.decode('utf-8')
 
     @topic.setter
     def topic(self, value):
@@ -455,7 +452,7 @@ class Client(object):
     """
 
     def __init__(self, client_id="", clean_session=True, userdata=None,
-            protocol=MQTTv311, transport="tcp"):
+                 protocol=MQTTv311, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -490,9 +487,14 @@ class Client(object):
         if not clean_session and (client_id == "" or client_id is None):
             raise ValueError('A client id must be provided if clean session is False.')
 
-        self._transport = transport
+        if transport.lower() not in ('websockets', 'tcp'):
+            raise ValueError('transport must be "websockets" or "tcp", not %s' % transport)
+        self._transport = transport.lower()
         self._protocol = protocol
-        self._userdata = userdata
+        if isinstance(userdata, collections.Iterable) and not isinstance(userdata, basestring):
+            self._userdata = collections.deque(userdata)
+        else:
+            self._userdata = userdata
         self._sock = None
         self._sockpairR, self._sockpairW = _socketpair_compat()
         self._keepalive = 60
@@ -817,8 +819,7 @@ class Client(object):
         if keepalive < 0:
             raise ValueError('Keepalive must be >=0.')
         if bind_address != "" and bind_address is not None:
-            if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (
-                        sys.version_info[0] == 3 and sys.version_info[1] < 2):
+            if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
                 raise ValueError('bind_address requires Python 2.7 or 3.2.')
 
         self._host = host
@@ -880,8 +881,7 @@ class Client(object):
         self._messages_reconnect_reset()
 
         try:
-            if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (
-                        sys.version_info[0] == 3 and sys.version_info[1] < 2):
+            if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
                 sock = socket.create_connection((self._host, self._port))
             else:
                 sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
@@ -1374,7 +1374,10 @@ class Client(object):
 
     def user_data_set(self, userdata):
         """Set the user data variable passed to callbacks. May be any data type."""
-        self._userdata = userdata
+        if isinstance(userdata, collections.Iterable) and not isinstance(userdata, basestring):
+            self._userdata = collections.deque(userdata)
+        else:
+            self._userdata = userdata
 
     def will_set(self, topic, payload=None, qos=0, retain=False):
         """Set a Will to be sent by the broker in case the client disconnects unexpectedly.
@@ -2428,13 +2431,10 @@ class Client(object):
         # This replaces an invalid topic with a message and the hex
         # representation of the topic for logging. When the user attempts to
         # access message.topic in the callback, an exception will be raised.
-        if sys.version_info[0] >= 3:
-            try:
-                print_topic = topic.decode('utf-8')
-            except UnicodeDecodeError:
-                print_topic = "TOPIC WITH INVALID UTF-8: " + str(topic)
-        else:
-            print_topic = topic
+        try:
+            print_topic = topic.decode('utf-8')
+        except UnicodeDecodeError:
+            print_topic = "TOPIC WITH INVALID UTF-8: " + str(topic)
 
         message.topic = topic
 

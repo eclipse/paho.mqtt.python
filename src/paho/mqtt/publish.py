@@ -26,7 +26,7 @@ import paho.mqtt as mqtt
 def _do_publish(client):
     """Internal function"""
 
-    message = client._userdata.pop()
+    message = client._userdata.popleft()
 
     if isinstance(message, dict):
         client.publish(**message)
