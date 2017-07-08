@@ -18,7 +18,6 @@ protocol that is easy to implement and suitable for low powered devices.
 """
 import collections
 import errno
-import logging
 import platform
 import random
 import select
