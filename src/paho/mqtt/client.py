@@ -734,13 +734,11 @@ class Client(object):
             # If verify_mode is CERT_NONE then the host name will never be checked
             self._ssl_context.check_hostname = not value
 
-    def enable_logger(self, logger=None):
-        if not logger:
-            if self._logger:
-                # Do not replace existing logger
-                return
-            logger = logging.getLogger(__name__)
-        self._logger = logger
+    def enable_logger(self, logger=LOGGER):
+        if self._logger is not None:
+            # Do not replace existing logger
+            return
+        self._logger = logger if logger is not None else LOGGER
 
     def disable_logger(self):
         self._logger = None
@@ -1915,10 +1913,10 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _easy_log(self, level, fmt, *args):
-        if self.on_log:
+        if self.on_log is not None:
             buf = fmt % args
             self.on_log(self, self._userdata, level, buf)
-        if self._logger:
+        if self._logger is not None:
             level_std = LOGGING_LEVEL[level]
             self._logger.log(level_std, fmt, *args)
 
