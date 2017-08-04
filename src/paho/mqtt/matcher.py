@@ -17,7 +17,7 @@ class MQTTMatcher(object):
         self._root = self.Node()
 
     def __setitem__(self, key, value):
-        """Add a topic filter :key to the prefix tree 
+        """Add a topic filter :key to the prefix tree
         and associate it to :value"""
         node = self._root
         for sym in key.split('/'):
