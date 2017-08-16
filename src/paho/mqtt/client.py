@@ -144,7 +144,6 @@ MQTT_ERR_QUEUE_SIZE = 15
 
 sockpair_data = b"0"
 
-
 class WebsocketConnectionError(ValueError):
     pass
 
@@ -734,8 +733,9 @@ class Client(object):
             self._ssl_context.check_hostname = not value
 
     def enable_logger(self, logger=None):
-        if not logger:
-            if self._logger:
+        """ Enables a logger to send log messages to """
+        if logger is None:
+            if self._logger is not None:
                 # Do not replace existing logger
                 return
             logger = logging.getLogger(__name__)
@@ -1773,7 +1773,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
             else:
                 if len(command) == 0:
@@ -1793,7 +1793,7 @@ class Client(object):
                         return MQTT_ERR_AGAIN
                     if err.errno == EAGAIN:
                         return MQTT_ERR_AGAIN
-                    print(err)
+                    self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                     return 1
                 else:
                     if len(byte) == 0:
@@ -1822,7 +1822,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
             else:
                 if len(data) == 0:
@@ -1866,7 +1866,7 @@ class Client(object):
                     return MQTT_ERR_AGAIN
                 if err.errno == EAGAIN:
                     return MQTT_ERR_AGAIN
-                print(err)
+                self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
 
             if write_length > 0:
@@ -1914,10 +1914,10 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _easy_log(self, level, fmt, *args):
-        if self.on_log:
+        if self.on_log is not None:
             buf = fmt % args
             self.on_log(self, self._userdata, level, buf)
-        if self._logger:
+        if self._logger is not None:
             level_std = LOGGING_LEVEL[level]
             self._logger.log(level_std, fmt, *args)
 
