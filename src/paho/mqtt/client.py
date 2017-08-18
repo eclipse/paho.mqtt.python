@@ -838,7 +838,7 @@ class Client(object):
         """
         with self._reconnect_delay_mutex:
             self._reconnect_min_delay = min_delay
-            self._reconnect_max_delay = min_delay
+            self._reconnect_max_delay = max_delay
             self._reconnect_delay = None
 
     def reconnect(self):
