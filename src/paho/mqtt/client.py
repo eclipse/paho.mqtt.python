@@ -1089,7 +1089,7 @@ class Client(object):
             message.dup = False
 
             with self._out_message_mutex:
-                if self._max_queued_messages > 0 and len(self._out_messages) >= self._max_queued_messages:
+                if 0 < self._max_queued_messages <= len(self._out_messages):
                     return (MQTT_ERR_QUEUE_SIZE, local_mid)
 
                 self._out_messages.append(message)
@@ -1121,9 +1121,9 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
+        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode
             [MQTT-3.1.3-11].
-        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
+        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it
             will be encoded as UTF-8.
         """
 
@@ -2388,7 +2388,7 @@ class Client(object):
                     self.loop_write()  # Process outgoing messages that have just been queued up
 
             return rc
-        elif result > 0 and result < 6:
+        elif 0 < result < 6:
             return MQTT_ERR_CONN_REFUSED
         else:
             return MQTT_ERR_PROTOCOL
