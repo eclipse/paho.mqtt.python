@@ -850,9 +850,9 @@ on_message()
     on_message(client, userdata, message)
     
 Called when a message has been received on a topic that the client subscribes
-to. This callback will be called for every message received. Use
-``message_callback_add()`` to define multiple callbacks that will be called for
-specific topic filters.
+to and the message does not match an existing topic filter callback.
+Use ``message_callback_add()`` to define a callback that will be called for
+specific topic filters. ``on_message`` will serve as fallback when none matched.
 
 client
     the client instance for this callback
@@ -898,6 +898,10 @@ callback
 If using ``message_callback_add()`` and ``on_message``, only messages that do
 not match a subscription specific filter will be passed to the ``on_message``
 callback.
+
+If multiple sub match a topic, each callback will be called (e.g. sub ``sensors/#``
+and sub ``+/humidity`` both match a message with a topic ``sensors/humidity``, so both
+callbacks will handle this message).
 
 message_callback_remove()
 '''''''''''''''''''''''''
