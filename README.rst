@@ -515,6 +515,10 @@ disconnect()
 Disconnect from the broker cleanly. Using ``disconnect()`` will not result in a
 will message being sent by the broker.
 
+Disconnect will not wait for all queued message to be sent, to ensure all messages
+are delivered, ``wait_for_publish()`` from ``MQTTMessageInfo`` should be used.
+See ``publish()`` for details.
+
 Callback (disconnect)
 .....................
 
@@ -631,11 +635,20 @@ retain
     if set to ``True``, the message will be set as the "last known
     good"/retained message for the topic.
 
-Returns a tuple ``(result, mid)``, where result is ``MQTT_ERR_SUCCESS`` to
-indicate success or ``MQTT_ERR_NO_CONN`` if the client is not currently
-connected. ``mid`` is the message ID for the publish request. The mid value can
-be used to track the publish request by checking against the mid argument in
-the ``on_publish()`` callback if it is defined.
+Returns a MQTTMessageInfo which expose the following attributes and methods:
+
+* ``rc``, the result of the publishing. It could be ``MQTT_ERR_SUCCESS`` to
+  indicate success, ``MQTT_ERR_NO_CONN`` if the client is not currently connected,
+  or ``MQTT_ERR_QUEUE_SIZE`` when ``max_queued_messages_set`` is used to indicate
+  that message is neither queued nor sent.
+* ``mid`` is the message ID for the publish request. The mid value can be used to
+  track the publish request by checking against the mid argument in the
+  ``on_publish()`` callback if it is defined. ``wait_for_publish`` may be easier
+  depending on your use-case.
+* ``wait_for_publish()`` will block until the message is published. It will
+  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
+* ``is_published`` returns True if the message has been published. It will
+  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
 
 A ``ValueError`` will be raised if topic is ``None``, has zero length or is
 invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the

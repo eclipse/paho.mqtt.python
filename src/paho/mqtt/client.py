@@ -302,6 +302,8 @@ class MQTTMessageInfo(object):
 
     def wait_for_publish(self):
         """Block until the message associated with this object is published."""
+        if self.rc == MQTT_ERR_QUEUE_SIZE:
+            raise ValueError('Message is not queued due to ERR_QUEUE_SIZE')
         with self._condition:
             while not self._published:
                 self._condition.wait()
@@ -309,6 +311,8 @@ class MQTTMessageInfo(object):
     def is_published(self):
         """Returns True if the message associated with this object has been
         published, else returns False."""
+        if self.rc == MQTT_ERR_QUEUE_SIZE:
+            raise ValueError('Message is not queued due to ERR_QUEUE_SIZE')
         with self._condition:
             return self._published
 
@@ -1090,7 +1094,8 @@ class Client(object):
 
             with self._out_message_mutex:
                 if self._max_queued_messages > 0 and len(self._out_messages) >= self._max_queued_messages:
-                    return (MQTT_ERR_QUEUE_SIZE, local_mid)
+                    message.info.rc = MQTT_ERR_QUEUE_SIZE
+                    return message.info
 
                 self._out_messages.append(message)
                 if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
