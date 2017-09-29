@@ -1270,6 +1270,8 @@ class Client(object):
             max_packets = 1
 
         for _ in range(0, max_packets):
+            if self._sock is None:
+                return MQTT_ERR_NO_CONN
             rc = self._packet_read()
             if rc > 0:
                 return self._loop_rc_handle(rc)
