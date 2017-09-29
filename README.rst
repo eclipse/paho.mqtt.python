@@ -771,7 +771,7 @@ client
     the client instance for this callback
 
 userdata
-    the private user data as set in ``Client()`` or ``userdata_set()``
+    the private user data as set in ``Client()`` or ``user_data_set()``
 
 flags
     response flags sent by the broker
@@ -820,7 +820,7 @@ client
     the client instance for this callback
 
 userdata
-    the private user data as set in ``Client()`` or ``userdata_set()``
+    the private user data as set in ``Client()`` or ``user_data_set()``
 
 rc
     the disconnection result
@@ -858,7 +858,7 @@ client
     the client instance for this callback
 
 userdata
-    the private user data as set in ``Client()`` or ``userdata_set()``
+    the private user data as set in ``Client()`` or ``user_data_set()``
 
 message
     an instance of MQTTMessage. This is a class with members ``topic``, ``payload``, ``qos``, ``retain``.
