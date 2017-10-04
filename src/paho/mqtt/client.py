@@ -1102,7 +1102,7 @@ class Client(object):
                     elif qos == 2:
                         message.state = mqtt_ms_wait_for_pubrec
 
-                    rc = self._send_publish(message.mid, message.topic, message.payload, message.qos, message.retain,
+                    rc = self._send_publish(message.mid, topic, message.payload, message.qos, message.retain,
                                             message.dup)
 
                     # remove from inflight messages so it will be send after a connection is made
@@ -2025,7 +2025,7 @@ class Client(object):
 
     def _send_publish(self, mid, topic, payload=b'', qos=0, retain=False, dup=False, info=None):
         # we assume that topic and payload are already properly encoded
-        # assert not isinstance(topic, unicode) and not isinstance(payload, unicode) and payload is not None
+        assert not isinstance(topic, unicode) and not isinstance(payload, unicode) and payload is not None
 
         if self._sock is None:
             return MQTT_ERR_NO_CONN
@@ -2192,7 +2192,14 @@ class Client(object):
                     if m.state == mqtt_ms_wait_for_puback or m.state == mqtt_ms_wait_for_pubrec:
                         m.timestamp = now
                         m.dup = True
-                        self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                        self._send_publish(
+                            m.mid,
+                            m.topic.encode('utf-8'),
+                            m.payload,
+                            m.qos,
+                            m.retain,
+                            m.dup
+                        )
                     elif m.state == mqtt_ms_wait_for_pubrel:
                         m.timestamp = now
                         m.dup = True
@@ -2365,7 +2372,14 @@ class Client(object):
 
                     if m.qos == 0:
                         with self._in_callback:  # Don't call loop_write after _send_publish()
-                            rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                            rc = self._send_publish(
+                                m.mid,
+                                m.topic.encode('utf-8'),
+                                m.payload,
+                                m.qos,
+                                m.retain,
+                                m.dup,
+                            )
                         if rc != 0:
                             return rc
                     elif m.qos == 1:
@@ -2373,7 +2387,14 @@ class Client(object):
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_puback
                             with self._in_callback:  # Don't call loop_write after _send_publish()
-                                rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                                rc = self._send_publish(
+                                    m.mid,
+                                    m.topic.encode('utf-8'),
+                                    m.payload,
+                                    m.qos,
+                                    m.retain,
+                                    m.dup,
+                                )
                             if rc != 0:
                                 return rc
                     elif m.qos == 2:
@@ -2381,7 +2402,14 @@ class Client(object):
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubrec
                             with self._in_callback:  # Don't call loop_write after _send_publish()
-                                rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                                rc = self._send_publish(
+                                    m.mid,
+                                    m.topic.encode('utf-8'),
+                                    m.payload,
+                                    m.qos,
+                                    m.retain,
+                                    m.dup,
+                                )
                             if rc != 0:
                                 return rc
                         elif m.state == mqtt_ms_resend_pubrel:
@@ -2515,7 +2543,14 @@ class Client(object):
                         m.state = mqtt_ms_wait_for_puback
                     elif m.qos == 2:
                         m.state = mqtt_ms_wait_for_pubrec
-                    rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                    rc = self._send_publish(
+                        m.mid,
+                        m.topic.encode('utf-8'),
+                        m.payload,
+                        m.qos,
+                        m.retain,
+                        m.dup,
+                    )
                     if rc != 0:
                         return rc
             else:
