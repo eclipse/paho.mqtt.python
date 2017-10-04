@@ -2165,6 +2165,8 @@ class Client(object):
         for t, q in topics:
             self._pack_str16(packet, t)
             packet.append(q)
+
+        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE (d%d) %s", dup, topics)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
