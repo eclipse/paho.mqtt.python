@@ -104,7 +104,6 @@ class Test_connect(object):
 
 class TestPublishBroker2Client(object):
 
-    @pytest.mark.skipif(sys.version_info < (3, 0), reason="Need Python3")
     def test_invalid_utf8_topic(self, fake_broker):
         mqttc = client.Client("client-id")
 

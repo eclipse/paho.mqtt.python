@@ -357,10 +357,7 @@ class MQTTMessage(object):
 
     @property
     def topic(self):
-        if sys.version_info[0] >= 3:
-            return self._topic.decode('utf-8')
-        else:
-            return self._topic
+        return self._topic.decode('utf-8')
 
     @topic.setter
     def topic(self, value):
