@@ -2340,6 +2340,15 @@ class Client(object):
             # Downgrade to MQTT v3.1
             self._protocol = MQTTv31
             return self.reconnect()
+        elif (result == CONNACK_REFUSED_IDENTIFIER_REJECTED
+                and self._client_id == b''):
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Received CONNACK (%s, %s), attempting to use non-empty CID",
+                flags, result,
+            )
+            self._client_id = base62(uuid.uuid4().int, padding=22)
+            return self.reconnect()
 
         if result == 0:
             self._state = mqtt_cs_connected
