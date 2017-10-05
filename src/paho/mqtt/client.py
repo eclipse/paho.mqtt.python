@@ -548,7 +548,6 @@ class Client(object):
         self._port = 1883
         self._bind_address = ""
         self._in_callback = threading.Lock()
-        self._strict_protocol = False
         self._callback_mutex = threading.RLock()
         self._out_packet_mutex = threading.Lock()
         self._current_out_packet_mutex = threading.RLock()
@@ -2312,17 +2311,15 @@ class Client(object):
             return MQTT_ERR_PROTOCOL
 
     def _handle_pingreq(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 0:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 0:
+            return MQTT_ERR_PROTOCOL
 
         self._easy_log(MQTT_LOG_DEBUG, "Received PINGREQ")
         return self._send_pingresp()
 
     def _handle_pingresp(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 0:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 0:
+            return MQTT_ERR_PROTOCOL
 
         # No longer waiting for a PINGRESP.
         self._ping_t = 0
@@ -2330,11 +2327,7 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_connack(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
-
-        if len(self._in_packet['packet']) != 2:
+        if self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
         (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
@@ -2504,11 +2497,7 @@ class Client(object):
             return MQTT_ERR_PROTOCOL
 
     def _handle_pubrel(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
-
-        if len(self._in_packet['packet']) != 2:
+        if self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
@@ -2558,9 +2547,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_pubrec(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 2:
+            return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREC (Mid: %d)", mid)
@@ -2575,9 +2563,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_unsuback(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 2:
+            return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: %d)", mid)
@@ -2604,9 +2591,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_pubackcomp(self, cmd):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 2:
+            return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received %s (Mid: %d)", cmd, mid)
