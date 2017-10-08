@@ -954,6 +954,46 @@ and ``MQTT_LOG_DEBUG``. The message itself is in ``buf``.
 This may be used at the same time as the standard Python logging, which can be
 enabled via the ``enable_logger`` method.
 
+on_socket_open()
+''''''''''''''''
+
+::
+
+    on_socket_open(client, userdata, sock)
+
+Called when the socket has been opened.
+Use this to register the socket with an external event loop for reading.
+
+on_socket_close()
+'''''''''''''''''
+
+::
+
+    on_socket_close(client, userdata, sock)
+
+Called when the socket is about to be closed.
+Use this to unregister a socket from an external event loop for reading.
+
+on_socket_register_write()
+''''''''''''''''''''''''''
+
+::
+
+    on_socket_register_write(client, userdata, sock)
+
+Called when a write operation to the socket failed because it would have blocked, e.g. output buffer full.
+Use this to register the socket with an external event loop for writing.
+
+on_socket_unregister_write()
+''''''''''''''''''''''''''''
+
+::
+
+    on_socket_unregister_write(client, userdata, sock)
+
+Called when a write operation to the socket succeeded after it had previously failed.
+Use this to unregister the socket from an external event loop for writing.
+
 External event loop support
 ```````````````````````````
 
@@ -995,6 +1035,9 @@ socket()
 
 Returns the socket object in use in the client to allow interfacing with other
 event loops.
+This call is particularly useful for select_ based loops. See ``examples/loop_select.py``.
+
+.. _select: https://docs.python.org/3/library/select.html#select.select
 
 want_write()
 ''''''''''''
@@ -1005,6 +1048,46 @@ want_write()
 
 Returns true if there is data waiting to be written, to allow interfacing the
 client with other event loops.
+This call is particularly useful for select_ based loops. See ``examples/loop_select.py``.
+
+.. _select: https://docs.python.org/3/library/select.html#select.select
+
+state callbacks
+'''''''''''''''
+
+::
+
+    on_socket_open
+    on_socket_close
+    on_socket_register_write
+    on_socket_unregister_write
+
+Use these callbacks to get notified about state changes in the socket.
+This is particularly useful for event loops where you register or unregister a socket
+for reading+writing. See ``examples/loop_asyncio.py`` for an example.
+
+When the socket is opened, ``on_socket_open`` is called.
+Register the socket with your event loop for reading.
+
+When the socket is about to be closed, ``on_socket_close`` is called.
+Unregister the socket from your event loop for reading.
+
+When a write to the socket failed because it would have blocked, e.g. output buffer full,
+``on_socket_register_write`` is called.
+Register the socket with your event loop for writing.
+
+When the next write to the socket succeeded, ``on_socket_unregister_write`` is called.
+Unregister the socket from your event loop for writing.
+
+The callbacks are always called in this order:
+
+- ``on_socket_open``
+- Zero or more times:
+
+  - ``on_socket_register_write``
+  - ``on_socket_unregister_write``
+
+- ``on_socket_close``
 
 Global helper functions
 ```````````````````````
