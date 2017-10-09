@@ -1130,9 +1130,9 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
+        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode
             [MQTT-3.1.3-11].
-        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
+        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it
             will be encoded as UTF-8.
         """
 
@@ -2366,8 +2366,7 @@ class Client(object):
 
         with self._callback_mutex:
             if self.on_connect:
-                flags_dict = {}
-                flags_dict['session present'] = flags & 0x01
+                flags_dict = {'session present': flags & 0x01}
                 with self._in_callback:
                     self.on_connect(self, self._userdata, flags_dict, result)
 
