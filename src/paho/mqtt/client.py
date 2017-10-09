@@ -575,6 +575,12 @@ class Client(object):
     def __del__(self):
         pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.disconnect()
+
     def reinitialise(self, client_id="", clean_session=True, userdata=None):
         if self._sock:
             self._sock.close()
@@ -1130,9 +1136,9 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
+        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode
             [MQTT-3.1.3-11].
-        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
+        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it
             will be encoded as UTF-8.
         """
 
