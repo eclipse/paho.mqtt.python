@@ -1,0 +1,5 @@
+paho.mqtt.python (1.1.1-1) unstable; urgency=medium
+
+  * Initial release 
+
+ -- Martin Naughton <martin.oneachtain@gmail.com>  Sat, 19 Mar 2016 17:39:16 +0000
