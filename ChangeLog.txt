@@ -1,10 +1,12 @@
-v1.3.1 - 20??-??-??
+v1.3.1 - 2017-10-09
 ===================
 
 - Fix reconnect_delay_set which ignored the max_delay. Closes #218.
 - Fix crash when connection is lost while trying to send message. Closes #208.
 - Fix issue with unicode topic when some character were multi-bytes UTF-8.
 - Fix issue with empty Client ID with broker that don't support them. Closes #209.
+- Fix issue with tls_set that did not allowed cert_reqs=ssl.CERT_NONE.
+  Closes #123.
 - Relax requirement on pytest-runner, it's now only required for tests. Closes
   #207, #227.
 
