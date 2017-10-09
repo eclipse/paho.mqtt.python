@@ -1,6 +1,7 @@
 import os
 import sys
 import inspect
+import unicodedata
 
 import pytest
 import paho.mqtt.client as client
@@ -104,7 +105,6 @@ class Test_connect(object):
 
 class TestPublishBroker2Client(object):
 
-    @pytest.mark.skipif(sys.version_info < (3, 0), reason="Need Python3")
     def test_invalid_utf8_topic(self, fake_broker):
         mqttc = client.Client("client-id")
 
@@ -146,3 +146,182 @@ class TestPublishBroker2Client(object):
 
         packet_in = fake_broker.receive_packet(1)
         assert not packet_in  # Check connection is closed
+
+    def test_valid_utf8_topic_recv(self, fake_broker):
+        mqttc = client.Client("client-id")
+
+        # It should be non-ascii multi-bytes character
+        topic = unicodedata.lookup('SNOWMAN')
+
+        def on_message(client, userdata, msg):
+            assert msg.topic == topic
+            client.disconnect()
+
+        mqttc.on_message = on_message
+
+        mqttc.connect_async("localhost", 1888)
+        mqttc.loop_start()
+
+        try:
+            fake_broker.start()
+
+            connect_packet = paho_test.gen_connect("client-id")
+            packet_in = fake_broker.receive_packet(len(connect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == connect_packet
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            publish_packet = paho_test.gen_publish(
+                topic.encode('utf-8'), qos=0
+            )
+            count = fake_broker.send_packet(publish_packet)
+            assert count  # Check connection was not closed
+            assert count == len(publish_packet)
+
+            disconnect_packet = paho_test.gen_disconnect()
+            packet_in = fake_broker.receive_packet(len(disconnect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == disconnect_packet
+
+        finally:
+            mqttc.loop_stop()
+
+        packet_in = fake_broker.receive_packet(1)
+        assert not packet_in  # Check connection is closed
+
+    def test_valid_utf8_topic_publish(self, fake_broker):
+        mqttc = client.Client("client-id")
+
+        # It should be non-ascii multi-bytes character
+        topic = unicodedata.lookup('SNOWMAN')
+
+        mqttc.connect_async("localhost", 1888)
+        mqttc.loop_start()
+
+        try:
+            fake_broker.start()
+
+            connect_packet = paho_test.gen_connect("client-id")
+            packet_in = fake_broker.receive_packet(len(connect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == connect_packet
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            mqttc.publish(topic, None, 0)
+
+            publish_packet = paho_test.gen_publish(
+                topic.encode('utf-8'), qos=0
+            )
+            packet_in = fake_broker.receive_packet(len(publish_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == publish_packet
+
+            mqttc.disconnect()
+
+            disconnect_packet = paho_test.gen_disconnect()
+            packet_in = fake_broker.receive_packet(len(disconnect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == disconnect_packet
+
+        finally:
+            mqttc.loop_stop()
+
+        packet_in = fake_broker.receive_packet(1)
+        assert not packet_in  # Check connection is closed
+
+    def test_message_callback(self, fake_broker):
+        mqttc = client.Client("client-id")
+        userdata = {
+            'on_message': 0,
+            'callback1': 0,
+            'callback2': 0,
+        }
+        mqttc.user_data_set(userdata)
+
+        def on_message(client, userdata, msg):
+            assert msg.topic == 'topic/value'
+            userdata['on_message'] += 1
+
+        def callback1(client, userdata, msg):
+            assert msg.topic == 'topic/callback/1'
+            userdata['callback1'] += 1
+
+        def callback2(client, userdata, msg):
+            assert msg.topic in ('topic/callback/3', 'topic/callback/1')
+            userdata['callback2'] += 1
+
+        mqttc.on_message = on_message
+        mqttc.message_callback_add('topic/callback/1', callback1)
+        mqttc.message_callback_add('topic/callback/+', callback2)
+
+        mqttc.connect_async("localhost", 1888)
+        mqttc.loop_start()
+
+        try:
+            fake_broker.start()
+
+            connect_packet = paho_test.gen_connect("client-id")
+            packet_in = fake_broker.receive_packet(len(connect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == connect_packet
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            publish_packet = paho_test.gen_publish(b"topic/value", qos=1, mid=1)
+            count = fake_broker.send_packet(publish_packet)
+            assert count  # Check connection was not closed
+            assert count == len(publish_packet)
+
+            publish_packet = paho_test.gen_publish(b"topic/callback/1", qos=1, mid=2)
+            count = fake_broker.send_packet(publish_packet)
+            assert count  # Check connection was not closed
+            assert count == len(publish_packet)
+
+            publish_packet = paho_test.gen_publish(b"topic/callback/3", qos=1, mid=3)
+            count = fake_broker.send_packet(publish_packet)
+            assert count  # Check connection was not closed
+            assert count == len(publish_packet)
+
+
+            puback_packet = paho_test.gen_puback(mid=1)
+            packet_in = fake_broker.receive_packet(len(puback_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == puback_packet
+
+            puback_packet = paho_test.gen_puback(mid=2)
+            packet_in = fake_broker.receive_packet(len(puback_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == puback_packet
+
+            puback_packet = paho_test.gen_puback(mid=3)
+            packet_in = fake_broker.receive_packet(len(puback_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == puback_packet
+
+            mqttc.disconnect()
+
+            disconnect_packet = paho_test.gen_disconnect()
+            packet_in = fake_broker.receive_packet(len(disconnect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == disconnect_packet
+
+        finally:
+            mqttc.loop_stop()
+
+        packet_in = fake_broker.receive_packet(1)
+        assert not packet_in  # Check connection is closed
+
+        assert userdata['on_message'] == 1
+        assert userdata['callback1'] == 1
+        assert userdata['callback2'] == 2

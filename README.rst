@@ -515,6 +515,10 @@ disconnect()
 Disconnect from the broker cleanly. Using ``disconnect()`` will not result in a
 will message being sent by the broker.
 
+Disconnect will not wait for all queued message to be sent, to ensure all messages
+are delivered, ``wait_for_publish()`` from ``MQTTMessageInfo`` should be used.
+See ``publish()`` for details.
+
 Callback (disconnect)
 .....................
 
@@ -631,11 +635,20 @@ retain
     if set to ``True``, the message will be set as the "last known
     good"/retained message for the topic.
 
-Returns a tuple ``(result, mid)``, where result is ``MQTT_ERR_SUCCESS`` to
-indicate success or ``MQTT_ERR_NO_CONN`` if the client is not currently
-connected. ``mid`` is the message ID for the publish request. The mid value can
-be used to track the publish request by checking against the mid argument in
-the ``on_publish()`` callback if it is defined.
+Returns a MQTTMessageInfo which expose the following attributes and methods:
+
+* ``rc``, the result of the publishing. It could be ``MQTT_ERR_SUCCESS`` to
+  indicate success, ``MQTT_ERR_NO_CONN`` if the client is not currently connected,
+  or ``MQTT_ERR_QUEUE_SIZE`` when ``max_queued_messages_set`` is used to indicate
+  that message is neither queued nor sent.
+* ``mid`` is the message ID for the publish request. The mid value can be used to
+  track the publish request by checking against the mid argument in the
+  ``on_publish()`` callback if it is defined. ``wait_for_publish`` may be easier
+  depending on your use-case.
+* ``wait_for_publish()`` will block until the message is published. It will
+  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
+* ``is_published`` returns True if the message has been published. It will
+  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
 
 A ``ValueError`` will be raised if topic is ``None``, has zero length or is
 invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the
@@ -758,7 +771,7 @@ client
     the client instance for this callback
 
 userdata
-    the private user data as set in ``Client()`` or ``userdata_set()``
+    the private user data as set in ``Client()`` or ``user_data_set()``
 
 flags
     response flags sent by the broker
@@ -807,7 +820,7 @@ client
     the client instance for this callback
 
 userdata
-    the private user data as set in ``Client()`` or ``userdata_set()``
+    the private user data as set in ``Client()`` or ``user_data_set()``
 
 rc
     the disconnection result
@@ -837,15 +850,15 @@ on_message()
     on_message(client, userdata, message)
     
 Called when a message has been received on a topic that the client subscribes
-to. This callback will be called for every message received. Use
-``message_callback_add()`` to define multiple callbacks that will be called for
-specific topic filters.
+to and the message does not match an existing topic filter callback.
+Use ``message_callback_add()`` to define a callback that will be called for
+specific topic filters. ``on_message`` will serve as fallback when none matched.
 
 client
     the client instance for this callback
 
 userdata
-    the private user data as set in ``Client()`` or ``userdata_set()``
+    the private user data as set in ``Client()`` or ``user_data_set()``
 
 message
     an instance of MQTTMessage. This is a class with members ``topic``, ``payload``, ``qos``, ``retain``.
@@ -885,6 +898,10 @@ callback
 If using ``message_callback_add()`` and ``on_message``, only messages that do
 not match a subscription specific filter will be passed to the ``on_message``
 callback.
+
+If multiple sub match a topic, each callback will be called (e.g. sub ``sensors/#``
+and sub ``+/humidity`` both match a message with a topic ``sensors/humidity``, so both
+callbacks will handle this message).
 
 message_callback_remove()
 '''''''''''''''''''''''''

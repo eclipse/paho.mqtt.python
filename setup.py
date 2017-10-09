@@ -12,7 +12,8 @@ with open('README.rst', 'rb') as readme_file:
 
 requirements = []
 test_requirements = ['pytest', 'pylama']
-setup_requirements = ['pytest-runner']
+needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
+setup_requirements = ['pytest-runner'] if needs_pytest else []
 
 if sys.version_info < (3, 0):
     test_requirements += ['mock']

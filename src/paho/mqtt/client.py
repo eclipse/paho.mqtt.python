@@ -301,6 +301,8 @@ class MQTTMessageInfo(object):
 
     def wait_for_publish(self):
         """Block until the message associated with this object is published."""
+        if self.rc == MQTT_ERR_QUEUE_SIZE:
+            raise ValueError('Message is not queued due to ERR_QUEUE_SIZE')
         with self._condition:
             while not self._published:
                 self._condition.wait()
@@ -308,6 +310,8 @@ class MQTTMessageInfo(object):
     def is_published(self):
         """Returns True if the message associated with this object has been
         published, else returns False."""
+        if self.rc == MQTT_ERR_QUEUE_SIZE:
+            raise ValueError('Message is not queued due to ERR_QUEUE_SIZE')
         with self._condition:
             return self._published
 
@@ -545,7 +549,6 @@ class Client(object):
         self._port = 1883
         self._bind_address = ""
         self._in_callback = threading.Lock()
-        self._strict_protocol = False
         self._callback_mutex = threading.RLock()
         self._out_packet_mutex = threading.Lock()
         self._current_out_packet_mutex = threading.RLock()
@@ -691,6 +694,9 @@ class Client(object):
         if certfile is not None:
             context.load_cert_chain(certfile, keyfile)
 
+        if cert_reqs == ssl.CERT_NONE and hasattr(context, 'check_hostname'):
+            context.check_hostname = False
+
         context.verify_mode = ssl.CERT_REQUIRED if cert_reqs is None else cert_reqs
 
         if ca_certs is not None:
@@ -703,8 +709,13 @@ class Client(object):
 
         self.tls_set_context(context)
 
-        # Default to secure, sets context.check_hostname attribute if available
-        self.tls_insecure_set(False)
+        if cert_reqs != ssl.CERT_NONE:
+            # Default to secure, sets context.check_hostname attribute
+            # if available
+            self.tls_insecure_set(False)
+        else:
+            # But with ssl.CERT_NONE, we can not check_hostname
+            self.tls_insecure_set(True)
 
     def tls_insecure_set(self, value):
         """Configure verification of the server hostname in the server certificate.
@@ -836,7 +847,7 @@ class Client(object):
         """
         with self._reconnect_delay_mutex:
             self._reconnect_min_delay = min_delay
-            self._reconnect_max_delay = min_delay
+            self._reconnect_max_delay = max_delay
             self._reconnect_delay = None
 
     def reconnect(self):
@@ -1087,7 +1098,8 @@ class Client(object):
 
             with self._out_message_mutex:
                 if self._max_queued_messages > 0 and len(self._out_messages) >= self._max_queued_messages:
-                    return (MQTT_ERR_QUEUE_SIZE, local_mid)
+                    message.info.rc = MQTT_ERR_QUEUE_SIZE
+                    return message.info
 
                 self._out_messages.append(message)
                 if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
@@ -1097,7 +1109,7 @@ class Client(object):
                     elif qos == 2:
                         message.state = mqtt_ms_wait_for_pubrec
 
-                    rc = self._send_publish(message.mid, message.topic, message.payload, message.qos, message.retain,
+                    rc = self._send_publish(message.mid, topic, message.payload, message.qos, message.retain,
                                             message.dup)
 
                     # remove from inflight messages so it will be send after a connection is made
@@ -1267,6 +1279,8 @@ class Client(object):
             max_packets = 1
 
         for _ in range(0, max_packets):
+            if self._sock is None:
+                return MQTT_ERR_NO_CONN
             rc = self._packet_read()
             if rc > 0:
                 return self._loop_rc_handle(rc)
@@ -2018,7 +2032,7 @@ class Client(object):
 
     def _send_publish(self, mid, topic, payload=b'', qos=0, retain=False, dup=False, info=None):
         # we assume that topic and payload are already properly encoded
-        # assert not isinstance(topic, unicode) and not isinstance(payload, unicode) and payload is not None
+        assert not isinstance(topic, unicode) and not isinstance(payload, unicode) and payload is not None
 
         if self._sock is None:
             return MQTT_ERR_NO_CONN
@@ -2155,6 +2169,8 @@ class Client(object):
         for t, q in topics:
             self._pack_str16(packet, t)
             packet.append(q)
+
+        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE (d%d) %s", dup, topics)
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2183,7 +2199,14 @@ class Client(object):
                     if m.state == mqtt_ms_wait_for_puback or m.state == mqtt_ms_wait_for_pubrec:
                         m.timestamp = now
                         m.dup = True
-                        self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                        self._send_publish(
+                            m.mid,
+                            m.topic.encode('utf-8'),
+                            m.payload,
+                            m.qos,
+                            m.retain,
+                            m.dup
+                        )
                     elif m.state == mqtt_ms_wait_for_pubrel:
                         m.timestamp = now
                         m.dup = True
@@ -2296,17 +2319,15 @@ class Client(object):
             return MQTT_ERR_PROTOCOL
 
     def _handle_pingreq(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 0:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 0:
+            return MQTT_ERR_PROTOCOL
 
         self._easy_log(MQTT_LOG_DEBUG, "Received PINGREQ")
         return self._send_pingresp()
 
     def _handle_pingresp(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 0:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 0:
+            return MQTT_ERR_PROTOCOL
 
         # No longer waiting for a PINGRESP.
         self._ping_t = 0
@@ -2314,11 +2335,7 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_connack(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
-
-        if len(self._in_packet['packet']) != 2:
+        if self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
         (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
@@ -2330,6 +2347,15 @@ class Client(object):
             )
             # Downgrade to MQTT v3.1
             self._protocol = MQTTv31
+            return self.reconnect()
+        elif (result == CONNACK_REFUSED_IDENTIFIER_REJECTED
+                and self._client_id == b''):
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Received CONNACK (%s, %s), attempting to use non-empty CID",
+                flags, result,
+            )
+            self._client_id = base62(uuid.uuid4().int, padding=22)
             return self.reconnect()
 
         if result == 0:
@@ -2356,7 +2382,14 @@ class Client(object):
 
                     if m.qos == 0:
                         with self._in_callback:  # Don't call loop_write after _send_publish()
-                            rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                            rc = self._send_publish(
+                                m.mid,
+                                m.topic.encode('utf-8'),
+                                m.payload,
+                                m.qos,
+                                m.retain,
+                                m.dup,
+                            )
                         if rc != 0:
                             return rc
                     elif m.qos == 1:
@@ -2364,7 +2397,14 @@ class Client(object):
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_puback
                             with self._in_callback:  # Don't call loop_write after _send_publish()
-                                rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                                rc = self._send_publish(
+                                    m.mid,
+                                    m.topic.encode('utf-8'),
+                                    m.payload,
+                                    m.qos,
+                                    m.retain,
+                                    m.dup,
+                                )
                             if rc != 0:
                                 return rc
                     elif m.qos == 2:
@@ -2372,7 +2412,14 @@ class Client(object):
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubrec
                             with self._in_callback:  # Don't call loop_write after _send_publish()
-                                rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                                rc = self._send_publish(
+                                    m.mid,
+                                    m.topic.encode('utf-8'),
+                                    m.payload,
+                                    m.qos,
+                                    m.retain,
+                                    m.dup,
+                                )
                             if rc != 0:
                                 return rc
                         elif m.state == mqtt_ms_resend_pubrel:
@@ -2464,11 +2511,7 @@ class Client(object):
             return MQTT_ERR_PROTOCOL
 
     def _handle_pubrel(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
-
-        if len(self._in_packet['packet']) != 2:
+        if self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
@@ -2503,7 +2546,14 @@ class Client(object):
                         m.state = mqtt_ms_wait_for_puback
                     elif m.qos == 2:
                         m.state = mqtt_ms_wait_for_pubrec
-                    rc = self._send_publish(m.mid, m.topic, m.payload, m.qos, m.retain, m.dup)
+                    rc = self._send_publish(
+                        m.mid,
+                        m.topic.encode('utf-8'),
+                        m.payload,
+                        m.qos,
+                        m.retain,
+                        m.dup,
+                    )
                     if rc != 0:
                         return rc
             else:
@@ -2511,9 +2561,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_pubrec(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 2:
+            return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREC (Mid: %d)", mid)
@@ -2528,9 +2577,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_unsuback(self):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 2:
+            return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: %d)", mid)
@@ -2557,9 +2605,8 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_pubackcomp(self, cmd):
-        if self._strict_protocol:
-            if self._in_packet['remaining_length'] != 2:
-                return MQTT_ERR_PROTOCOL
+        if self._in_packet['remaining_length'] != 2:
+            return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])
         self._easy_log(MQTT_LOG_DEBUG, "Received %s (Mid: %d)", cmd, mid)
