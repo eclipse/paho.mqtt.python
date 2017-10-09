@@ -693,6 +693,9 @@ class Client(object):
         if certfile is not None:
             context.load_cert_chain(certfile, keyfile)
 
+        if cert_reqs == ssl.CERT_NONE and hasattr(context, 'check_hostname'):
+            context.check_hostname = False
+
         context.verify_mode = ssl.CERT_REQUIRED if cert_reqs is None else cert_reqs
 
         if ca_certs is not None:
@@ -705,8 +708,13 @@ class Client(object):
 
         self.tls_set_context(context)
 
-        # Default to secure, sets context.check_hostname attribute if available
-        self.tls_insecure_set(False)
+        if cert_reqs != ssl.CERT_NONE:
+            # Default to secure, sets context.check_hostname attribute
+            # if available
+            self.tls_insecure_set(False)
+        else:
+            # But with ssl.CERT_NONE, we can not check_hostname
+            self.tls_insecure_set(True)
 
     def tls_insecure_set(self, value):
         """Configure verification of the server hostname in the server certificate.
