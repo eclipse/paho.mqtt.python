@@ -148,6 +148,10 @@ class WebsocketConnectionError(ValueError):
     pass
 
 
+class WouldBlockError(Exception):
+    pass
+
+
 def error_string(mqtt_errno):
     """Return the error string associated with an mqtt error number."""
     if mqtt_errno == MQTT_ERR_SUCCESS:
@@ -452,6 +456,19 @@ class Client(object):
       and will be one of MQTT_LOG_INFO, MQTT_LOG_NOTICE, MQTT_LOG_WARNING,
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
+    on_socket_open(client, userdata, sock): Called when the socket has been opened. Use this
+      to register the socket with an external event loop for reading.
+
+    on_socket_close(client, userdata, sock): Called when the socket is about to be closed.
+      Use this to unregister a socket from an external event loop for reading.
+
+    on_socket_register_write(client, userdata, sock): Called when a write operation to the
+      socket failed because it would have blocked, e.g. output buffer full. Use this to
+      register the socket with an external event loop for writing.
+
+    on_socket_unregister_write(client, userdata, sock): Called when a write operation to the
+      socket succeeded after it had previously failed. Use this to unregister the socket
+      from an external event loop for writing.
     """
 
     def __init__(self, client_id="", clean_session=True, userdata=None,
@@ -562,6 +579,7 @@ class Client(object):
         self._ssl_context = None
         self._tls_insecure = False  # Only used when SSL context does not have check_hostname attribute
         self._logger = None
+        self._registered_write = False
         # No default callbacks
         self._on_log = None
         self._on_connect = None
@@ -570,16 +588,60 @@ class Client(object):
         self._on_publish = None
         self._on_unsubscribe = None
         self._on_disconnect = None
+        self._on_socket_open = None
+        self._on_socket_close = None
+        self._on_socket_register_write = None
+        self._on_socket_unregister_write = None
         self._websocket_path = "/mqtt"
         self._websocket_extra_headers = None
 
     def __del__(self):
         pass
 
-    def reinitialise(self, client_id="", clean_session=True, userdata=None):
-        if self._sock:
-            self._sock.close()
+    def _sock_recv(self, bufsize):
+        try:
+            return self._sock.recv(bufsize)
+        except socket.error as err:
+            if self._ssl and err.errno == ssl.SSL_ERROR_WANT_READ:
+                raise WouldBlockError()
+            if self._ssl and err.errno == ssl.SSL_ERROR_WANT_WRITE:
+                self._call_socket_register_write()
+                raise WouldBlockError()
+            if err.errno == EAGAIN:
+                raise WouldBlockError()
+            raise
+
+    def _sock_send(self, buf):
+        try:
+            return self._sock.send(buf)
+        except socket.error as err:
+            if self._ssl and err.errno == ssl.SSL_ERROR_WANT_READ:
+                raise WouldBlockError()
+            if self._ssl and err.errno == ssl.SSL_ERROR_WANT_WRITE:
+                self._call_socket_register_write()
+                raise WouldBlockError()
+            if err.errno == EAGAIN:
+                self._call_socket_register_write()
+                raise WouldBlockError()
+            raise
+
+    def _sock_close(self):
+        """Close the connection to the server."""
+        if not self._sock:
+            return
+
+        try:
+            sock = self._sock
             self._sock = None
+            self._call_socket_unregister_write(sock)
+            self._call_socket_close(sock)
+        finally:
+            # In case a callback fails, still close the socket to avoid leaking the file descriptor.
+            sock.close()
+
+    def reinitialise(self, client_id="", clean_session=True, userdata=None):
+        self._sock_close()
+
         if self._sockpairR:
             self._sockpairR.close()
             self._sockpairR = None
@@ -881,9 +943,7 @@ class Client(object):
         self._ping_t = 0
         self._state = mqtt_cs_new
 
-        if self._sock:
-            self._sock.close()
-            self._sock = None
+        self._sock_close()
 
         # Put messages in progress in a valid state.
         self._messages_reconnect_reset()
@@ -936,6 +996,8 @@ class Client(object):
 
         self._sock = sock
         self._sock.setblocking(0)
+        self._registered_write = False
+        self._call_socket_open()
 
         return self._send_connect(self._keepalive, self._clean_session)
 
@@ -1305,13 +1367,19 @@ class Client(object):
         if max_packets < 1:
             max_packets = 1
 
-        for _ in range(0, max_packets):
-            rc = self._packet_write()
-            if rc > 0:
-                return self._loop_rc_handle(rc)
-            elif rc == MQTT_ERR_AGAIN:
-                return MQTT_ERR_SUCCESS
-        return MQTT_ERR_SUCCESS
+        try:
+            for _ in range(0, max_packets):
+                rc = self._packet_write()
+                if rc > 0:
+                    return self._loop_rc_handle(rc)
+                elif rc == MQTT_ERR_AGAIN:
+                    return MQTT_ERR_SUCCESS
+            return MQTT_ERR_SUCCESS
+        finally:
+            if self.want_write():
+                self._call_socket_register_write()
+            else:
+                self._call_socket_unregister_write()
 
     def want_write(self):
         """Call to determine if there is network data waiting to be written.
@@ -1340,9 +1408,7 @@ class Client(object):
         if self._ping_t > 0 and now - self._ping_t >= self._keepalive:
             # client->ping_t != 0 means we are waiting for a pingresp.
             # This hasn't happened in the keepalive time so we should disconnect.
-            if self._sock:
-                self._sock.close()
-                self._sock = None
+            self._sock_close()
 
             if self._state == mqtt_cs_disconnecting:
                 rc = MQTT_ERR_SUCCESS
@@ -1704,7 +1770,7 @@ class Client(object):
         """ Define the disconnect callback implementation.
 
         Expected signature is:
-            disconnect_callback(client, userdata, self)
+            disconnect_callback(client, userdata, rc)
 
         client:     the client instance for this callback
         userdata:   the private user data as set in Client() or userdata_set()
@@ -1716,6 +1782,124 @@ class Client(object):
         """
         with self._callback_mutex:
             self._on_disconnect = func
+
+    @property
+    def on_socket_open(self):
+        """If implemented, called just after the socket was opend."""
+        return self._on_socket_open
+
+    @on_socket_open.setter
+    def on_socket_open(self, func):
+        """Define the socket_open callback implementation.
+
+        This should be used to register the socket to an external event loop for reading.
+
+        Expected signature is:
+            socket_open_callback(client, userdata, socket)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        sock:       the socket which was just opened.
+        """
+        with self._callback_mutex:
+            self._on_socket_open = func
+
+    def _call_socket_open(self):
+        """Call the socket_open callback with the just-opened socket"""
+        with self._callback_mutex:
+            if self.on_socket_open:
+                with self._in_callback:
+                    self.on_socket_open(self, self._userdata, self._sock)
+
+    @property
+    def on_socket_close(self):
+        """If implemented, called just before the socket is closed."""
+        return self._on_socket_close
+
+    @on_socket_close.setter
+    def on_socket_close(self, func):
+        """Define the socket_close callback implementation.
+
+        This should be used to unregister the socket from an external event loop for reading.
+
+        Expected signature is:
+            socket_close_callback(client, userdata, socket)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        sock:       the socket which is about to be closed.
+        """
+        with self._callback_mutex:
+            self._on_socket_close = func
+
+    def _call_socket_close(self, sock):
+        """Call the socket_close callback with the about-to-be-closed socket"""
+        with self._callback_mutex:
+            if self.on_socket_close:
+                with self._in_callback:
+                    self.on_socket_close(self, self._userdata, sock)
+
+    @property
+    def on_socket_register_write(self):
+        """If implemented, called when the socket needs writing but can't."""
+        return self._on_socket_register_write
+
+    @on_socket_register_write.setter
+    def on_socket_register_write(self, func):
+        """Define the socket_register_write callback implementation.
+
+        This should be used to register the socket with an external event loop for writing.
+
+        Expected signature is:
+            socket_register_write_callback(client, userdata, socket)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        sock:       the socket which should be registered for writing
+        """
+        with self._callback_mutex:
+            self._on_socket_register_write = func
+
+    def _call_socket_register_write(self):
+        """Call the socket_register_write callback with the unwritable socket"""
+        if not self._sock or self._registered_write:
+            return
+        self._registered_write = True
+        with self._callback_mutex:
+            if self.on_socket_register_write:
+                self.on_socket_register_write(self, self._userdata, self._sock)
+
+    @property
+    def on_socket_unregister_write(self):
+        """If implemented, called when the socket doesn't need writing anymore."""
+        return self._on_socket_unregister_write
+
+    @on_socket_unregister_write.setter
+    def on_socket_unregister_write(self, func):
+        """Define the socket_unregister_write callback implementation.
+
+        This should be used to unregister the socket from an external event loop for writing.
+
+        Expected signature is:
+            socket_unregister_write_callback(client, userdata, socket)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        sock:       the socket which should be unregistered for writing
+        """
+        with self._callback_mutex:
+            self._on_socket_unregister_write = func
+
+    def _call_socket_unregister_write(self, sock=None):
+        """Call the socket_unregister_write callback with the writable socket"""
+        sock = sock or self._sock
+        if not sock or not self._registered_write:
+            return
+        self._registered_write = False
+
+        with self._callback_mutex:
+            if self.on_socket_unregister_write:
+                self.on_socket_unregister_write(self, self._userdata, sock)
 
     def message_callback_add(self, sub, callback):
         """Register a message callback for a specific topic.
@@ -1752,9 +1936,7 @@ class Client(object):
 
     def _loop_rc_handle(self, rc):
         if rc:
-            if self._sock:
-                self._sock.close()
-                self._sock = None
+            self._sock_close()
 
             if self._state == mqtt_cs_disconnecting:
                 rc = MQTT_ERR_SUCCESS
@@ -1781,12 +1963,10 @@ class Client(object):
         # Finally, free the memory and reset everything to starting conditions.
         if self._in_packet['command'] == 0:
             try:
-                command = self._sock.recv(1)
+                command = self._sock_recv(1)
+            except WouldBlockError:
+                return MQTT_ERR_AGAIN
             except socket.error as err:
-                if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
-                    return MQTT_ERR_AGAIN
-                if err.errno == EAGAIN:
-                    return MQTT_ERR_AGAIN
                 self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
             else:
@@ -1801,12 +1981,10 @@ class Client(object):
             # http://publib.boulder.ibm.com/infocenter/wmbhelp/v6r0m0/topic/com.ibm.etools.mft.doc/ac10870_.htm
             while True:
                 try:
-                    byte = self._sock.recv(1)
+                    byte = self._sock_recv(1)
+                except WouldBlockError:
+                    return MQTT_ERR_AGAIN
                 except socket.error as err:
-                    if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
-                        return MQTT_ERR_AGAIN
-                    if err.errno == EAGAIN:
-                        return MQTT_ERR_AGAIN
                     self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                     return 1
                 else:
@@ -1830,12 +2008,10 @@ class Client(object):
 
         while self._in_packet['to_process'] > 0:
             try:
-                data = self._sock.recv(self._in_packet['to_process'])
+                data = self._sock_recv(self._in_packet['to_process'])
+            except WouldBlockError:
+                return MQTT_ERR_AGAIN
             except socket.error as err:
-                if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
-                    return MQTT_ERR_AGAIN
-                if err.errno == EAGAIN:
-                    return MQTT_ERR_AGAIN
                 self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
             else:
@@ -1870,16 +2046,15 @@ class Client(object):
             packet = self._current_out_packet
 
             try:
-                write_length = self._sock.send(packet['packet'][packet['pos']:])
+                write_length = self._sock_send(packet['packet'][packet['pos']:])
             except (AttributeError, ValueError):
                 self._current_out_packet_mutex.release()
                 return MQTT_ERR_SUCCESS
+            except WouldBlockError:
+                self._current_out_packet_mutex.release()
+                return MQTT_ERR_AGAIN
             except socket.error as err:
                 self._current_out_packet_mutex.release()
-                if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
-                    return MQTT_ERR_AGAIN
-                if err.errno == EAGAIN:
-                    return MQTT_ERR_AGAIN
                 self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
 
@@ -1907,9 +2082,7 @@ class Client(object):
                                 with self._in_callback:
                                     self.on_disconnect(self, self._userdata, 0)
 
-                        if self._sock:
-                            self._sock.close()
-                            self._sock = None
+                        self._sock_close()
                         return MQTT_ERR_SUCCESS
 
                     with self._out_packet_mutex:
@@ -1952,9 +2125,7 @@ class Client(object):
                     self._last_msg_out = now
                     self._last_msg_in = now
             else:
-                if self._sock:
-                    self._sock.close()
-                    self._sock = None
+                self._sock_close()
 
                 if self._state == mqtt_cs_disconnecting:
                     rc = MQTT_ERR_SUCCESS
@@ -2288,6 +2459,8 @@ class Client(object):
             if self._in_callback.acquire(False):
                 self._in_callback.release()
                 return self.loop_write()
+
+        self._call_socket_register_write()
 
         return MQTT_ERR_SUCCESS
 
