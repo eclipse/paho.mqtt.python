@@ -94,7 +94,7 @@ if usetls:
     mqttc.tls_set(ca_certs=args.cacerts, certfile=None, keyfile=None, cert_reqs=cert_required, tls_version=tlsVersion)
 
     if args.insecure:
-        tls_insecure_set(True)
+        mqttc.tls_insecure_set(True)
 
 if args.username or args.password:
     mqttc.username_pw_set(args.username, args.password)
