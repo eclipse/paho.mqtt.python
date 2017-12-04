@@ -1945,7 +1945,7 @@ class Client(object):
             last_msg_out = self._last_msg_out
             last_msg_in = self._last_msg_in
 
-        if self._sock is not None and (now - last_msg_out >= self._keepalive or now - last_msg_in >= self._keepalive):
+        if self._sock is not None and (now - last_msg_out >= self._keepalive and now - last_msg_in >= self._keepalive):
             if self._state == mqtt_cs_connected and self._ping_t == 0:
                 self._send_pingreq()
                 with self._msgtime_mutex:
