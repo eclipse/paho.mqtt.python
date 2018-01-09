@@ -1199,7 +1199,7 @@ class Client(object):
         """
 
         # [MQTT-3.1.3-11] User name must be UTF-8 encoded string
-        self._username = username.encode('utf-8')
+        self._username = None if username is None else username.encode('utf-8')
         self._password = password
         if isinstance(self._password, unicode):
             self._password = self._password.encode('utf-8')
