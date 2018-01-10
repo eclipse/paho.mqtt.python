@@ -1194,12 +1194,13 @@ class Client(object):
 
         username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
             [MQTT-3.1.3-11].
+            Set to None to reset client back to not using username/password for broker authentication.
         password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
             will be encoded as UTF-8.
         """
 
         # [MQTT-3.1.3-11] User name must be UTF-8 encoded string
-        self._username = username.encode('utf-8')
+        self._username = None if username is None else username.encode('utf-8')
         self._password = password
         if isinstance(self._password, unicode):
             self._password = self._password.encode('utf-8')
