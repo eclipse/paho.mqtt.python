@@ -2805,7 +2805,7 @@ class WebsocketWrapper(object):
         if length < 126:
             header.append(mask_flag << 7 | length)
 
-        elif length < 32768:
+        elif length < 65536:
             header.append(mask_flag << 7 | 126)
             header += struct.pack("!H", length)
 
