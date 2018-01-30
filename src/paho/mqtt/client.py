@@ -1831,6 +1831,11 @@ class Client(object):
         while self._in_packet['to_process'] > 0:
             try:
                 data = self._sock.recv(self._in_packet['to_process'])
+                # on Windows there may be packets to process and valid
+                # bytes, but the data is not ready to be read yet and
+                # None is returned.  In this case, try again.
+                if data == None:
+                    continue
             except socket.error as err:
                 if self._ssl and (err.errno == ssl.SSL_ERROR_WANT_READ or err.errno == ssl.SSL_ERROR_WANT_WRITE):
                     return MQTT_ERR_AGAIN
@@ -2921,8 +2926,8 @@ class WebsocketWrapper(object):
             if err.errno == errno.ECONNABORTED:
                 self.connected = False
                 return b''
-            else:
-                # no more data
+            # raise all other exceptions except for EAGAIN
+            elif err.errno != errno.EAGAIN:
                 raise
 
     def _send_impl(self, data):
