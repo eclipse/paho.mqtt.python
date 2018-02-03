@@ -1071,7 +1071,7 @@ class Client(object):
             local_payload = payload.encode('utf-8')
         elif isinstance(payload, (bytes, bytearray)):
             local_payload = payload
-        elif isinstance(payload, (int, float)):
+        elif isinstance(payload, (int, long, float)):
             local_payload = str(payload).encode('ascii')
         elif payload is None:
             local_payload = b''
