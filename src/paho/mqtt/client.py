@@ -2911,7 +2911,7 @@ class WebsocketWrapper(object):
                     frame = self._create_frame(WebsocketWrapper.OPCODE_PONG, payload, 0)
                     self._socket.send(frame)
 
-            if opcode == WebsocketWrapper.OPCODE_BINARY:
+            if opcode == WebsocketWrapper.OPCODE_BINARY and payload_length > 0:
                 return result
             else:
                 raise socket.error(errno.EAGAIN, 0)
