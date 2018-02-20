@@ -555,6 +555,7 @@ class Client(object):
         self._out_message_mutex = threading.RLock()
         self._in_message_mutex = threading.Lock()
         self._reconnect_delay_mutex = threading.Lock()
+        self._mid_generate_mutex = threading.Lock()
         self._thread = None
         self._thread_terminate = False
         self._ssl = False
@@ -1966,10 +1967,11 @@ class Client(object):
                             self.on_disconnect(self, self._userdata, rc)
 
     def _mid_generate(self):
-        self._last_mid += 1
-        if self._last_mid == 65536:
-            self._last_mid = 1
-        return self._last_mid
+        with self._mid_generate_mutex:
+            self._last_mid += 1
+            if self._last_mid == 65536:
+                self._last_mid = 1
+            return self._last_mid
 
     @staticmethod
     def _topic_wildcard_len_check(topic):
