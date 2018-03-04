@@ -2839,7 +2839,7 @@ class WebsocketWrapper(object):
                 self._readbuffer.extend(data)
 
             if len(data) < wanted_bytes:
-                raise socket.error(errno.EAGAIN, 0)
+                raise socket.error(EAGAIN, 0)
 
         self._readbuffer_head += length
         return self._readbuffer[self._readbuffer_head - length:self._readbuffer_head]
@@ -2916,7 +2916,7 @@ class WebsocketWrapper(object):
             if opcode == WebsocketWrapper.OPCODE_BINARY and payload_length > 0:
                 return result
             else:
-                raise socket.error(errno.EAGAIN, 0)
+                raise socket.error(EAGAIN, 0)
 
         except socket.error as err:
 
