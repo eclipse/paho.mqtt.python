@@ -1334,7 +1334,8 @@ class Client(object):
         self._check_keepalive()
         if self._last_retry_check + 1 < now:
             # Only check once a second at most
-            self._message_retry_check()
+            if self._state == mqtt_cs_connected:
+                self._message_retry_check()
             self._last_retry_check = now
 
         if self._ping_t > 0 and now - self._ping_t >= self._keepalive:
@@ -2235,13 +2236,18 @@ class Client(object):
                         m.state = mqtt_ms_publish
                     elif m.qos == 2:
                         # self._inflight_messages = self._inflight_messages + 1
-                        if m.state == mqtt_ms_wait_for_pubcomp:
-                            m.state = mqtt_ms_resend_pubrel
-                            m.dup = True
-                        else:
-                            if m.state == mqtt_ms_wait_for_pubrec:
+                        if self._clean_session:
+                            if m.state != mqtt_ms_publish:
                                 m.dup = True
                             m.state = mqtt_ms_publish
+                        else:
+                            if m.state == mqtt_ms_wait_for_pubcomp:
+                                m.state = mqtt_ms_resend_pubrel
+                                m.dup = True
+                            else:
+                                if m.state == mqtt_ms_wait_for_pubrec:
+                                    m.dup = True
+                                m.state = mqtt_ms_publish
                 else:
                     m.state = mqtt_ms_queued
 
