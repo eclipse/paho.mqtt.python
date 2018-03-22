@@ -142,6 +142,9 @@ MQTT_ERR_UNKNOWN = 13
 MQTT_ERR_ERRNO = 14
 MQTT_ERR_QUEUE_SIZE = 15
 
+MQTT_CLIENT = 0
+MQTT_BRIDGE = 1
+
 sockpair_data = b"0"
 
 class WebsocketConnectionError(ValueError):
@@ -518,7 +521,7 @@ class Client(object):
         self._message_retry = 20
         self._last_retry_check = 0
         self._clean_session = clean_session
-
+        self._client_mode = MQTT_CLIENT
         # [MQTT-3.1.3-4] Client Id must be UTF-8 encoded string.
         if client_id == "" or client_id is None:
             if protocol == MQTTv31:
@@ -1204,6 +1207,22 @@ class Client(object):
         self._password = password
         if isinstance(self._password, unicode):
             self._password = self._password.encode('utf-8')
+
+    def enable_bridge_mode(self):
+        """Sets the client in a bridge mode instead of client mode.
+
+        Must be called before connect() to have any effect.
+        Requires brokers that support bridge mode.
+
+        Under bridge mode, the broker will identify the client as a bridge and
+        not send it's own messages back to it. Hence a subsciption of # is
+        possible without message loops. This feature also correctly propagates
+        the retain flag on the messages.
+
+        Currently Mosquitto and RSMB support this feature. This feature can
+        be used to create a bridge between multiple broker.
+        """
+        self._client_mode = MQTT_BRIDGE
 
     def disconnect(self):
         """Disconnect a connected client from the broker."""
@@ -2291,6 +2310,11 @@ class Client(object):
         command = CONNECT
         packet = bytearray()
         packet.append(command)
+
+        # as per the mosquitto broker, if the MSB of this version is set
+        # to 1, then it treats the connection as a bridge
+        if self._client_mode == MQTT_BRIDGE:
+            proto_ver |= 0x80
 
         self._pack_remaining_length(packet, remaining_length)
         packet.extend(struct.pack("!H" + str(len(protocol)) + "sBBH", len(protocol), protocol, proto_ver, connect_flags,
