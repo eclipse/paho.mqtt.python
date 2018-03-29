@@ -2535,9 +2535,7 @@ class Client(object):
                         if rc != MQTT_ERR_SUCCESS:
                             return rc
 
-                    return self._send_pubcomp(mid)
-
-        return MQTT_ERR_SUCCESS
+        return self._send_pubcomp(mid)
 
     def _update_inflight(self):
         # Dont lock message_mutex here
