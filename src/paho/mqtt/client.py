@@ -1456,7 +1456,7 @@ class Client(object):
         max_packets: Not currently used.
         retry_first_connection: Should the first connection attempt be retried on failure.
 
-        Raises socket.error on first connection failures unless retry_first_connection=True
+        Raises OSError on first connection failures unless retry_first_connection=True
         """
 
         run = True
@@ -1468,7 +1468,7 @@ class Client(object):
             if self._state == mqtt_cs_connect_async:
                 try:
                     self.reconnect()
-                except (socket.error, WebsocketConnectionError):
+                except (OSError, WebsocketConnectionError):
                     if not retry_first_connection:
                         raise
                     self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
