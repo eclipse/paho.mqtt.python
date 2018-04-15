@@ -1468,7 +1468,7 @@ class Client(object):
             if self._state == mqtt_cs_connect_async:
                 try:
                     self.reconnect()
-                except (socket.error, OSError, WebsocketConnectionError):
+                except (OSError, WebsocketConnectionError):
                     if not retry_first_connection:
                         raise
                     self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
