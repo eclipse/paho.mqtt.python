@@ -1816,7 +1816,7 @@ class Client(object):
         """Call the socket_open callback with the just-opened socket"""
         with self._callback_mutex:
             if self.on_socket_open:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     try:
                         self.on_socket_open(self, self._userdata, self._sock)
                     except Exception as err:
@@ -1847,7 +1847,7 @@ class Client(object):
         """Call the socket_close callback with the about-to-be-closed socket"""
         with self._callback_mutex:
             if self.on_socket_close:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     try:
                         self.on_socket_close(self, self._userdata, sock)
                     except Exception as err:
@@ -2623,7 +2623,7 @@ class Client(object):
                         if m.state == mqtt_ms_publish:
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubrec
-                            with self._in_callback:  # Don't call loop_write after _send_publish()
+                            with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_publish(
                                     m.mid,
                                     m.topic.encode('utf-8'),
