@@ -1443,7 +1443,10 @@ class Client(object):
             with self._callback_mutex:
                 if self.on_disconnect:
                     with self._in_callback_mutex:
-                        self.on_disconnect(self, self._userdata, rc)
+                        try:
+                            self.on_disconnect(self, self._userdata, rc)
+                        except Exception as err:
+                            self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
 
             return MQTT_ERR_CONN_LOST
 
@@ -1834,7 +1837,10 @@ class Client(object):
         with self._callback_mutex:
             if self.on_socket_open:
                 with self._in_callback_mutex:
-                    self.on_socket_open(self, self._userdata, self._sock)
+                    try:
+                        self.on_socket_open(self, self._userdata, self._sock)
+                    except Exception as err:
+                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_open: %s', err)
 
     @property
     def on_socket_close(self):
@@ -1862,7 +1868,10 @@ class Client(object):
         with self._callback_mutex:
             if self.on_socket_close:
                 with self._in_callback_mutex:
-                    self.on_socket_close(self, self._userdata, sock)
+                    try:
+                        self.on_socket_close(self, self._userdata, sock)
+                    except Exception as err:
+                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_close: %s', err)
 
     @property
     def on_socket_register_write(self):
@@ -1892,7 +1901,10 @@ class Client(object):
         self._registered_write = True
         with self._callback_mutex:
             if self.on_socket_register_write:
-                self.on_socket_register_write(self, self._userdata, self._sock)
+                try:
+                    self.on_socket_register_write(self, self._userdata, self._sock)
+                except Exception as err:
+                    self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_register_write: %s', err)
 
     @property
     def on_socket_unregister_write(self):
@@ -1924,7 +1936,10 @@ class Client(object):
 
         with self._callback_mutex:
             if self.on_socket_unregister_write:
-                self.on_socket_unregister_write(self, self._userdata, sock)
+                try:
+                    self.on_socket_unregister_write(self, self._userdata, sock)
+                except Exception as err:
+                    self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_unregister_write: %s', err)
 
     def message_callback_add(self, sub, callback):
         """Register a message callback for a specific topic.
@@ -1969,7 +1984,10 @@ class Client(object):
             with self._callback_mutex:
                 if self.on_disconnect:
                     with self._in_callback_mutex:
-                        self.on_disconnect(self, self._userdata, rc)
+                        try:
+                            self.on_disconnect(self, self._userdata, rc)
+                        except Exception as err:
+                            self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
         return rc
 
     def _packet_read(self):
@@ -2092,7 +2110,10 @@ class Client(object):
                         with self._callback_mutex:
                             if self.on_publish:
                                 with self._in_callback_mutex:
-                                    self.on_publish(self, self._userdata, packet['mid'])
+                                    try:
+                                        self.on_publish(self, self._userdata, packet['mid'])
+                                    except Exception as err:
+                                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
 
                         packet['info']._set_as_published()
 
@@ -2105,7 +2126,10 @@ class Client(object):
                         with self._callback_mutex:
                             if self.on_disconnect:
                                 with self._in_callback_mutex:
-                                    self.on_disconnect(self, self._userdata, 0)
+                                    try:
+                                        self.on_disconnect(self, self._userdata, 0)
+                                    except Exception as err:
+                                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
 
                         self._sock_close()
                         return MQTT_ERR_SUCCESS
@@ -2128,7 +2152,11 @@ class Client(object):
     def _easy_log(self, level, fmt, *args):
         if self.on_log is not None:
             buf = fmt % args
-            self.on_log(self, self._userdata, level, buf)
+            try:
+                self.on_log(self, self._userdata, level, buf)
+            except Exception as err:
+                # Can't _easy_log this, as we'll recurse until we break
+                pass # self._logger will pick this up, so we're fine
         if self._logger is not None:
             level_std = LOGGING_LEVEL[level]
             self._logger.log(level_std, fmt, *args)
@@ -2159,7 +2187,10 @@ class Client(object):
                 with self._callback_mutex:
                     if self.on_disconnect:
                         with self._in_callback_mutex:
-                            self.on_disconnect(self, self._userdata, rc)
+                            try:
+                                self.on_disconnect(self, self._userdata, rc)
+                            except Exception as err:
+                                self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
 
     def _mid_generate(self):
         with self._mid_generate_mutex:
@@ -2582,7 +2613,10 @@ class Client(object):
                 flags_dict = {}
                 flags_dict['session present'] = flags & 0x01
                 with self._in_callback_mutex:
-                    self.on_connect(self, self._userdata, flags_dict, result)
+                    try:
+                        self.on_connect(self, self._userdata, flags_dict, result)
+                    except Exception as err:
+                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_connect: %s', err)
 
         if result == 0:
             rc = 0
@@ -2660,7 +2694,11 @@ class Client(object):
         with self._callback_mutex:
             if self.on_subscribe:
                 with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
-                    self.on_subscribe(self, self._userdata, mid, granted_qos)
+                    try:
+                        self.on_subscribe(self, self._userdata, mid, granted_qos)
+                    except Exception as err:
+                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_subscribe: %s', err)
+
 
         return MQTT_ERR_SUCCESS
 
@@ -2799,14 +2837,20 @@ class Client(object):
         with self._callback_mutex:
             if self.on_unsubscribe:
                 with self._in_callback_mutex:
-                    self.on_unsubscribe(self, self._userdata, mid)
+                    try:
+                        self.on_unsubscribe(self, self._userdata, mid)
+                    except Exception as err:
+                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_unsubscribe: %s', err)
         return MQTT_ERR_SUCCESS
 
     def _do_on_publish(self, mid):
         with self._callback_mutex:
             if self.on_publish:
                 with self._in_callback_mutex:
-                    self.on_publish(self, self._userdata, mid)
+                    try:
+                        self.on_publish(self, self._userdata, mid)
+                    except Exception as err:
+                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
 
         msg = self._out_messages.pop(mid)
         if msg.qos > 0:
@@ -2849,7 +2893,10 @@ class Client(object):
 
             if matched == False and self.on_message:
                 with self._in_callback_mutex:
-                    self.on_message(self, self._userdata, message)
+                    try:
+                        self.on_message(self, self._userdata, message)
+                    except Exception as err:
+                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_message: %s', err)
 
     def _thread_main(self):
         self.loop_forever(retry_first_connection=True)
