@@ -144,6 +144,7 @@ MQTT_ERR_QUEUE_SIZE = 15
 
 sockpair_data = b"0"
 
+
 class WebsocketConnectionError(ValueError):
     pass
 
@@ -565,7 +566,7 @@ class Client(object):
         self._host = ""
         self._port = 1883
         self._bind_address = ""
-        self._in_callback = threading.Lock()
+        self._in_callback_mutex = threading.Lock()
         self._callback_mutex = threading.RLock()
         self._out_packet_mutex = threading.Lock()
         self._current_out_packet_mutex = threading.RLock()
@@ -573,6 +574,7 @@ class Client(object):
         self._out_message_mutex = threading.RLock()
         self._in_message_mutex = threading.Lock()
         self._reconnect_delay_mutex = threading.Lock()
+        self._mid_generate_mutex = threading.Lock()
         self._thread = None
         self._thread_terminate = False
         self._ssl = False
@@ -1369,7 +1371,7 @@ class Client(object):
             max_packets = 1
 
         try:
-            for _ in range(0, max_packets):
+            for _ in range(max_packets):
                 rc = self._packet_write()
                 if rc > 0:
                     return self._loop_rc_handle(rc)
@@ -1409,7 +1411,9 @@ class Client(object):
         if self._ping_t > 0 and now - self._ping_t >= self._keepalive:
             # client->ping_t != 0 means we are waiting for a pingresp.
             # This hasn't happened in the keepalive time so we should disconnect.
-            self._sock_close()
+            if self._sock:
+                self._sock.close()
+                self._sock = None
 
             if self._state == mqtt_cs_disconnecting:
                 rc = MQTT_ERR_SUCCESS
@@ -1418,7 +1422,7 @@ class Client(object):
 
             with self._callback_mutex:
                 if self.on_disconnect:
-                    with self._in_callback:
+                    with self._in_callback_mutex:
                         try:
                             self.on_disconnect(self, self._userdata, rc)
                         except Exception as err:
@@ -1959,7 +1963,7 @@ class Client(object):
 
             with self._callback_mutex:
                 if self.on_disconnect:
-                    with self._in_callback:
+                    with self._in_callback_mutex:
                         try:
                             self.on_disconnect(self, self._userdata, rc)
                         except Exception as err:
@@ -2085,7 +2089,7 @@ class Client(object):
                     if (packet['command'] & 0xF0) == PUBLISH and packet['qos'] == 0:
                         with self._callback_mutex:
                             if self.on_publish:
-                                with self._in_callback:
+                                with self._in_callback_mutex:
                                     try:
                                         self.on_publish(self, self._userdata, packet['mid'])
                                     except Exception as err:
@@ -2101,7 +2105,7 @@ class Client(object):
 
                         with self._callback_mutex:
                             if self.on_disconnect:
-                                with self._in_callback:
+                                with self._in_callback_mutex:
                                     try:
                                         self.on_disconnect(self, self._userdata, 0)
                                     except Exception as err:
@@ -2162,7 +2166,7 @@ class Client(object):
                     rc = 1
                 with self._callback_mutex:
                     if self.on_disconnect:
-                        with self._in_callback:
+                        with self._in_callback_mutex:
                             try:
                                 self.on_disconnect(self, self._userdata, rc)
                             except Exception as err:
@@ -2488,8 +2492,8 @@ class Client(object):
                 raise
 
         if self._thread is None:
-            if self._in_callback.acquire(False):
-                self._in_callback.release()
+            if self._in_callback_mutex.acquire(False):
+                self._in_callback_mutex.release()
                 return self.loop_write()
 
         self._call_socket_register_write()
@@ -2573,7 +2577,7 @@ class Client(object):
             if self.on_connect:
                 flags_dict = {}
                 flags_dict['session present'] = flags & 0x01
-                with self._in_callback:
+                with self._in_callback_mutex:
                     try:
                         self.on_connect(self, self._userdata, flags_dict, result)
                     except Exception as err:
@@ -2589,7 +2593,7 @@ class Client(object):
                         return MQTT_ERR_SUCCESS
 
                     if m.qos == 0:
-                        with self._in_callback:  # Don't call loop_write after _send_publish()
+                        with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                             rc = self._send_publish(
                                 m.mid,
                                 m.topic.encode('utf-8'),
@@ -2604,7 +2608,7 @@ class Client(object):
                         if m.state == mqtt_ms_publish:
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_puback
-                            with self._in_callback:  # Don't call loop_write after _send_publish()
+                            with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_publish(
                                     m.mid,
                                     m.topic.encode('utf-8'),
@@ -2633,7 +2637,7 @@ class Client(object):
                         elif m.state == mqtt_ms_resend_pubrel:
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubcomp
-                            with self._in_callback:  # Don't call loop_write after _send_publish()
+                            with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_pubrel(m.mid, m.dup)
                             if rc != 0:
                                 return rc
@@ -2654,7 +2658,7 @@ class Client(object):
 
         with self._callback_mutex:
             if self.on_subscribe:
-                with self._in_callback:  # Don't call loop_write after _send_publish()
+                with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                     try:
                         self.on_subscribe(self, self._userdata, mid, granted_qos)
                     except Exception as err:
@@ -2796,7 +2800,7 @@ class Client(object):
         self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: %d)", mid)
         with self._callback_mutex:
             if self.on_unsubscribe:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     try:
                         self.on_unsubscribe(self, self._userdata, mid)
                     except Exception as err:
@@ -2806,7 +2810,7 @@ class Client(object):
     def _do_on_publish(self, idx, mid):
         with self._callback_mutex:
             if self.on_publish:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     try:
                         self.on_publish(self, self._userdata, mid)
                     except Exception as err:
@@ -2853,12 +2857,12 @@ class Client(object):
 
             if topic is not None:
                 for callback in self._on_message_filtered.iter_match(message.topic):
-                    with self._in_callback:
+                    with self._in_callback_mutex:
                         callback(self, self._userdata, message)
                     matched = True
 
             if matched == False and self.on_message:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     try:
                         self.on_message(self, self._userdata, message)
                     except Exception as err:
@@ -3023,7 +3027,7 @@ class WebsocketWrapper(object):
         if length < 126:
             header.append(mask_flag << 7 | length)
 
-        elif length < 32768:
+        elif length < 65536:
             header.append(mask_flag << 7 | 126)
             header += struct.pack("!H", length)
 
@@ -3055,7 +3059,7 @@ class WebsocketWrapper(object):
                 self._readbuffer.extend(data)
 
             if len(data) < wanted_bytes:
-                raise socket.error(errno.EAGAIN, 0)
+                raise socket.error(EAGAIN, 0)
 
         self._readbuffer_head += length
         return self._readbuffer[self._readbuffer_head - length:self._readbuffer_head]
@@ -3129,10 +3133,10 @@ class WebsocketWrapper(object):
                     frame = self._create_frame(WebsocketWrapper.OPCODE_PONG, payload, 0)
                     self._socket.send(frame)
 
-            if opcode == WebsocketWrapper.OPCODE_BINARY:
+            if opcode == WebsocketWrapper.OPCODE_BINARY and payload_length > 0:
                 return result
             else:
-                raise socket.error(errno.EAGAIN, 0)
+                raise socket.error(EAGAIN, 0)
 
         except socket.error as err:
 
