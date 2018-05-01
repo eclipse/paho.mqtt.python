@@ -1,3 +1,12 @@
+v1.3.2 - 2018-xx-xx
+===================
+
+- Fix issue with Websocket payload size between 127 and 65536. Closes #267.
+- Fix an issue with Websocket that seems to happen only on Windows.
+  Closes #268.
+- Fix mid generation that was not thread-safe.
+- Fix uncaught timeout exception during connection. Closes #288.
+
 v1.3.1 - 2017-10-09
 ===================
 
