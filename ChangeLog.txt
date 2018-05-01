@@ -4,6 +4,10 @@ v1.4.0 - 2018-xx-xx
 - Add support for the non-standard bridge mode. Closes #282.
 - Allow to remove authentication (reset username to None). Closes #259.
 - Improve support for external event loop (like asyncio). Closes #235.
+- Fix hang when client restarted and broker resumed a session with Qos2
+  message. Closes #284.
+  Note: this change replace the hang by a message lost ! See README for
+  current limitation of paho-mqtt.
 
 v1.3.2 - 2018-xx-xx
 ===================

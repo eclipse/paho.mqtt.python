@@ -2733,6 +2733,12 @@ class Client(object):
                     if rc != MQTT_ERR_SUCCESS:
                         return rc
 
+        # FIXME: this should only be done if the message is known
+        # If unknown it's a protocol error and we should close the connection.
+        # But since we don't have (on disk) persistence for the session, it
+        # is possible that we must known about this message.
+        # Choose to acknwoledge this messsage (and thus losing a message) but
+        # avoid hanging. See #284.
         return self._send_pubcomp(mid)
 
     def _update_inflight(self):

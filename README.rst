@@ -16,6 +16,7 @@ Contents
 --------
 
 * Installation_
+* `Known limitations`_
 * `Usage and API`_
     * `Client`_
         * `Constructor / reinitialise`_
@@ -67,6 +68,30 @@ Once you have the code, it can be installed from your repository as well:
 
     cd paho.mqtt.python
     python setup.py install
+
+Known limitations
+-----------------
+
+The following are the known unimplemented MQTT feature.
+
+When clean_session is False, the session is only stored in memory not persisted. This means that
+when client is restarted (not just reconnected, the object is recreated usually because the
+program was restarted) the session is lost. This result in possible message lost.
+
+The following part of client session is lost:
+
+* QoS 2 messages which have been received from the Server, but have not been completely acknowledged.
+
+  Since the client will blindly acknowledge any PUBCOMP (last message of a QoS 2 transaction), it
+  won't hang but will lost this QoS 2 message.
+
+* QoS 1 and QoS 2 messages which have been sent to the Server, but have not been completely acknowledged.
+
+  This means that message passed to publish() may be lost. This could be mitigated by taking care
+  that all message passed to publish() has a corresponding on_publish() call.
+
+  It also means that the broker may have the Qos2 message in the session. Since the client start
+  with an empty session it don't know it and will re-use the mid. This is not yet fixed.
 
 Usage and API
 -------------
