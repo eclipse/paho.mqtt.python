@@ -2172,7 +2172,13 @@ class Client(object):
             self._pack_str16(packet, t)
             packet.append(q)
 
-        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE (d%d) %s", dup, topics)
+        self._easy_log(
+            MQTT_LOG_DEBUG,
+            "Sending SUBSCRIBE (d%d, m%d) %s",
+            dup,
+            local_mid,
+            topics,
+        )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2190,7 +2196,13 @@ class Client(object):
             self._pack_str16(packet, t)
 
         # topics_repr = ", ".join("'"+topic.decode('utf8')+"'" for topic in topics)
-        self._easy_log(MQTT_LOG_DEBUG, "Sending UNSUBSCRIBE (d%d) %s", dup, topics)
+        self._easy_log(
+            MQTT_LOG_DEBUG,
+            "Sending UNSUBSCRIBE (d%d, m%d) %s",
+            dup,
+            local_mid,
+            topics,
+        )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _message_retry_check_actual(self, messages, mutex):
