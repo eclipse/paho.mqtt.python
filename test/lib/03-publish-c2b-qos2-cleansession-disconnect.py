@@ -7,7 +7,7 @@ import paho_test
 
 rc = 1
 keepalive = 60
-connect_packet = paho_test.gen_connect("publish-qos2-test", keepalive=keepalive, clean_session=False)
+connect_packet = paho_test.gen_connect("publish-qos2-test", keepalive=keepalive, clean_session=True)
 connack_packet = paho_test.gen_connack(rc=0)
 
 disconnect_packet = paho_test.gen_disconnect()
@@ -43,6 +43,7 @@ try:
             if paho_test.expect_packet(conn, "connect", connect_packet):
                 conn.send(connack_packet)
 
+                # The client should restart the publish from scratch, as it is a clean session
                 if paho_test.expect_packet(conn, "retried publish", publish_dup_packet):
                     conn.send(pubrec_packet)
 
@@ -53,15 +54,19 @@ try:
                         (conn, address) = sock.accept()
                         conn.settimeout(15)
 
-                        # Complete connection and message flow.
+                        # The client should reconnect from scratch once again
                         if paho_test.expect_packet(conn, "connect", connect_packet):
                             conn.send(connack_packet)
 
-                            if paho_test.expect_packet(conn, "retried pubrel", pubrel_dup_packet):
-                                conn.send(pubcomp_packet)
+                            # The client should restart the publish from scratch, as it is a clean session
+                            if paho_test.expect_packet(conn, "retried publish", publish_dup_packet):
+                                conn.send(pubrec_packet)
 
-                                if paho_test.expect_packet(conn, "disconnect", disconnect_packet):
-                                    rc = 0
+                                if paho_test.expect_packet(conn, "pubrel", pubrel_packet):
+                                    conn.send(pubcomp_packet)
+
+                                    if paho_test.expect_packet(conn, "disconnect", disconnect_packet):
+                                        rc = 0
 
     conn.close()
 finally:
