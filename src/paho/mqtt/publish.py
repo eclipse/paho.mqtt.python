@@ -109,7 +109,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
-          'ciphers':"<ciphers">}
+          'ciphers':"<ciphers">, 'insecure':"<bool>"}
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
@@ -144,7 +144,12 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
     if tls is not None:
         if isinstance(tls, dict):
+            insecure = tls.pop('insecure', None)
             client.tls_set(**tls)
+            if insecure is True:
+                # Must be set *after* the `client.tls_set()` call since it sets
+                # up the SSL context that `client.tls_insecure_set` alters.
+                client.tls_insecure_set(insecure)
         else:
             # Assume input is SSLContext object
             client.tls_set_context(tls)
@@ -198,7 +203,7 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
-          'ciphers':"<ciphers">}
+          'ciphers':"<ciphers">, 'insecure':"<bool>"}
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
