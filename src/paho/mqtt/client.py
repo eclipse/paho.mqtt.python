@@ -2478,17 +2478,25 @@ class Client(object):
                         m.state = mqtt_ms_publish
                     elif m.qos == 2:
                         # self._inflight_messages = self._inflight_messages + 1
-                        if m.state == mqtt_ms_wait_for_pubcomp:
-                            m.state = mqtt_ms_resend_pubrel
-                        else:
-                            if m.state == mqtt_ms_wait_for_pubrec:
+                        if self._clean_session:
+                            if m.state != mqtt_ms_publish:
                                 m.dup = True
                             m.state = mqtt_ms_publish
+                        else:
+                            if m.state == mqtt_ms_wait_for_pubcomp:
+                                m.state = mqtt_ms_resend_pubrel
+                            else:
+                                if m.state == mqtt_ms_wait_for_pubrec:
+                                    m.dup = True
+                                m.state = mqtt_ms_publish
                 else:
                     m.state = mqtt_ms_queued
 
     def _messages_reconnect_reset_in(self):
         with self._in_message_mutex:
+            if self._clean_session:
+                self._in_messages = collections.OrderedDict()
+                return
             for m in self._in_messages.values():
                 m.timestamp = 0
                 if m.qos != 2:
