@@ -22,11 +22,21 @@ import platform
 import random
 import select
 import socket
+import socks
 
 try:
     import ssl
 except ImportError:
     ssl = None
+
+try:
+    # Python 3
+    from urllib import request as urllib_dot_request
+    from urllib import parse as urllib_dot_parse
+except ImportError:
+    # Python 2
+    import urllib as urllib_dot_request
+    import urlparse as urllib_dot_parse
 
 import struct
 import sys
@@ -547,6 +557,7 @@ class Client(object):
         self._host = ""
         self._port = 1883
         self._bind_address = ""
+        self._proxy = {}
         self._in_callback = threading.Lock()
         self._callback_mutex = threading.RLock()
         self._out_packet_mutex = threading.Lock()
@@ -753,7 +764,8 @@ class Client(object):
     def disable_logger(self):
         self._logger = None
 
-    def connect(self, host, port=1883, keepalive=60, bind_address=""):
+    def connect(self, host, port=1883, keepalive=60, bind_address="",
+                **proxy_args):
         """Connect to a remote broker.
 
         host is the hostname or IP address of the remote broker.
@@ -763,16 +775,28 @@ class Client(object):
         keepalive: Maximum period in seconds between communications with the
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
+
+        Proxying is done through the PySocks library. Brief descriptions of the
+        proxy_args parameters are below; see the PySocks docs for more info.
+
+        proxy_type: None if no proxy required, otherwise one of {socks.HTTP,
+            socks.SOCKS4, or socks.SOCKS5}
+        proxy_address: IP address or DNS name of proxy server
+        proxy_rdns: boolean indicating whether proxy lookup should be performed
+            remotely (True) or locally (False)
+        proxy_username: username for SOCKS5 proxy, or userid for SOCKS4 proxy
+        proxy_password: password for SOCKS5 proxy
         """
-        self.connect_async(host, port, keepalive, bind_address)
+        self.connect_async(host, port, keepalive, bind_address, **proxy_args)
         return self.reconnect()
 
-    def connect_srv(self, domain=None, keepalive=60, bind_address=""):
+    def connect_srv(self, domain=None, keepalive=60, bind_address="",
+                    **proxy_args):
         """Connect to a remote broker.
 
         domain is the DNS domain to search for SRV records; if None,
         try to determine local domain name.
-        keepalive and bind_address are as for connect()
+        keepalive, bind_address, and proxy_args are as for connect()
         """
 
         if HAVE_DNS is False:
@@ -799,13 +823,15 @@ class Client(object):
             host, port, prio, weight = answer
 
             try:
-                return self.connect(host, port, keepalive, bind_address)
-            except:
+                return self.connect(host, port, keepalive, bind_address,
+                                    **proxy_args)
+            except Exception:
                 pass
 
         raise ValueError("No SRV hosts responded")
 
-    def connect_async(self, host, port=1883, keepalive=60, bind_address=""):
+    def connect_async(self, host, port=1883, keepalive=60, bind_address="",
+                      **proxy_args):
         """Connect to a remote broker asynchronously. This is a non-blocking
         connect call that can be used with loop_start() to provide very quick
         start.
@@ -817,6 +843,10 @@ class Client(object):
         keepalive: Maximum period in seconds between communications with the
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
+
+        Proxying is done through the PySocks library. See connect() for a
+        brief description of what proxy_args can contain and see the PySocks
+        docs for more info.
         """
         if host is None or len(host) == 0:
             raise ValueError('Invalid host.')
@@ -825,15 +855,15 @@ class Client(object):
         if keepalive < 0:
             raise ValueError('Keepalive must be >=0.')
         if bind_address != "" and bind_address is not None:
-            if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (
-                        sys.version_info[0] == 3 and sys.version_info[1] < 2):
+            if ((sys.version_info[0] == 2 and sys.version_info[1] < 7)
+                    or (sys.version_info[0] == 3 and sys.version_info[1] < 2)):
                 raise ValueError('bind_address requires Python 2.7 or 3.2.')
 
         self._host = host
         self._port = port
         self._keepalive = keepalive
         self._bind_address = bind_address
-
+        self._proxy = proxy_args
         self._state = mqtt_cs_connect_async
 
     def reconnect_delay_set(self, min_delay=1, max_delay=120):
@@ -888,11 +918,7 @@ class Client(object):
         self._messages_reconnect_reset()
 
         try:
-            if (sys.version_info[0] == 2 and sys.version_info[1] < 7) or (
-                        sys.version_info[0] == 3 and sys.version_info[1] < 2):
-                sock = socket.create_connection((self._host, self._port))
-            else:
-                sock = socket.create_connection((self._host, self._port), source_address=(self._bind_address, 0))
+            sock = self._create_socket_connection()
         except socket.error as err:
             if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
                 raise
@@ -952,7 +978,7 @@ class Client(object):
         messages with QoS>0.
 
         timeout: The time in seconds to wait for incoming/outgoing network
-          traffic before timing out and returning.
+            traffic before timing out and returning.
         max_packets: Not currently used.
 
         Returns MQTT_ERR_SUCCESS on success.
@@ -993,10 +1019,7 @@ class Client(object):
             # Can occur if we just reconnected but rlist/wlist contain a -1 for
             # some reason.
             return MQTT_ERR_CONN_LOST
-        except KeyboardInterrupt:
-            # Allow ^C to interrupt
-            raise
-        except:
+        except Exception:  # Still allows ^C (KeyboardInterrupt) to interrupt
             return MQTT_ERR_UNKNOWN
 
         if self._sock in socklist[0] or pending_bytes > 0:
@@ -1130,10 +1153,10 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
-            [MQTT-3.1.3-11].
-        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
-            will be encoded as UTF-8.
+        username: The username to authenticate with. Need have no relationship
+            to the client id. Must be unicode [MQTT-3.1.3-11].
+        password: The password to authenticate with. Optional, set to None if
+            not required. If it is unicode, then it will be encoded as UTF-8.
         """
 
         # [MQTT-3.1.3-11] User name must be UTF-8 encoded string
@@ -2670,6 +2693,89 @@ class Client(object):
 
             time.sleep(min(remaining, 1))
             remaining = target_time - time_func()
+
+    def _get_proxies(self):
+        def proxy_is_valid(p):
+            if isinstance(p, dict):
+                return bool(p.get("proxy_type"))
+            elif isinstance(p, (list, tuple)):
+                return len(p) == 6 and bool(p[0])
+            else:
+                return False
+
+        proxies = []  # proxy servers to use in order of preference
+
+        if proxy_is_valid(self._proxy):
+            proxies.append(self._proxy)
+
+        socks_default = socks.get_default_proxy()
+        if proxy_is_valid(socks_default):
+            proxies.append({
+                "proxy_type": socks_default[0],
+                "proxy_addr": socks_default[1],
+                "proxy_port": socks_default[2],
+                "proxy_rdns": socks_default[3],
+                "proxy_username": socks_default[4],
+                "proxy_password": socks_default[5]
+            })
+
+        # Finally, look at environment variables ending in _proxy as long as the
+        # host we're trying to connect to isn't listed under the no_proxy
+        # environment variable (matches built-in module urllib's behavior)
+        if not urllib_dot_request.proxy_bypass(self._host):
+            env_proxies = urllib_dot_request.getproxies()
+            for proxy in env_proxies.values():
+                parts = urllib_dot_parse.urlparse(proxy)
+                if parts.scheme == "http":
+                    proxies.append({
+                        "proxy_type": socks.HTTP,
+                        "proxy_addr": parts.hostname,
+                        "proxy_port": parts.port
+                    })
+                elif parts.scheme == "socks":
+                    proxies.append({
+                        "proxy_type": socks.SOCKS5,
+                        "proxy_addr": parts.hostname,
+                        "proxy_port": parts.port
+                    })
+
+        return proxies
+
+    def _create_socket_connection(self):
+        proxies = self._get_proxies()
+        addr = (self._host, self._port)
+        source = (self._bind_address, 0)
+
+        if ((sys.version_info[0] == 2 and sys.version_info[1] < 7)
+                or (sys.version_info[0] == 3 and sys.version_info[1] < 2)):
+            if len(proxies) > 0:
+                # Since the built-in socket library doesn't support the
+                # source_address param in earlier Python versions, we won't
+                # support it with the PySocks library either for consistency,
+                # even though the library technically *can* handle it.
+                source = None
+            else:
+                # Have to short-circuit here because of unsupported
+                # source_address param in earlier Python versions.
+                return socket.create_connection(addr)
+
+        if len(proxies) > 0:
+            error = None
+            for proxy in proxies:
+                try:
+                    sock = socks.create_connection(addr, source_address=source,
+                                                   **proxy)
+                    error = None  # explicitly break ref cycle
+                    return sock
+                except socks.ProxyError as e:
+                    # Try the next proxy if this one fails, but, if all proxies
+                    # end up failing, raise the error for the first one since
+                    # that's the most preferred proxy
+                    if error is None:
+                        error = e
+            raise error
+        else:
+            return socket.create_connection(addr, source_address=source)
 
 
 # Compatibility class for easy porting from mosquitto.py.
