@@ -1,9 +1,10 @@
-import hmac
-import hashlib
-import datetime
 import base64
-import uuid
+import datetime
 import functools
+import hashlib
+import hmac
+import os
+import uuid
 
 from paho.mqtt.client import Client
 
