@@ -340,11 +340,8 @@ def gen_pubrec(mid):
     return struct.pack('!BBH', 80, 2, mid)
 
 
-def gen_pubrel(mid, dup=False):
-    if dup:
-        cmd = 96 + 8 + 2
-    else:
-        cmd = 96 + 2
+def gen_pubrel(mid):
+    cmd = 96 + 2
     return struct.pack('!BBH', cmd, 2, mid)
 
 

@@ -37,7 +37,6 @@ publish_dup_packet = paho_test.gen_publish(
     u"pub/qos2/test", qos=2, mid=mid, payload="message".encode('utf-8'), dup=True)
 pubrec_packet = paho_test.gen_pubrec(mid)
 pubrel_packet = paho_test.gen_pubrel(mid)
-pubrel_dup_packet = paho_test.gen_pubrel(mid, dup=True)
 pubcomp_packet = paho_test.gen_pubcomp(mid)
 
 sock = paho_test.create_server_socket()
@@ -58,7 +57,7 @@ try:
                 conn.send(pubrec_packet)
 
                 if paho_test.expect_packet(conn, "pubrel", pubrel_packet):
-                    if paho_test.expect_packet(conn, "dup pubrel", pubrel_dup_packet):
+                    if paho_test.expect_packet(conn, "dup pubrel", pubrel_packet):
                         conn.send(pubcomp_packet)
 
                         if paho_test.expect_packet(conn, "disconnect", disconnect_packet):

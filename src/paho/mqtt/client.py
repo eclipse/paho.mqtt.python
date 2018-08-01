@@ -2078,9 +2078,9 @@ class Client(object):
         self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREC (Mid: %d)", mid)
         return self._send_command_with_mid(PUBREC, mid, False)
 
-    def _send_pubrel(self, mid, dup=False):
+    def _send_pubrel(self, mid):
         self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREL (Mid: %d)", mid)
-        return self._send_command_with_mid(PUBREL | 2, mid, dup)
+        return self._send_command_with_mid(PUBREL | 2, mid, False)
 
     def _send_command_with_mid(self, command, mid, dup):
         # For PUBACK, PUBCOMP, PUBREC, and PUBREL
@@ -2223,12 +2223,10 @@ class Client(object):
                         )
                     elif m.state == mqtt_ms_wait_for_pubrel:
                         m.timestamp = now
-                        m.dup = True
                         self._send_pubrec(m.mid)
                     elif m.state == mqtt_ms_wait_for_pubcomp:
                         m.timestamp = now
-                        m.dup = True
-                        self._send_pubrel(m.mid, True)
+                        self._send_pubrel(m.mid)
 
     def _message_retry_check(self):
         self._message_retry_check_actual(self._out_messages, self._out_message_mutex)
@@ -2251,7 +2249,6 @@ class Client(object):
                         # self._inflight_messages = self._inflight_messages + 1
                         if m.state == mqtt_ms_wait_for_pubcomp:
                             m.state = mqtt_ms_resend_pubrel
-                            m.dup = True
                         else:
                             if m.state == mqtt_ms_wait_for_pubrec:
                                 m.dup = True
@@ -2440,7 +2437,7 @@ class Client(object):
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubcomp
                             with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
-                                rc = self._send_pubrel(m.mid, m.dup)
+                                rc = self._send_pubrel(m.mid)
                             if rc != 0:
                                 return rc
                     self.loop_write()  # Process outgoing messages that have just been queued up
@@ -2589,7 +2586,7 @@ class Client(object):
                 if m.mid == mid:
                     m.state = mqtt_ms_wait_for_pubcomp
                     m.timestamp = time_func()
-                    return self._send_pubrel(mid, False)
+                    return self._send_pubrel(mid)
 
         return MQTT_ERR_SUCCESS
 
