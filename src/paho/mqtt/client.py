@@ -18,8 +18,8 @@ protocol that is easy to implement and suitable for low powered devices.
 """
 import collections
 import errno
+import os
 import platform
-import random
 import select
 import socket
 
@@ -2806,8 +2806,8 @@ class WebsocketWrapper(object):
 
         header = bytearray()
         length = len(data)
-        mask_key = bytearray(
-            [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
+
+        mask_key = bytearray(os.urandom(4))
         mask_flag = do_masking
 
         # 1 << 7 is the final flag, we don't send continuated data
