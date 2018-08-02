@@ -146,9 +146,9 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
     if tls is not None:
         if isinstance(tls, dict):
-            insecure = tls.pop('insecure', None)
+            insecure = tls.pop('insecure', False)
             client.tls_set(**tls)
-            if insecure is True:
+            if insecure:
                 # Must be set *after* the `client.tls_set()` call since it sets
                 # up the SSL context that `client.tls_insecure_set` alters.
                 client.tls_insecure_set(insecure)
