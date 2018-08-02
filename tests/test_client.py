@@ -1,4 +1,5 @@
 import os
+import socket
 import sys
 import inspect
 import unicodedata
@@ -101,6 +102,68 @@ class Test_connect(object):
 
         finally:
             mqttc.loop_stop()
+
+
+class TestPublishClient2Broker(object):
+    def test_clean_session(self, fake_broker):
+        """ Test that clean session discard the session on reconnect
+        """
+        mqttc = client.Client("client-id")
+
+        # It should be non-ascii multi-bytes character
+        topic = "topic"
+
+        mqttc.connect_async("localhost", 1888)
+        mqttc.loop_start()
+        mqttc.publish("topic", None, qos=2)
+
+        try:
+            fake_broker.start()
+
+            connect_packet = paho_test.gen_connect("client-id")
+            packet_in = fake_broker.receive_packet(len(connect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == connect_packet
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            publish_packet = paho_test.gen_publish(
+                topic.encode('utf-8'), qos=2, mid=1
+            )
+            packet_in = fake_broker.receive_packet(len(publish_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == publish_packet
+
+            fake_broker.reconnect()
+
+            connect_packet = paho_test.gen_connect("client-id")
+            packet_in = fake_broker.receive_packet(len(connect_packet))
+            assert packet_in  # Check connection was not closed
+            assert packet_in == connect_packet
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            try:
+                fake_broker.set_timeout(3)
+                unexpected_packet = paho_test.gen_publish(
+                    topic.encode('utf-8'), qos=2, dup=True,
+                )
+                packet_in = fake_broker.receive_packet(len(unexpected_packet))
+                assert not packet_in  # no packet were expected
+            except socket.timeout:
+                pass
+        finally:
+            fake_broker.finish()
+            mqttc.loop_stop()
+
+        packet_in = fake_broker.receive_packet(1)
+        assert not packet_in  # Check connection is closed
 
 
 class TestPublishBroker2Client(object):
