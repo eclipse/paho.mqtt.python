@@ -17,6 +17,7 @@ v1.3.2 - 2018-xx-xx
   Closes #268.
 - Fix mid generation that was not thread-safe.
 - Fix uncaught timeout exception during connection. Closes #288.
+- Use secure entropy source for Websocket mask_key (urandom). Closes #305.
 
 v1.3.1 - 2017-10-09
 ===================

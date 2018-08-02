@@ -18,8 +18,8 @@ protocol that is easy to implement and suitable for low powered devices.
 """
 import collections
 import errno
+import os
 import platform
-import random
 import select
 import socket
 
@@ -2273,9 +2273,9 @@ class Client(object):
         self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREC (Mid: %d)", mid)
         return self._send_command_with_mid(PUBREC, mid, False)
 
-    def _send_pubrel(self, mid, dup=False):
+    def _send_pubrel(self, mid):
         self._easy_log(MQTT_LOG_DEBUG, "Sending PUBREL (Mid: %d)", mid)
-        return self._send_command_with_mid(PUBREL | 2, mid, dup)
+        return self._send_command_with_mid(PUBREL | 2, mid, False)
 
     def _send_command_with_mid(self, command, mid, dup):
         # For PUBACK, PUBCOMP, PUBREC, and PUBREL
@@ -2372,7 +2372,13 @@ class Client(object):
             self._pack_str16(packet, t)
             packet.append(q)
 
-        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE (d%d) %s", dup, topics)
+        self._easy_log(
+            MQTT_LOG_DEBUG,
+            "Sending SUBSCRIBE (d%d, m%d) %s",
+            dup,
+            local_mid,
+            topics,
+        )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2390,7 +2396,13 @@ class Client(object):
             self._pack_str16(packet, t)
 
         # topics_repr = ", ".join("'"+topic.decode('utf8')+"'" for topic in topics)
-        self._easy_log(MQTT_LOG_DEBUG, "Sending UNSUBSCRIBE (d%d) %s", dup, topics)
+        self._easy_log(
+            MQTT_LOG_DEBUG,
+            "Sending UNSUBSCRIBE (d%d, m%d) %s",
+            dup,
+            local_mid,
+            topics,
+        )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _message_retry_check_actual(self, messages, mutex):
@@ -2411,12 +2423,10 @@ class Client(object):
                         )
                     elif m.state == mqtt_ms_wait_for_pubrel:
                         m.timestamp = now
-                        m.dup = True
                         self._send_pubrec(m.mid)
                     elif m.state == mqtt_ms_wait_for_pubcomp:
                         m.timestamp = now
-                        m.dup = True
-                        self._send_pubrel(m.mid, True)
+                        self._send_pubrel(m.mid)
 
     def _message_retry_check(self):
         self._message_retry_check_actual(self._out_messages, self._out_message_mutex)
@@ -2439,7 +2449,6 @@ class Client(object):
                         # self._inflight_messages = self._inflight_messages + 1
                         if m.state == mqtt_ms_wait_for_pubcomp:
                             m.state = mqtt_ms_resend_pubrel
-                            m.dup = True
                         else:
                             if m.state == mqtt_ms_wait_for_pubrec:
                                 m.dup = True
@@ -2630,7 +2639,7 @@ class Client(object):
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubcomp
                             with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
-                                rc = self._send_pubrel(m.mid, m.dup)
+                                rc = self._send_pubrel(m.mid)
                             if rc != 0:
                                 return rc
                     self.loop_write()  # Process outgoing messages that have just been queued up
@@ -2777,7 +2786,7 @@ class Client(object):
                 msg = self._out_messages[mid]
                 msg.state = mqtt_ms_wait_for_pubcomp
                 msg.timestamp = time_func()
-                return self._send_pubrel(mid, False)
+                return self._send_pubrel(mid)
 
         return MQTT_ERR_SUCCESS
 
@@ -2991,8 +3000,8 @@ class WebsocketWrapper(object):
 
         header = bytearray()
         length = len(data)
-        mask_key = bytearray(
-            [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
+
+        mask_key = bytearray(os.urandom(4))
         mask_flag = do_masking
 
         # 1 << 7 is the final flag, we don't send continuated data
