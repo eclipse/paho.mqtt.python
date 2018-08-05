@@ -2239,7 +2239,10 @@ class Client(object):
             self._inflight_messages = 0
             
             if self._clean_session:
-                self._out_messages = []
+                for m in self._out_messages:
+                    m.timestamp = 0
+                    if m.state != mqtt_ms_publish and m.state != mqtt_ms_queued:
+                        self._out_messages.pop(self._out_messages.index(m))
                 return
             
             for m in self._out_messages:
