@@ -2853,13 +2853,13 @@ class Client(object):
                         self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
 
         msg = self._out_messages.pop(mid)
+        msg.info._set_as_published()
         if msg.qos > 0:
             self._inflight_messages -= 1
             if self._max_inflight_messages > 0:
                 rc = self._update_inflight()
                 if rc != MQTT_ERR_SUCCESS:
                     return rc
-        msg.info._set_as_published()
         return MQTT_ERR_SUCCESS
 
     def _handle_pubackcomp(self, cmd):
