@@ -547,7 +547,7 @@ class Client(object):
         self._host = ""
         self._port = 1883
         self._bind_address = ""
-        self._in_callback = threading.Lock()
+        self._in_callback_mutex = threading.Lock()
         self._callback_mutex = threading.RLock()
         self._out_packet_mutex = threading.Lock()
         self._current_out_packet_mutex = threading.RLock()
@@ -555,6 +555,7 @@ class Client(object):
         self._out_message_mutex = threading.RLock()
         self._in_message_mutex = threading.Lock()
         self._reconnect_delay_mutex = threading.Lock()
+        self._mid_generate_mutex = threading.Lock()
         self._thread = None
         self._thread_terminate = False
         self._ssl = False
@@ -1351,7 +1352,7 @@ class Client(object):
 
             with self._callback_mutex:
                 if self.on_disconnect:
-                    with self._in_callback:
+                    with self._in_callback_mutex:
                         self.on_disconnect(self, self._userdata, rc)
 
             return MQTT_ERR_CONN_LOST
@@ -1467,7 +1468,7 @@ class Client(object):
             if self._state == mqtt_cs_connect_async:
                 try:
                     self.reconnect()
-                except (socket.error, WebsocketConnectionError):
+                except (socket.error, OSError, WebsocketConnectionError):
                     if not retry_first_connection:
                         raise
                     self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
@@ -1761,7 +1762,7 @@ class Client(object):
 
             with self._callback_mutex:
                 if self.on_disconnect:
-                    with self._in_callback:
+                    with self._in_callback_mutex:
                         self.on_disconnect(self, self._userdata, rc)
         return rc
 
@@ -1891,7 +1892,7 @@ class Client(object):
                     if (packet['command'] & 0xF0) == PUBLISH and packet['qos'] == 0:
                         with self._callback_mutex:
                             if self.on_publish:
-                                with self._in_callback:
+                                with self._in_callback_mutex:
                                     self.on_publish(self, self._userdata, packet['mid'])
 
                         packet['info']._set_as_published()
@@ -1904,7 +1905,7 @@ class Client(object):
 
                         with self._callback_mutex:
                             if self.on_disconnect:
-                                with self._in_callback:
+                                with self._in_callback_mutex:
                                     self.on_disconnect(self, self._userdata, 0)
 
                         if self._sock:
@@ -1962,14 +1963,15 @@ class Client(object):
                     rc = 1
                 with self._callback_mutex:
                     if self.on_disconnect:
-                        with self._in_callback:
+                        with self._in_callback_mutex:
                             self.on_disconnect(self, self._userdata, rc)
 
     def _mid_generate(self):
-        self._last_mid += 1
-        if self._last_mid == 65536:
-            self._last_mid = 1
-        return self._last_mid
+        with self._mid_generate_mutex:
+            self._last_mid += 1
+            if self._last_mid == 65536:
+                self._last_mid = 1
+            return self._last_mid
 
     @staticmethod
     def _topic_wildcard_len_check(topic):
@@ -2170,7 +2172,13 @@ class Client(object):
             self._pack_str16(packet, t)
             packet.append(q)
 
-        self._easy_log(MQTT_LOG_DEBUG, "Sending SUBSCRIBE (d%d) %s", dup, topics)
+        self._easy_log(
+            MQTT_LOG_DEBUG,
+            "Sending SUBSCRIBE (d%d, m%d) %s",
+            dup,
+            local_mid,
+            topics,
+        )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _send_unsubscribe(self, dup, topics):
@@ -2188,7 +2196,13 @@ class Client(object):
             self._pack_str16(packet, t)
 
         # topics_repr = ", ".join("'"+topic.decode('utf8')+"'" for topic in topics)
-        self._easy_log(MQTT_LOG_DEBUG, "Sending UNSUBSCRIBE (d%d) %s", dup, topics)
+        self._easy_log(
+            MQTT_LOG_DEBUG,
+            "Sending UNSUBSCRIBE (d%d, m%d) %s",
+            dup,
+            local_mid,
+            topics,
+        )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _message_retry_check_actual(self, messages, mutex):
@@ -2223,6 +2237,14 @@ class Client(object):
     def _messages_reconnect_reset_out(self):
         with self._out_message_mutex:
             self._inflight_messages = 0
+            
+            if self._clean_session:
+                for m in self._out_messages:
+                    m.timestamp = 0
+                    if m.state != mqtt_ms_publish and m.state != mqtt_ms_queued:
+                        self._out_messages.pop(self._out_messages.index(m))
+                return
+            
             for m in self._out_messages:
                 m.timestamp = 0
                 if self._max_inflight_messages == 0 or self._inflight_messages < self._max_inflight_messages:
@@ -2234,7 +2256,7 @@ class Client(object):
                             m.dup = True
                         m.state = mqtt_ms_publish
                     elif m.qos == 2:
-                        # self._inflight_messages = self._inflight_messages + 1
+                        # self._inflight_messages = self._inflight_messages + 1                           
                         if m.state == mqtt_ms_wait_for_pubcomp:
                             m.state = mqtt_ms_resend_pubrel
                             m.dup = True
@@ -2247,6 +2269,9 @@ class Client(object):
 
     def _messages_reconnect_reset_in(self):
         with self._in_message_mutex:
+            if self._clean_session:
+                self._in_messages = []
+                return
             for m in self._in_messages:
                 m.timestamp = 0
                 if m.qos != 2:
@@ -2285,8 +2310,8 @@ class Client(object):
                 raise
 
         if self._thread is None:
-            if self._in_callback.acquire(False):
-                self._in_callback.release()
+            if self._in_callback_mutex.acquire(False):
+                self._in_callback_mutex.release()
                 return self.loop_write()
 
         return MQTT_ERR_SUCCESS
@@ -2368,7 +2393,7 @@ class Client(object):
             if self.on_connect:
                 flags_dict = {}
                 flags_dict['session present'] = flags & 0x01
-                with self._in_callback:
+                with self._in_callback_mutex:
                     self.on_connect(self, self._userdata, flags_dict, result)
 
         if result == 0:
@@ -2381,7 +2406,7 @@ class Client(object):
                         return MQTT_ERR_SUCCESS
 
                     if m.qos == 0:
-                        with self._in_callback:  # Don't call loop_write after _send_publish()
+                        with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                             rc = self._send_publish(
                                 m.mid,
                                 m.topic.encode('utf-8'),
@@ -2396,7 +2421,7 @@ class Client(object):
                         if m.state == mqtt_ms_publish:
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_puback
-                            with self._in_callback:  # Don't call loop_write after _send_publish()
+                            with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_publish(
                                     m.mid,
                                     m.topic.encode('utf-8'),
@@ -2411,7 +2436,7 @@ class Client(object):
                         if m.state == mqtt_ms_publish:
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubrec
-                            with self._in_callback:  # Don't call loop_write after _send_publish()
+                            with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_publish(
                                     m.mid,
                                     m.topic.encode('utf-8'),
@@ -2425,7 +2450,7 @@ class Client(object):
                         elif m.state == mqtt_ms_resend_pubrel:
                             self._inflight_messages += 1
                             m.state = mqtt_ms_wait_for_pubcomp
-                            with self._in_callback:  # Don't call loop_write after _send_publish()
+                            with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_pubrel(m.mid, m.dup)
                             if rc != 0:
                                 return rc
@@ -2446,7 +2471,7 @@ class Client(object):
 
         with self._callback_mutex:
             if self.on_subscribe:
-                with self._in_callback:  # Don't call loop_write after _send_publish()
+                with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                     self.on_subscribe(self, self._userdata, mid, granted_qos)
 
         return MQTT_ERR_SUCCESS
@@ -2587,14 +2612,14 @@ class Client(object):
         self._easy_log(MQTT_LOG_DEBUG, "Received UNSUBACK (Mid: %d)", mid)
         with self._callback_mutex:
             if self.on_unsubscribe:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     self.on_unsubscribe(self, self._userdata, mid)
         return MQTT_ERR_SUCCESS
 
     def _do_on_publish(self, idx, mid):
         with self._callback_mutex:
             if self.on_publish:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     self.on_publish(self, self._userdata, mid)
 
         msg = self._out_messages.pop(idx)
@@ -2638,12 +2663,12 @@ class Client(object):
 
             if topic is not None:
                 for callback in self._on_message_filtered.iter_match(message.topic):
-                    with self._in_callback:
+                    with self._in_callback_mutex:
                         callback(self, self._userdata, message)
                     matched = True
 
             if matched == False and self.on_message:
-                with self._in_callback:
+                with self._in_callback_mutex:
                     self.on_message(self, self._userdata, message)
 
     def _thread_main(self):
@@ -2805,7 +2830,7 @@ class WebsocketWrapper(object):
         if length < 126:
             header.append(mask_flag << 7 | length)
 
-        elif length < 32768:
+        elif length < 65536:
             header.append(mask_flag << 7 | 126)
             header += struct.pack("!H", length)
 
@@ -2837,7 +2862,7 @@ class WebsocketWrapper(object):
                 self._readbuffer.extend(data)
 
             if len(data) < wanted_bytes:
-                raise socket.error(errno.EAGAIN, 0)
+                raise socket.error(EAGAIN, 0)
 
         self._readbuffer_head += length
         return self._readbuffer[self._readbuffer_head - length:self._readbuffer_head]
@@ -2911,10 +2936,10 @@ class WebsocketWrapper(object):
                     frame = self._create_frame(WebsocketWrapper.OPCODE_PONG, payload, 0)
                     self._socket.send(frame)
 
-            if opcode == WebsocketWrapper.OPCODE_BINARY:
+            if opcode == WebsocketWrapper.OPCODE_BINARY and payload_length > 0:
                 return result
             else:
-                raise socket.error(errno.EAGAIN, 0)
+                raise socket.error(EAGAIN, 0)
 
         except socket.error as err:
 
