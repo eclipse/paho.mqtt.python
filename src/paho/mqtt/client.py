@@ -2694,7 +2694,7 @@ class Client(object):
             time.sleep(min(remaining, 1))
             remaining = target_time - time_func()
 
-    def _get_proxies(self):
+    def _get_proxy(self):
         def proxy_is_valid(p):
             if isinstance(p, dict):
                 return bool(p.get("proxy_type"))
@@ -2703,52 +2703,59 @@ class Client(object):
             else:
                 return False
 
-        proxies = []  # proxy servers to use in order of preference
-
+        # First, check if the user explicitly passed us a proxy to use
         if proxy_is_valid(self._proxy):
-            proxies.append(self._proxy)
+            return self._proxy
 
+        # Next, check for an mqtt_proxy environment variable as long as the host
+        # we're trying to connect to isn't listed under the no_proxy environment
+        # variable (matches built-in module urllib's behavior)
+        if not (hasattr(urllib_dot_request, "proxy_bypass") and
+                urllib_dot_request.proxy_bypass(self._host)):
+            env_proxies = urllib_dot_request.getproxies()
+            if "mqtt" in env_proxies:
+                parts = urllib_dot_parse.urlparse(env_proxies["mqtt"])
+                if parts.scheme == "http":
+                    proxy = {
+                        "proxy_type": socks.HTTP,
+                        "proxy_addr": parts.hostname,
+                        "proxy_port": parts.port
+                    }
+                    return proxy
+                elif parts.scheme == "socks":
+                    proxy = {
+                        "proxy_type": socks.SOCKS5,
+                        "proxy_addr": parts.hostname,
+                        "proxy_port": parts.port
+                    }
+                    return proxy
+
+        # Finally, check if the user has monkeypatched the PySocks library with
+        # a default proxy
         socks_default = socks.get_default_proxy()
         if proxy_is_valid(socks_default):
-            proxies.append({
+            proxy = {
                 "proxy_type": socks_default[0],
                 "proxy_addr": socks_default[1],
                 "proxy_port": socks_default[2],
                 "proxy_rdns": socks_default[3],
                 "proxy_username": socks_default[4],
                 "proxy_password": socks_default[5]
-            })
+            }
+            return proxy
 
-        # Finally, look at environment variables ending in _proxy as long as the
-        # host we're trying to connect to isn't listed under the no_proxy
-        # environment variable (matches built-in module urllib's behavior)
-        if not urllib_dot_request.proxy_bypass(self._host):
-            env_proxies = urllib_dot_request.getproxies()
-            for proxy in env_proxies.values():
-                parts = urllib_dot_parse.urlparse(proxy)
-                if parts.scheme == "http":
-                    proxies.append({
-                        "proxy_type": socks.HTTP,
-                        "proxy_addr": parts.hostname,
-                        "proxy_port": parts.port
-                    })
-                elif parts.scheme == "socks":
-                    proxies.append({
-                        "proxy_type": socks.SOCKS5,
-                        "proxy_addr": parts.hostname,
-                        "proxy_port": parts.port
-                    })
-
-        return proxies
+        # If we didn't find a proxy through any of the above methods, return
+        # None to indicate that the connection should be handled normally
+        return None
 
     def _create_socket_connection(self):
-        proxies = self._get_proxies()
+        proxy = self._get_proxies()
         addr = (self._host, self._port)
         source = (self._bind_address, 0)
 
         if ((sys.version_info[0] == 2 and sys.version_info[1] < 7)
                 or (sys.version_info[0] == 3 and sys.version_info[1] < 2)):
-            if len(proxies) > 0:
+            if proxy:
                 # Since the built-in socket library doesn't support the
                 # source_address param in earlier Python versions, we won't
                 # support it with the PySocks library either for consistency,
@@ -2759,21 +2766,8 @@ class Client(object):
                 # source_address param in earlier Python versions.
                 return socket.create_connection(addr)
 
-        if len(proxies) > 0:
-            error = None
-            for proxy in proxies:
-                try:
-                    sock = socks.create_connection(addr, source_address=source,
-                                                   **proxy)
-                    error = None  # explicitly break ref cycle
-                    return sock
-                except socks.ProxyError as e:
-                    # Try the next proxy if this one fails, but, if all proxies
-                    # end up failing, raise the error for the first one since
-                    # that's the most preferred proxy
-                    if error is None:
-                        error = e
-            raise error
+        if proxy:
+            return socks.create_connection(addr, source_address=source, **proxy)
         else:
             return socket.create_connection(addr, source_address=source)
 
