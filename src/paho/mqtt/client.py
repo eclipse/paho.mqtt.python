@@ -2749,7 +2749,7 @@ class Client(object):
         return None
 
     def _create_socket_connection(self):
-        proxy = self._get_proxies()
+        proxy = self._get_proxy()
         addr = (self._host, self._port)
         source = (self._bind_address, 0)
 
