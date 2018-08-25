@@ -574,9 +574,9 @@ class Client(object):
         self._websocket_extra_headers = None
 
     def __del__(self):
-        pass
+        self._reset_sockets()
 
-    def reinitialise(self, client_id="", clean_session=True, userdata=None):
+    def _reset_sockets(self):
         if self._sock:
             self._sock.close()
             self._sock = None
@@ -586,6 +586,9 @@ class Client(object):
         if self._sockpairW:
             self._sockpairW.close()
             self._sockpairW = None
+
+    def reinitialise(self, client_id="", clean_session=True, userdata=None):
+        self._reset_sockets()
 
         self.__init__(client_id, clean_session, userdata)
 
