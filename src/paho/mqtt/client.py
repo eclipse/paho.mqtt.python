@@ -600,7 +600,7 @@ class Client(object):
         self._websocket_extra_headers = None
 
     def __del__(self):
-        pass
+        self._reset_sockets()
 
     def _sock_recv(self, bufsize):
         try:
@@ -643,7 +643,7 @@ class Client(object):
             # In case a callback fails, still close the socket to avoid leaking the file descriptor.
             sock.close()
 
-    def reinitialise(self, client_id="", clean_session=True, userdata=None):
+    def _reset_sockets(self):
         self._sock_close()
 
         if self._sockpairR:
@@ -652,6 +652,9 @@ class Client(object):
         if self._sockpairW:
             self._sockpairW.close()
             self._sockpairW = None
+
+    def reinitialise(self, client_id="", clean_session=True, userdata=None):
+        self._reset_sockets()
 
         self.__init__(client_id, clean_session, userdata)
 
