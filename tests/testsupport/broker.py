@@ -27,22 +27,6 @@ class FakeBroker:
         conn.settimeout(10)
         self._conn = conn
 
-    def set_timeout(self, conn_timeout=None, server_timeout=None):
-        if self._conn is not None and conn_timeout is not None:
-            self._conn.settimeout(conn_timeout)
-        if self._sock is not None and server_timeout is not None:
-            self._sock.settimeout(server_timeout)
-
-    def reconnect(self):
-        """ disconnect the client and wait a reconnection """
-        if self._conn is not None:
-            self._conn.close()
-            self._conn = None
-
-        (conn, address) = self._sock.accept()
-        conn.settimeout(10)
-        self._conn = conn
-
     def finish(self):
         if self._conn is not None:
             self._conn.close()
