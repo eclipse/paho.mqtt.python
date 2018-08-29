@@ -7,7 +7,9 @@ import paho_test
 
 rc = 1
 keepalive = 60
-connect_packet = paho_test.gen_connect("publish-qos2-test", keepalive=keepalive)
+connect_packet = paho_test.gen_connect(
+    "publish-qos2-test", keepalive=keepalive, clean_session=False,
+)
 connack_packet = paho_test.gen_connack(rc=0)
 
 disconnect_packet = paho_test.gen_disconnect()
