@@ -23,13 +23,18 @@ Please read the [Eclipse Foundation policy on accepting contributions via Git](h
 1. [Fork the repository on GitHub](https://github.com/eclipse/paho.mqtt.python/fork)
 2. Clone the forked repository onto your computer: ``` git clone
    https://github.com/<your username>/paho.mqtt.python.git ```
-3. If you are adding a new feature, then create a new branch from the latest
-   ```develop``` branch with ```git checkout -b YOUR_BRANCH_NAME
-   origin/develop```
-4. If you are fixing a bug, then create a new branch from the latest
-   ```fixes``` branch with ```git checkout -b YOUR_BRANCH_NAME origin/fixes```
+3. Most changes will go to branch ``master``. This include both bug fixes and
+   new features. Bug fixes are committed to ``master`` and if required,
+   cherry-picked to the release branch.
+
+   The only changes that goes directly to the release branch (``1.4``,
+   ``1.5``, ...) are bug fixe that does not apply to ``master`` (e.g. because
+   there are fixed on master by a refactoring, or any other huge change we do
+   not want to cherry-pick to the release branch).
+4. Create a new branch from the latest ```master``` branch
+   with ```git checkout -b YOUR_BRANCH_NAME origin/master```
 5. Make your changes
-6. Ensure that all new and existing tests pass.
+6. Ensure that all new and existing tests pass by running ```tox```
 7. Commit the changes into the branch: ``` git commit -s ``` Make sure that
    your commit message is meaningful and describes your changes correctly.
 8. If you have a lot of commits for the change, squash them into a single / few
@@ -38,7 +43,7 @@ Please read the [Eclipse Foundation policy on accepting contributions via Git](h
 10. Finally, go to
 	[https://github.com/eclipse/paho.mqtt.python](https://github.com/eclipse/paho.mqtt.python)
 	and create a pull request from your "YOUR_BRANCH_NAME" branch to the
-	```develop``` or ```fixes``` branch as appropriate to request review and
+	``master`` (or release branch if applicable) to request review and
 	merge of the commits in your pushed branch.
 
 
