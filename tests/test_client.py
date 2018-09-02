@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import inspect
 import unicodedata
 
@@ -216,6 +217,8 @@ class TestPublishBroker2Client(object):
             assert count == len(connack_packet)
 
             mqttc.publish(topic, None, 0)
+            # Small sleep needed to avoid connection reset.
+            time.sleep(0.3)
 
             publish_packet = paho_test.gen_publish(
                 topic.encode('utf-8'), qos=0
