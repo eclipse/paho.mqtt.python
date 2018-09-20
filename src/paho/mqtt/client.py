@@ -26,6 +26,8 @@ import socket
 ssl = None
 try:
     import ssl
+except ImportError:
+    pass
 
 socks = None
 try:
