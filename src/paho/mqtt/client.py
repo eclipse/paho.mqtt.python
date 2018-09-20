@@ -1026,7 +1026,9 @@ class Client(object):
             # Can occur if we just reconnected but rlist/wlist contain a -1 for
             # some reason.
             return MQTT_ERR_CONN_LOST
-        except Exception:  # Still allows ^C (KeyboardInterrupt) to interrupt
+        except Exception:
+            # Note that KeyboardInterrupt, etc. can still terminate since they
+            # are not derived from Exception
             return MQTT_ERR_UNKNOWN
 
         if self._sock in socklist[0] or pending_bytes > 0:
