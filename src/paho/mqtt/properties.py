@@ -16,6 +16,8 @@
 *******************************************************************
 """
 
+import sys
+
 from .packettypes import PacketTypes
 
 class MQTTException(Exception):
@@ -25,7 +27,7 @@ class MalformedPacket(MQTTException):
   pass
 
 def writeInt16(length):
-  return bytes([length // 256, length % 256])
+  return bytearray([length // 256, length % 256])
 
 def readInt16(buf):
   return buf[0]*256 + buf[1]
@@ -36,14 +38,18 @@ def writeInt32(length):
   buffer += [length // 65536]
   length %= 65536
   buffer += [length // 256, length % 256]
-  return bytes(buffer)
+  return bytearray(buffer)
 
 def readInt32(buf):
   return buf[0]*16777216 + buf[1]*65536 + buf[2]*256 + buf[3]
 
 def writeUTF(data):
   # data could be a string, or bytes.  If string, encode into bytes with utf-8
-  return writeInt16(len(data)) + (data if type(data) == type(b"") else bytes(data, "utf-8"))
+  if sys.version_info[0] < 3:
+      data = bytearray(data)
+  else:
+      data = data if type(data) == type(b"") else bytes(data, "utf-8")
+  return writeInt16(len(data)) + data
 
 def readUTF(buffer, maxlen):
   if maxlen >= 2:
@@ -58,7 +64,10 @@ def readUTF(buffer, maxlen):
   if zz != -1:
     raise MalformedPacket("[MQTT-1.5.4-2] Null found in UTF data "+buf)
   for c in range (0xD800, 0xDFFF):
-    zz = buf.find(chr(c)) # look for D800-DFFF in the UTF string
+    if sys.version_info[0] >= 3:
+      zz = buf.find(chr(c)) # look for D800-DFFF in the UTF string
+    else:
+      zz = buf.find(unichr(c)) # look for D800-DFFF in the UTF string  
     if zz != -1:
       raise MalformedPacket("[MQTT-1.5.4-1] D800-DFFF found in UTF data "+buf)
   if buf.find("\uFEFF") != -1:
@@ -72,7 +81,7 @@ def readBytes(buffer):
   length = readInt16(buffer)
   return buffer[2:2+length], length+2
 
-class VBIs:  # Variable Byte Integer
+class VariableByteIntegers:  # Variable Byte Integer
 
   @staticmethod
   def encode(x):
@@ -87,7 +96,10 @@ class VBIs:  # Variable Byte Integer
       x //= 128
       if x > 0:
         digit |= 0x80
-      buffer += bytes([digit])
+      if sys.version_info[0] >= 3:
+        buffer += bytes([digit])
+      else:
+        buffer += bytes(chr(digit))
       if x == 0:
         break
     return buffer
@@ -218,7 +230,7 @@ class Properties(object):
       object.__setattr__(self, name, value)
     else:
       # the name could have spaces in, or not.  Remove spaces before assignment
-      if name not in [name.replace(' ', '') for name in self.names.keys()]:
+      if name not in [aname.replace(' ', '') for aname in self.names.keys()]:
         raise MQTTException("Property name must be one of "+str(self.names.keys()))
       # check that this attribute applies to the packet type
       if self.packetType not in self.properties[self.getIdentFromName(name)][1]:
@@ -269,7 +281,7 @@ class Properties(object):
 
   def writeProperty(self, identifier, type, value):
     buffer = b""
-    buffer += VBIs.encode(identifier) # identifier
+    buffer += VariableByteIntegers.encode(identifier) # identifier
     if type == self.types.index("Byte"): # value
       buffer += bytes([value])
     elif type == self.types.index("Two Byte Integer"):
@@ -277,7 +289,7 @@ class Properties(object):
     elif type == self.types.index("Four Byte Integer"):
       buffer += writeInt32(value)
     elif type == self.types.index("Variable Byte Integer"):
-      buffer += VBIs.encode(value)
+      buffer += VariableByteIntegers.encode(value)
     elif type == self.types.index("Binary Data"):
       buffer += writeBytes(value)
     elif type == self.types.index("UTF-8 Encoded String"):
@@ -300,7 +312,8 @@ class Properties(object):
         else:
           buffer += self.writeProperty(identifier, attr_type,
                            getattr(self, compressedName))
-    return VBIs.encode(len(buffer)) + buffer
+    print("pack", len(buffer))
+    return VariableByteIntegers.encode(len(buffer)) + buffer
 
   def readProperty(self, buffer, type, propslen):
     if type == self.types.index("Byte"):
@@ -313,7 +326,7 @@ class Properties(object):
       value = readInt32(buffer)
       valuelen = 4
     elif type == self.types.index("Variable Byte Integer"):
-      value, valuelen = VBIs.decode(buffer)
+      value, valuelen = VariableByteIntegers.decode(buffer)
     elif type == self.types.index("Binary Data"):
       value, valuelen = readBytes(buffer)
     elif type == self.types.index("UTF-8 Encoded String"):
@@ -334,13 +347,15 @@ class Properties(object):
     return rc
 
   def unpack(self, buffer):
+    if sys.version_info[0] < 3:
+      buffer = bytearray(buffer)
     self.clear()
     # deserialize properties into attributes from buffer received from network
-    propslen, VBIlen = VBIs.decode(buffer)
+    propslen, VBIlen = VariableByteIntegers.decode(buffer)
     buffer = buffer[VBIlen:] # strip the bytes used by the VBI
     propslenleft = propslen
     while propslenleft > 0: # properties length is 0 if there are none
-      identifier, VBIlen = VBIs.decode(buffer) # property identifier
+      identifier, VBIlen = VariableByteIntegers.decode(buffer) # property identifier
       buffer = buffer[VBIlen:] # strip the bytes used by the VBI
       propslenleft -= VBIlen
       attr_type = self.properties[identifier][0]

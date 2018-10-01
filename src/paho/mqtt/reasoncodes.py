@@ -66,7 +66,7 @@ class ReasonCodes:
     return self.getName()
 
   def pack(self):
-    return bytes([self.value])
+    return bytearray([self.value])
 
   def __init__(self, packetType, aName="Success", identifier=-1):
     self.packetType = packetType

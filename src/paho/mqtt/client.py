@@ -2388,6 +2388,7 @@ class Client(object):
                 packed_connect_properties = b'\x00'
             else:
                 packed_connect_properties = self._connect_properties.pack()
+                print("packet connect properties", len(packed_connect_properties))
             remaining_length += len(packed_connect_properties)
             if self._will:
                 if self._will_properties == None:
@@ -2454,8 +2455,8 @@ class Client(object):
             if properties != None or reasoncode != None:
                 if reasoncode == None:
                     reasoncode = ReasonCodes(DISCONNECT >> 4, identifier=0)
-                    remaining_length += 1
                 packet += reasoncode.pack()
+                remaining_length += 1
                 if properties != None:
                     packed_props = properties.pack()
                     remaining_length += len(packed_props)
@@ -2510,6 +2511,7 @@ class Client(object):
             else:
                 packed_unsubscribe_properties = properties.pack()
             remaining_length += len(packed_unsubscribe_properties)
+            print("remaining length", remaining_length)
         for t in topics:
             remaining_length += 2 + len(t)
 
@@ -2527,13 +2529,23 @@ class Client(object):
             self._pack_str16(packet, t)
 
         # topics_repr = ", ".join("'"+topic.decode('utf8')+"'" for topic in topics)
-        self._easy_log(
-            MQTT_LOG_DEBUG,
-            "Sending UNSUBSCRIBE (d%d, m%d) %s",
-            dup,
-            local_mid,
-            topics,
-        )
+        if self._protocol == MQTTv5:
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Sending UNSUBSCRIBE (d%d, m%d) %s %s",
+                dup,
+                local_mid,
+                properties,
+                topics,
+            )
+        else:
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Sending UNSUBSCRIBE (d%d, m%d) %s",
+                dup,
+                local_mid,
+                topics,
+            )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
 
     def _message_retry_check_actual(self, messages, mutex):
@@ -2815,6 +2827,8 @@ class Client(object):
             props, props_len = properties.unpack(packet)
             reasoncodes = []
             for c in packet[props_len:]:
+                if sys.version_info[0] < 3:
+                    c = ord(c)
                 reasoncodes.append(ReasonCodes(SUBACK >> 4, identifier=c))
             if len(reasoncodes) == 1:
                 reasoncodes = reasoncodes[0]
@@ -2981,6 +2995,8 @@ class Client(object):
             props, props_len = properties.unpack(packet)
             reasoncodes = []
             for c in packet[props_len:]:
+                if sys.version_info[0] < 3:
+                    c = ord(c)
                 reasoncodes.append(ReasonCodes(UNSUBACK >> 4, identifier=c))
             if len(reasoncodes) == 1:
                 reasoncodes = reasoncodes[0]

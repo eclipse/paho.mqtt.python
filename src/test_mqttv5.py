@@ -24,11 +24,14 @@ def on_unsubscribe(client, userdata, mid, properties, reasoncodes):
         traceback.print_exc()
 
 def on_message(client, userdata, message):
-    print('on_message', userdata, "properties:", message.properties, message.payload)
+    try:
+        print('on_message', userdata, "properties:", message.properties, message.payload)
 
-    unsubs_props = Properties(PacketTypes.UNSUBSCRIBE)
-    unsubs_props.UserProperty = ("unsub_name", "unsub_value")
-    client.unsubscribe('a', properties=unsubs_props)
+        unsubs_props = Properties(PacketTypes.UNSUBSCRIBE)
+        unsubs_props.UserProperty = ("unsub_name", "unsub_value")
+        client.unsubscribe('a', properties=unsubs_props)
+    except:
+        traceback.print_exc()
 
 def on_subscribe(client, userdata, mid, properties, reasoncodes):
     print("subscribed", userdata, mid, properties, reasoncodes)
@@ -51,6 +54,8 @@ def on_connect(client, userdata, flags, result, properties):
     sub_opts.QoS = 2
     client.subscribe('a', options=sub_opts, properties=subs_props)
 
+def on_log(client, userdata, level, buf):
+    print(buf)
 
 k = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5)
 k.user_data_set("mine")
@@ -60,6 +65,7 @@ k.on_subscribe = on_subscribe
 k.on_unsubscribe = on_unsubscribe
 k.on_message = on_message
 k.on_disconnect = on_disconnect
+k.on_log = on_log
 
 will_props = Properties(PacketTypes.WILLMESSAGE)
 will_props.UserProperty = ("name", "value")
@@ -79,4 +85,5 @@ while not connected:
 while not disconnected:
     time.sleep(.1)
 
-
+time.sleep(.1)
+k.loop_stop()

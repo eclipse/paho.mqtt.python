@@ -16,6 +16,8 @@
 *******************************************************************
 """
 
+import sys
+
 class MQTTException(Exception):
   pass
 
@@ -41,8 +43,12 @@ class SubscribeOptions(object):
     assert self.retainHandling in [0, 1, 2], "Retain handling should be 0, 1 or 2"
     noLocal = 1 if self.noLocal else 0
     retainAsPublished = 1 if self.retainAsPublished else 0
-    buffer = bytes([(self.retainHandling << 4) | (retainAsPublished << 3) |\
-                         (noLocal << 2) | self.QoS])
+    data = [(self.retainHandling << 4) | (retainAsPublished << 3) |\
+                         (noLocal << 2) | self.QoS]
+    if sys.version_info[0] >= 3:
+        buffer = bytes(data)
+    else:
+        buffer = bytearray(data)
     return buffer
 
   def unpack(self, buffer):
