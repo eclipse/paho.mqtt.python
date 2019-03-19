@@ -32,15 +32,17 @@ except ImportError:
 socks = None
 try:
     import socks
+except ImportError:
+    pass
 
+try:
     # Python 3
     from urllib import request as urllib_dot_request
     from urllib import parse as urllib_dot_parse
 except ImportError:
-    if socks:
-        # Python 2
-        import urllib as urllib_dot_request
-        import urlparse as urllib_dot_parse    
+    # Python 2
+    import urllib as urllib_dot_request
+    import urlparse as urllib_dot_parse
 
 import struct
 import sys
@@ -2753,15 +2755,9 @@ class Client(object):
         # a default proxy
         socks_default = socks.get_default_proxy()
         if self._proxy_is_valid(socks_default):
-            proxy = {
-                "proxy_type": socks_default[0],
-                "proxy_addr": socks_default[1],
-                "proxy_port": socks_default[2],
-                "proxy_rdns": socks_default[3],
-                "proxy_username": socks_default[4],
-                "proxy_password": socks_default[5]
-            }
-            return proxy
+            proxy_keys = ("proxy_type", "proxy_addr", "proxy_port",
+                          "proxy_rdns", "proxy_username", "proxy_password")
+            return dict(zip(proxy_keys, socks_default))
 
         # If we didn't find a proxy through any of the above methods, return
         # None to indicate that the connection should be handled normally
