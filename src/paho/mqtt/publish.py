@@ -18,22 +18,24 @@ of messages in a one-shot manner. In other words, they are useful for the
 situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect and nothing else is required.
 """
+from __future__ import absolute_import
 
-import paho.mqtt.client as paho
-import paho.mqtt as mqtt
+import collections
 
+from . import client as paho
+from .. import mqtt
 
 def _do_publish(client):
     """Internal function"""
 
-    message = client._userdata.pop()
+    message = client._userdata.popleft()
 
     if isinstance(message, dict):
         client.publish(**message)
-    elif isinstance(message, tuple):
+    elif isinstance(message, (tuple, list)):
         client.publish(*message)
     else:
-        raise ValueError('message must be a dict or a tuple')
+        raise TypeError('message must be a dict, tuple, or list')
 
 
 def _on_connect(client, userdata, flags, rc):
@@ -109,7 +111,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
-          'ciphers':"<ciphers">}
+          'ciphers':"<ciphers">, 'insecure':"<bool>"}
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
@@ -121,11 +123,11 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
           raw TCP. Set to "websockets" to use WebSockets as the transport.
     """
 
-    if not isinstance(msgs, list):
-        raise ValueError('msgs must be a list')
+    if not isinstance(msgs, collections.Iterable):
+        raise TypeError('msgs must be an iterable')
 
-    client = paho.Client(client_id=client_id,
-                         userdata=msgs, protocol=protocol, transport=transport)
+    client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
+                         protocol=protocol, transport=transport)
 
     client.on_publish = _on_publish
     client.on_connect = _on_connect
@@ -144,7 +146,12 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
     if tls is not None:
         if isinstance(tls, dict):
+            insecure = tls.pop('insecure', False)
             client.tls_set(**tls)
+            if insecure:
+                # Must be set *after* the `client.tls_set()` call since it sets
+                # up the SSL context that `client.tls_insecure_set` alters.
+                client.tls_insecure_set(insecure)
         else:
             # Assume input is SSLContext object
             client.tls_set_context(tls)
@@ -198,7 +205,7 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
-          'ciphers':"<ciphers">}
+          'ciphers':"<ciphers">, 'insecure':"<bool>"}
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.

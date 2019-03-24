@@ -29,8 +29,7 @@ def on_disconnect(mqttc, obj, rc):
 def on_publish(mqttc, obj, mid):
     mqttc.disconnect()
 
-run = -1
-mqttc = mqtt.Client("publish-qos2-test", run)
+mqttc = mqtt.Client("publish-qos2-test", clean_session=False)
 mqttc.message_retry_set(3)
 mqttc.on_connect = on_connect
 mqttc.on_disconnect = on_disconnect
@@ -38,7 +37,5 @@ mqttc.on_publish = on_publish
 
 mqttc.connect("localhost", 1888)
 rc = 0
-while run == -1:
+while True:
     rc = mqttc.loop()
-
-exit(run)

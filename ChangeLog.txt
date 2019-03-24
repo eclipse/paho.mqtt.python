@@ -1,3 +1,37 @@
+v1.x.x - 20xx-xx-xx
+===================
+
+
+v1.4.0 - 2018-09-02
+===================
+
+- Fix hang when client restarted and broker resumed a session with Qos2
+  message. Closes #284.
+  Note: this change replace the hang by a message lost ! See README for
+  current limitation of paho-mqtt.
+- Fix reconnection loop when a clean_session=True client reconnect while Qos2
+  message are being sent.
+  Note: this change replace the infinite reconnection loop by a possible
+  duplicate QoS2 message. Only clean_session=True client are affected, see
+  README for current limitation of paho-mqtt.
+- Catch and log any exception raised by user callback. Closes #294.
+- Improve support for external event loop (like asyncio). Closes #235.
+- Fix order of message with publish.multiple helper. Closes #87.
+- Fix hang on wait_for_published() on bad network. Closes #309.
+- Fix an issue with Websocket that seems to happen only on Windows.
+  Closes #268.
+- Fix issue with Websocket payload size between 127 and 65536. Closes #267.
+- Closes socket in client destructor to avoid FD leak. Closes #170.
+- Fix uncaught timeout exception during connection. Closes #288.
+- Remove dup flag on PUBREL packet. Closes #298.
+- Use secure entropy source for Websocket mask_key (urandom). Closes #305.
+- Fix mid generation that was not thread-safe.
+- Replace print() statements with proper logging. Closes #214.
+- Allow insecure TLS on publish and subscribe helpers. Closes #299.
+- Allow to remove authentication (reset username to None). Closes #259.
+- Add support for the non-standard bridge mode. Closes #282.
+
+
 v1.3.1 - 2017-10-09
 ===================
 

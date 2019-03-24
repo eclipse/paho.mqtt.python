@@ -18,10 +18,10 @@ to topics and retrieving messages. The two functions are simple(), which
 returns one or messages matching a set of topics, and callback() which allows
 you to pass a callback for processing of messages.
 """
+from __future__ import absolute_import
 
-import paho.mqtt.client as paho
-import paho.mqtt as mqtt
-
+from . import client as paho
+from .. import mqtt
 
 def _on_connect(client, userdata, flags, rc):
     """Internal callback"""
@@ -108,7 +108,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
-          'ciphers':"<ciphers">}
+          'ciphers':"<ciphers">, 'insecure':"<bool>"}
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.
@@ -156,7 +156,12 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
 
     if tls is not None:
         if isinstance(tls, dict):
+            insecure = tls.pop('insecure', False)
             client.tls_set(**tls)
+            if insecure:
+                # Must be set *after* the `client.tls_set()` call since it sets
+                # up the SSL context that `client.tls_insecure_set` alters.
+                client.tls_insecure_set(insecure)
         else:
             # Assume input is SSLContext object
             client.tls_set_context(tls)
@@ -216,7 +221,7 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
     tls : a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
-          'ciphers':"<ciphers">}
+          'ciphers':"<ciphers">, 'insecure':"<bool>"}
           ca_certs is required, all other parameters are optional and will
           default to None if not provided, which results in the client using
           the default behaviour - see the paho.mqtt.client documentation.

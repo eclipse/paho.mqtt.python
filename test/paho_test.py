@@ -1,3 +1,4 @@
+import binascii
 import struct
 import socket
 import sys
@@ -58,11 +59,13 @@ def packet_matches(name, recvd, expected):
         try:
             print("Received: " + to_string(recvd))
         except struct.error:
-            print("Received (not decoded): " + recvd)
+            print("Received (not decoded): 0x" +
+                  binascii.b2a_hex(recvd).decode('utf8'))
         try:
             print("Expected: " + to_string(expected))
         except struct.error:
-            print("Expected (not decoded): " + expected)
+            print("Expected (not decoded): 0x" +
+                  binascii.b2a_hex(expected).decode('utf8'))
 
         return 0
     else:
@@ -90,7 +93,7 @@ def to_string(packet):
     if len(packet) == 0:
         return ""
 
-    packet0 = struct.unpack("!B", packet[0])
+    packet0 = struct.unpack("!B", packet[0:1])
     packet0 = packet0[0]
     cmd = packet0 & 0xF0
     if cmd == 0x00:
@@ -337,11 +340,8 @@ def gen_pubrec(mid):
     return struct.pack('!BBH', 80, 2, mid)
 
 
-def gen_pubrel(mid, dup=False):
-    if dup:
-        cmd = 96 + 8 + 2
-    else:
-        cmd = 96 + 2
+def gen_pubrel(mid):
+    cmd = 96 + 2
     return struct.pack('!BBH', cmd, 2, mid)
 
 
