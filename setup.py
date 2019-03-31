@@ -14,6 +14,7 @@ requirements = []
 test_requirements = ['pytest', 'pylama']
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 setup_requirements = ['pytest-runner'] if needs_pytest else []
+extra_requirements = {'proxy': ['PySocks']}
 
 if sys.version_info < (3, 0):
     test_requirements += ['mock']
@@ -53,5 +54,6 @@ setup(
     ],
     test_suite='tests',
     tests_require=test_requirements,
-    setup_requires=setup_requirements
+    setup_requires=setup_requirements,
+    extras_require=extra_requirements
 )
