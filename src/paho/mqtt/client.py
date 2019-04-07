@@ -336,7 +336,7 @@ class MQTTMessageInfo(object):
             self._published = True
             self._condition.notify()
 
-    def wait_for_publish(self):
+    def wait_for_publish(self, timeout=None):
         """Block until the message associated with this object is published."""
         if self.rc == MQTT_ERR_QUEUE_SIZE:
             raise ValueError('Message is not queued due to ERR_QUEUE_SIZE')
@@ -347,7 +347,7 @@ class MQTTMessageInfo(object):
 
         with self._condition:
             while not self._published:
-                self._condition.wait()
+                self._condition.wait(timeout)
 
     def is_published(self):
         """Returns True if the message associated with this object has been
