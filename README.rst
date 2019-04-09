@@ -1456,6 +1456,6 @@ More information
 
 Discussion of the Paho clients takes place on the `Eclipse paho-dev mailing list <https://dev.eclipse.org/mailman/listinfo/paho-dev>`_.
 
-General questions about the MQTT protocol are discussed in the `MQTT Google Group <https://groups.google.com/forum/?fromgroups#!forum/mqtt>`_.
+General questions about the MQTT protocol itself (not this library) are discussed in the `MQTT Google Group <https://groups.google.com/forum/?fromgroups#!forum/mqtt>`_.
 
 There is much more information available via the `MQTT community site <http://mqtt.org/>`_.
