@@ -18,59 +18,66 @@
 
 import sys
 
+
 class MQTTException(Exception):
-  pass
+    pass
+
 
 class SubscribeOptions(object):
 
-  def __init__(self, QoS=0, noLocal=False, retainAsPublished=False, retainHandling=0):
-    object.__setattr__(self, "names",
-           ["QoS", "noLocal", "retainAsPublished", "retainHandling"])
-    self.QoS = QoS # bits 0,1
-    self.noLocal = noLocal # bit 2
-    self.retainAsPublished = retainAsPublished # bit 3
-    self.retainHandling = retainHandling # bits 4 and 5: 0, 1 or 2
-    assert self.QoS in [0, 1, 2]
-    assert self.retainHandling in [0, 1, 2], "Retain handling should be 0, 1 or 2"
+    def __init__(self, QoS=0, noLocal=False, retainAsPublished=False, retainHandling=0):
+        object.__setattr__(self, "names",
+                           ["QoS", "noLocal", "retainAsPublished", "retainHandling"])
+        self.QoS = QoS  # bits 0,1
+        self.noLocal = noLocal  # bit 2
+        self.retainAsPublished = retainAsPublished  # bit 3
+        self.retainHandling = retainHandling  # bits 4 and 5: 0, 1 or 2
+        assert self.QoS in [0, 1, 2]
+        assert self.retainHandling in [
+            0, 1, 2], "Retain handling should be 0, 1 or 2"
 
-  def __setattr__(self, name, value):
-    if name not in self.names:
-      raise MQTTException(name + " Attribute name must be one of "+str(self.names))
-    object.__setattr__(self, name, value)
+    def __setattr__(self, name, value):
+        if name not in self.names:
+            raise MQTTException(
+                name + " Attribute name must be one of "+str(self.names))
+        object.__setattr__(self, name, value)
 
-  def pack(self):
-    assert self.QoS in [0, 1, 2]
-    assert self.retainHandling in [0, 1, 2], "Retain handling should be 0, 1 or 2"
-    noLocal = 1 if self.noLocal else 0
-    retainAsPublished = 1 if self.retainAsPublished else 0
-    data = [(self.retainHandling << 4) | (retainAsPublished << 3) |\
-                         (noLocal << 2) | self.QoS]
-    if sys.version_info[0] >= 3:
-        buffer = bytes(data)
-    else:
-        buffer = bytearray(data)
-    return buffer
+    def pack(self):
+        assert self.QoS in [0, 1, 2]
+        assert self.retainHandling in [
+            0, 1, 2], "Retain handling should be 0, 1 or 2"
+        noLocal = 1 if self.noLocal else 0
+        retainAsPublished = 1 if self.retainAsPublished else 0
+        data = [(self.retainHandling << 4) | (retainAsPublished << 3) |
+                (noLocal << 2) | self.QoS]
+        if sys.version_info[0] >= 3:
+            buffer = bytes(data)
+        else:
+            buffer = bytearray(data)
+        return buffer
 
-  def unpack(self, buffer):
-    b0 = buffer[0]
-    self.retainHandling = ((b0 >> 4) & 0x03)
-    self.retainAsPublished = True if ((b0 >> 3) & 0x01) == 1 else False
-    self.noLocal = True if ((b0 >> 2) & 0x01) == 1 else False
-    self.QoS = (b0 & 0x03)
-    assert self.retainHandling in [0, 1, 2], "Retain handling should be 0, 1 or 2, not %d" % self.retainHandling
-    assert self.QoS in [0, 1, 2], "QoS should be 0, 1 or 2, not %d" % self.QoS
-    return 1
+    def unpack(self, buffer):
+        b0 = buffer[0]
+        self.retainHandling = ((b0 >> 4) & 0x03)
+        self.retainAsPublished = True if ((b0 >> 3) & 0x01) == 1 else False
+        self.noLocal = True if ((b0 >> 2) & 0x01) == 1 else False
+        self.QoS = (b0 & 0x03)
+        assert self.retainHandling in [
+            0, 1, 2], "Retain handling should be 0, 1 or 2, not %d" % self.retainHandling
+        assert self.QoS in [
+            0, 1, 2], "QoS should be 0, 1 or 2, not %d" % self.QoS
+        return 1
 
-  def __str__(self):
-    return "{QoS="+str(self.QoS)+", noLocal="+str(self.noLocal)+\
-        ", retainAsPublished="+str(self.retainAsPublished)+\
-        ", retainHandling="+str(self.retainHandling)+"}"
+    def __str__(self):
+        return "{QoS="+str(self.QoS)+", noLocal="+str(self.noLocal) +\
+            ", retainAsPublished="+str(self.retainAsPublished) +\
+            ", retainHandling="+str(self.retainHandling)+"}"
 
-  def json(self):
-    data = {
-      "QoS": self.QoS,
-      "noLocal": self.noLocal,
-      "retainAsPublished": self.retainAsPublished,
-      "retainHandling": self.retainHandling,
-    }
-    return data
+    def json(self):
+        data = {
+            "QoS": self.QoS,
+            "noLocal": self.noLocal,
+            "retainAsPublished": self.retainAsPublished,
+            "retainHandling": self.retainHandling,
+        }
+        return data

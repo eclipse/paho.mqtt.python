@@ -2323,7 +2323,7 @@ class Client(object):
                 packed_properties = b'\x00'
             else:
                 packed_properties = properties.pack()
-            remaining_length += len(packed_properties)
+            remaining_length += len(packed_properties) 
 
         self._pack_remaining_length(packet, remaining_length)
         self._pack_str16(packet, topic)
@@ -2388,8 +2388,7 @@ class Client(object):
                 packed_connect_properties = b'\x00'
             else:
                 packed_connect_properties = self._connect_properties.pack()
-                print("packet connect properties", len(packed_connect_properties))
-            remaining_length += len(packed_connect_properties)
+            remaining_length += len(packed_connect_properties) 
             if self._will:
                 if self._will_properties == None:
                     packed_will_properties = b'\x00'
@@ -2511,7 +2510,6 @@ class Client(object):
             else:
                 packed_unsubscribe_properties = properties.pack()
             remaining_length += len(packed_unsubscribe_properties)
-            print("remaining length", remaining_length)
         for t in topics:
             remaining_length += 2 + len(t)
 

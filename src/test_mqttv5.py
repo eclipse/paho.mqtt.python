@@ -1,4 +1,4 @@
-import time, traceback
+import time, traceback, sys
 
 import paho.mqtt
 from paho.mqtt.properties import Properties
@@ -81,6 +81,7 @@ k.loop_start()
 
 while not connected:
     time.sleep(.1)
+
 
 while not disconnected:
     time.sleep(.1)

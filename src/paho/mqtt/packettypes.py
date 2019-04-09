@@ -16,14 +16,15 @@
 *******************************************************************
 """
 
+
 class PacketTypes:
 
-  indexes = range(1, 16)
+    indexes = range(1, 16)
 
-  # Packet types
-  CONNECT, CONNACK, PUBLISH, PUBACK, PUBREC, PUBREL, \
-  PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK, \
-  PINGREQ, PINGRESP, DISCONNECT, AUTH = indexes
+    # Packet types
+    CONNECT, CONNACK, PUBLISH, PUBACK, PUBREC, PUBREL, \
+        PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK, \
+        PINGREQ, PINGRESP, DISCONNECT, AUTH = indexes
 
-  # Dummy packet type for properties use - will delay only applies to will
-  WILLMESSAGE = 99
+    # Dummy packet type for properties use - will delay only applies to will
+    WILLMESSAGE = 99
