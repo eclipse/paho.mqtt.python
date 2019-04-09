@@ -50,7 +50,7 @@ def on_connect(client, userdata, flags, result, properties):
 
     subs_props = Properties(PacketTypes.SUBSCRIBE)
     subs_props.SubscriptionIdentifier = 3
-    sub_opts = SubscribeOptions(retainHandling=2)
+    sub_opts = SubscribeOptions(retainHandling=SubscribeOptions.RETAIN_DO_NOT_SEND)
     sub_opts.QoS = 2
     client.subscribe('a', options=sub_opts, properties=subs_props)
 

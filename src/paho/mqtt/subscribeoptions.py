@@ -25,6 +25,9 @@ class MQTTException(Exception):
 
 class SubscribeOptions(object):
 
+    # retain handling options
+    RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB, RETAIN_DO_NOT_SEND = range(0, 3)
+
     def __init__(self, QoS=0, noLocal=False, retainAsPublished=False, retainHandling=0):
         object.__setattr__(self, "names",
                            ["QoS", "noLocal", "retainAsPublished", "retainHandling"])
