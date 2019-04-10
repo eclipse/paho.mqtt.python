@@ -2574,7 +2574,9 @@ class Client(object):
             if err.errno != EAGAIN:
                 raise
 
-        if self._thread is None:
+        # If we have an external event loop registered, use that instead
+        # of calling lling loop_write() directly.
+        if self._thread is None and self.socket_register_write is None:
             if self._in_callback_mutex.acquire(False):
                 self._in_callback_mutex.release()
                 return self.loop_write()
