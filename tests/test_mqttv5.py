@@ -147,21 +147,23 @@ class Test(unittest.TestCase):
 
       #aclient = mqtt_client.Client(b"\xEF\xBB\xBF" + "myclientid".encode("utf-8"))
       #aclient = mqtt_client.Client("myclientid".encode("utf-8"))
-      aclient = paho.mqtt.client.Client("myclientid2".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5)
+      aclient = paho.mqtt.client.Client("aclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5, 
+        clean_session=True)
       callback.register(aclient)
 
-      bclient = mqtt_client.Client("myclientid2".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5)
+      bclient = mqtt_client.Client("bclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5)
       callback2.register(bclient)
+
+    def waitfor(self, queue, depth, limit):
+      total = 0
+      while len(queue) < depth and total < limit:
+        interval = .5
+        total += interval
+        time.sleep(interval)
 
     def test_basic(self):
       aclient.connect(host=host, port=port)
       aclient.loop_start()
-      response = callback.wait_connected()
-      self.assertEqual(response["reasonCode"].getName(), "Success")
-      aclient.disconnect()
-
-      rc = aclient.connect(host=host, port=port)
-      # wait for the connect response
       response = callback.wait_connected()
       self.assertEqual(response["reasonCode"].getName(), "Success")
 
@@ -209,6 +211,7 @@ class Test(unittest.TestCase):
 
       time.sleep(1)
       aclient.disconnect()
+      aclient.loop_stop()
 
       self.assertEqual(len(callback.messages), 3)
       userprops = callback.messages[0]["message"].properties.UserProperty
@@ -221,31 +224,40 @@ class Test(unittest.TestCase):
       self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
 
       cleanRetained()
-"""
+
     def test_will_message(self):
       # will messages
       callback.clear()
       callback2.clear()
       self.assertEqual(len(callback2.messages), 0, callback2.messages)
 
-      will_properties = MQTTV5.Properties(MQTTV5.PacketTypes.WILLMESSAGE)
+      will_properties = Properties(PacketTypes.WILLMESSAGE)
       will_properties.WillDelayInterval = 0 # this is the default anyway
       will_properties.UserProperty = ("a", "2")
       will_properties.UserProperty = ("c", "3")
 
-      aclient.connect(host=host, port=port, cleanstart=True, willFlag=True,
-          willTopic=topics[2], willMessage=b"will message", keepalive=2,
-          willProperties=will_properties)
-      bclient.connect(host=host, port=port, cleanstart=False)
-      bclient.subscribe([topics[2]], [MQTTV5.SubscribeOptions(2)])
-      self.waitfor(callback2.subscribeds, 1, 3)
+      aclient.will_set(topics[2], payload=b"will message", properties=will_properties)
+
+      aclient.connect(host=host, port=port, keepalive=2)
+      aclient.loop_start()
+      response = callback.wait_connected()
+      bclient.connect(host=host, port=port)
+      bclient.loop_start()
+      response = callback2.wait_connected()
+      bclient.subscribe(topics[2], options=SubscribeOptions(QoS=2))
+      response = callback2.wait_subscribed()
+      self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+
       # keep alive timeout ought to be triggered so the will message is received
+      aclient.loop_stop()
       self.waitfor(callback2.messages, 1, 10)
       bclient.disconnect()
+      bclient.loop_stop()
       self.assertEqual(len(callback2.messages), 1, callback2.messages)  # should have the will message
-      props = callback2.messages[0][5]
+      props = callback2.messages[0]["message"].properties
       self.assertEqual(props.UserProperty, [("a", "2"), ("c", "3")])
 
+"""
     # 0 length clientid
     def test_zero_length_clientid(self):
       logging.info("Zero length clientid test starting")
@@ -578,13 +590,6 @@ class Test(unittest.TestCase):
       self.assertTrue(callback2.messages[1][5].MessageExpiryInterval < 6,
                                    callback2.messages[1][5].MessageExpiryInterval)
       aclient.disconnect()
-
-    def waitfor(self, queue, depth, limit):
-      total = 0
-      while len(queue) < depth and total < limit:
-        interval = .5
-        total += interval
-        time.sleep(interval)
 
     def test_subscribe_options(self):
       callback.clear()

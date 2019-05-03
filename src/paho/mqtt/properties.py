@@ -1,6 +1,6 @@
 """
 *******************************************************************
-  Copyright (c) 2017, 2018 IBM Corp.
+  Copyright (c) 2017, 2019 IBM Corp.
 
   All rights reserved. This program and the accompanying materials
   are made available under the terms of the Eclipse Public License v1.0
@@ -16,7 +16,7 @@
 *******************************************************************
 """
 
-import sys
+import sys, struct
 
 from .packettypes import PacketTypes
 
@@ -30,24 +30,19 @@ class MalformedPacket(MQTTException):
 
 
 def writeInt16(length):
-    return bytearray([length // 256, length % 256])
+    return bytearray(struct.pack("!H", length))
 
 
 def readInt16(buf):
-    return buf[0]*256 + buf[1]
+    return struct.unpack("!H", buf[:2])[0]
 
 
 def writeInt32(length):
-    buffer = [length // 16777216]
-    length %= 16777216
-    buffer += [length // 65536]
-    length %= 65536
-    buffer += [length // 256, length % 256]
-    return bytearray(buffer)
+    return bytearray(struct.pack("!L", length))
 
 
 def readInt32(buf):
-    return buf[0]*16777216 + buf[1]*65536 + buf[2]*256 + buf[3]
+    return struct.unpack("!L", buf[:4])[0]
 
 
 def writeUTF(data):
