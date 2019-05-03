@@ -68,6 +68,13 @@ def readUTF(buffer, maxlen):
     if length > maxlen:
         raise MalformedPacket("Length delimited string too long")
     buf = buffer[2:2+length].decode("utf-8")
+    """
+    These are checks for invalid chars in UTF-8 strings.  Two concerns:
+    1. performance on long strings
+    2. the pyflakes check on unichr() function fails in Python3.  This is correct
+    in that the function doesn't exist in Python3, however it is enclosed in a 
+    Python version check block so actually works.
+
     zz = buf.find("\x00")  # look for null in the UTF string
     if zz != -1:
         raise MalformedPacket("[MQTT-1.5.4-2] Null found in UTF data "+buf)
@@ -81,6 +88,7 @@ def readUTF(buffer, maxlen):
                 "[MQTT-1.5.4-1] D800-DFFF found in UTF data "+buf)
     if buf.find("\uFEFF") != -1:
         print("[MQTT-1.5.4-3] U+FEFF in UTF string")
+    """
     return buf, length+2
 
 
