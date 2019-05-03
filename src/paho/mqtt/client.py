@@ -1334,20 +1334,26 @@ class Client(object):
         topic_qos_list = None
 
         if isinstance(topic, tuple):
-            topic, qos = topic
-            if self._protocol == MQTTv5 and not isinstance(qos, SubscribeOptions):
-                raise ValueError('Subscribe options must be instance of SubscribeOptions class.')
+            if self._protocol == MQTTv5:
+                topic, options = topic
+                if not isinstance(options, SubscribeOptions):
+                    raise ValueError('Subscribe options must be instance of SubscribeOptions class.')
+            else:
+                topic, qos = topic
 
         if isinstance(topic, basestring):
+            if qos < 0 or qos > 2:
+                raise ValueError('Invalid QoS level.')
             if self._protocol == MQTTv5:
                 if options == None:
-                    options = SubscribeOptions()
+                    # if no options are provided, use the QoS passed instead
+                    options = SubscribeOptions(QoS=qos)
+                elif qos != 0:
+                    raise ValueError('Subscribe options and qos parameters cannot be combined.')
                 if not isinstance(options, SubscribeOptions):
                     raise ValueError('Subscribe options must be instance of SubscribeOptions class.')
                 topic_qos_list = [(topic.encode('utf-8'), options)]
             else:    
-                if qos < 0 or qos > 2:
-                    raise ValueError('Invalid QoS level.')
                 if topic is None or len(topic) == 0:
                     raise ValueError('Invalid topic.')
                 topic_qos_list = [(topic.encode('utf-8'), qos)]

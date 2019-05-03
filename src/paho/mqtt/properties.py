@@ -63,27 +63,15 @@ def readUTF(buffer, maxlen):
     if length > maxlen:
         raise MalformedPacket("Length delimited string too long")
     buf = buffer[2:2+length].decode("utf-8")
-    """
-    These are checks for invalid chars in UTF-8 strings.  Two concerns:
-    1. performance on long strings
-    2. the pyflakes check on unichr() function fails in Python3.  This is correct
-    in that the function doesn't exist in Python3, however it is enclosed in a 
-    Python version check block so actually works.
-
-    zz = buf.find("\x00")  # look for null in the UTF string
-    if zz != -1:
-        raise MalformedPacket("[MQTT-1.5.4-2] Null found in UTF data "+buf)
-    for c in range(0xD800, 0xDFFF):
-        if sys.version_info[0] >= 3:
-            zz = buf.find(chr(c))  # look for D800-DFFF in the UTF string
-        else:
-            zz = buf.find(unichr(c))  # look for D800-DFFF in the UTF string
-        if zz != -1:
-            raise MalformedPacket(
-                "[MQTT-1.5.4-1] D800-DFFF found in UTF data "+buf)
-    if buf.find("\uFEFF") != -1:
-        print("[MQTT-1.5.4-3] U+FEFF in UTF string")
-    """
+    # look for chars which are invalid for MQTT
+    for c in buf: # look for D800-DFFF in the UTF string
+        ord_c = ord(c)
+        if ord_c >= 0xD800 and ord_c <= 0xDFFF:
+            raise MalformedPacket("[MQTT-1.5.4-1] D800-DFFF found in UTF-8 data")
+        if ord_c == 0x00: # look for null in the UTF string
+            raise MalformedPacket("[MQTT-1.5.4-2] Null found in UTF-8 data")
+        if ord_c == 0xFEFF:
+            raise MalformedPacket("[MQTT-1.5.4-3] U+FEFF in UTF-8 data")
     return buf, length+2
 
 

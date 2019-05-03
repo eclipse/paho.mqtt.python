@@ -16,7 +16,11 @@
 *******************************************************************
 """
 
-import unittest, time, getopt, sys, logging
+import unittest
+import time
+import getopt
+import sys
+import logging
 
 import paho.mqtt
 from paho.mqtt.properties import Properties
@@ -25,106 +29,114 @@ from paho.mqtt.subscribeoptions import SubscribeOptions
 from paho.mqtt.packettypes import PacketTypes
 import paho.mqtt.client as mqtt_client
 
+
 class Callbacks:
 
-  def __init__(self):
-    self.messages = []
-    self.publisheds = []
-    self.subscribeds = []
-    self.unsubscribeds = []
-    self.disconnecteds = []
-    self.connecteds = []
+    def __init__(self):
+        self.messages = []
+        self.publisheds = []
+        self.subscribeds = []
+        self.unsubscribeds = []
+        self.disconnecteds = []
+        self.connecteds = []
 
-  def __str__(self):
-     return str(self.messages) + str(self.messagedicts) + str(self.publisheds) + \
-        str(self.subscribeds) + str(self.unsubscribeds) + str(self.disconnects)
+    def __str__(self):
+        return str(self.messages) + str(self.messagedicts) + str(self.publisheds) + \
+            str(self.subscribeds) + \
+            str(self.unsubscribeds) + str(self.disconnects)
 
-  def clear(self):
-    self.__init__()
+    def clear(self):
+        self.__init__()
 
-  def on_connect(self, client, userdata, flags, reasonCode, properties):
-    self.connecteds.append({"userdata":userdata, "flags":flags, "reasonCode":reasonCode, "properties":properties})
+    def on_connect(self, client, userdata, flags, reasonCode, properties):
+        self.connecteds.append({"userdata": userdata, "flags": flags,
+                                "reasonCode": reasonCode, "properties": properties})
 
-  def wait(self, alist, timeout=2):
-    interval = 0.2
-    total = 0
-    while len(alist) == 0 and total < timeout:
-      time.sleep(interval)
-      total += interval
-    return alist.pop(0) if len(alist) > 0 else None
-  
-  def wait_connected(self):
-    return self.wait(self.connecteds)
+    def wait(self, alist, timeout=2):
+        interval = 0.2
+        total = 0
+        while len(alist) == 0 and total < timeout:
+            time.sleep(interval)
+            total += interval
+        return alist.pop(0) if len(alist) > 0 else None
 
-  def on_disconnect(self, client, userdata, reasoncode):
-    self.disconnecteds.append({"reasonCode" : reasoncode})
+    def wait_connected(self):
+        return self.wait(self.connecteds)
 
-  def on_message(self, client, userdata, message):
-    self.messages.append({"userdata" : userdata, "message" : message})
-    return True
+    def on_disconnect(self, client, userdata, reasoncode):
+        self.disconnecteds.append({"reasonCode": reasoncode})
 
-  def published(self, msgid):
-    logging.info("published %d", msgid)
-    self.publisheds.append(msgid)
+    def on_message(self, client, userdata, message):
+        self.messages.append({"userdata": userdata, "message": message})
+        return True
 
-  def on_subscribe(self, client, userdata, mid, properties, reasonCodes):
-    self.subscribeds.append({"mid":mid, "userdata":userdata, "properties":properties, "reasonCodes":reasonCodes})
+    def published(self, msgid):
+        logging.info("published %d", msgid)
+        self.publisheds.append(msgid)
 
-  def wait_subscribed(self):
-    return self.wait(self.subscribeds)
+    def on_subscribe(self, client, userdata, mid, properties, reasonCodes):
+        self.subscribeds.append({"mid": mid, "userdata": userdata,
+                                 "properties": properties, "reasonCodes": reasonCodes})
 
-  def unsubscribed(self, msgid):
-    logging.info("unsubscribed %d", msgid)
-    self.unsubscribeds.append(msgid)
+    def wait_subscribed(self):
+        return self.wait(self.subscribeds)
 
-  def on_log(self, client, userdata, level, buf):
-    print(buf)
+    def unsubscribed(self, msgid):
+        logging.info("unsubscribed %d", msgid)
+        self.unsubscribeds.append(msgid)
 
-  def register(self, client):
-    client.on_connect = self.on_connect
-    client.on_subscribe = self.on_subscribe
-    client.on_unsubscribe = self.unsubscribed
-    client.on_message = self.on_message
-    client.on_disconnect = self.on_disconnect
-    client.on_log = self.on_log
+    def on_log(self, client, userdata, level, buf):
+        print(buf)
+
+    def register(self, client):
+        client.on_connect = self.on_connect
+        client.on_subscribe = self.on_subscribe
+        client.on_unsubscribe = self.unsubscribed
+        client.on_message = self.on_message
+        client.on_disconnect = self.on_disconnect
+        client.on_log = self.on_log
 
 
 def cleanRetained():
-  callback = Callbacks()
-  curclient = mqtt_client.Client("clean retained".encode("utf-8"), clean_session=True)
-  curclient.loop_start()
-  callback.register(curclient)
-  curclient.connect(host=host, port=port)
-  curclient.subscribe("#", options=SubscribeOptions(QoS=0))
-  time.sleep(2) # wait for all retained messages to arrive
-  for message in callback.messages:
-    logging.info("deleting retained message for topic", message[0])
-    curclient.publish(message[0], b"", 0, retained=True)
-  curclient.disconnect()
-  curclient.loop_stop()
-  time.sleep(.1)
+    callback = Callbacks()
+    curclient = mqtt_client.Client(
+        "clean retained".encode("utf-8"), clean_session=True)
+    curclient.loop_start()
+    callback.register(curclient)
+    curclient.connect(host=host, port=port)
+    curclient.subscribe("#", options=SubscribeOptions(QoS=0))
+    time.sleep(2)  # wait for all retained messages to arrive
+    for message in callback.messages:
+        logging.info("deleting retained message for topic", message[0])
+        curclient.publish(message[0], b"", 0, retained=True)
+    curclient.disconnect()
+    curclient.loop_stop()
+    time.sleep(.1)
+
 
 def cleanup():
-  # clean all client state
-  print("clean up starting")
-  clientids = ("myclientid", "myclientid2")
+    # clean all client state
+    print("clean up starting")
+    clientids = ("myclientid", "myclientid2")
 
-  for clientid in clientids:
-    curclient = mqtt_client.Client(clientid.encode("utf-8"), clean_session=True)
-    curclient.loop_start()
-    curclient.connect(host=host, port=port)
-    time.sleep(.1)
-    curclient.disconnect()
-    time.sleep(.1)
-    curclient.loop_stop()
+    for clientid in clientids:
+        curclient = mqtt_client.Client(
+            clientid.encode("utf-8"), clean_session=True)
+        curclient.loop_start()
+        curclient.connect(host=host, port=port)
+        time.sleep(.1)
+        curclient.disconnect()
+        time.sleep(.1)
+        curclient.loop_stop()
 
-  # clean retained messages
-  cleanRetained()
-  print("clean up finished")
+    # clean retained messages
+    cleanRetained()
+    print("clean up finished")
+
 
 def usage():
-  logging.info(
-"""
+    logging.info(
+        """
  -h: --hostname= hostname or ip address of server to run tests against
  -p: --port= port number of server to run tests against
  -z: --zero_length_clientid run zero length clientid test
@@ -134,128 +146,138 @@ def usage():
 
 """)
 
+
 class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-      setData()
-      global callback, callback2, aclient, bclient
-      cleanup()
+        setData()
+        global callback, callback2, aclient, bclient
+        cleanup()
 
-      callback = Callbacks()
-      callback2 = Callbacks()
+        callback = Callbacks()
+        callback2 = Callbacks()
 
-      #aclient = mqtt_client.Client(b"\xEF\xBB\xBF" + "myclientid".encode("utf-8"))
-      #aclient = mqtt_client.Client("myclientid".encode("utf-8"))
-      aclient = paho.mqtt.client.Client("aclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5, 
-        clean_session=True)
-      callback.register(aclient)
+        #aclient = mqtt_client.Client(b"\xEF\xBB\xBF" + "myclientid".encode("utf-8"))
+        #aclient = mqtt_client.Client("myclientid".encode("utf-8"))
+        aclient = paho.mqtt.client.Client("aclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5,
+                                          clean_session=True)
+        callback.register(aclient)
 
-      bclient = mqtt_client.Client("bclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5)
-      callback2.register(bclient)
+        bclient = mqtt_client.Client("bclient".encode(
+            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
+        callback2.register(bclient)
 
     def waitfor(self, queue, depth, limit):
-      total = 0
-      while len(queue) < depth and total < limit:
-        interval = .5
-        total += interval
-        time.sleep(interval)
+        total = 0
+        while len(queue) < depth and total < limit:
+            interval = .5
+            total += interval
+            time.sleep(interval)
 
     def test_basic(self):
-      aclient.connect(host=host, port=port)
-      aclient.loop_start()
-      response = callback.wait_connected()
-      self.assertEqual(response["reasonCode"].getName(), "Success")
+        aclient.connect(host=host, port=port)
+        aclient.loop_start()
+        response = callback.wait_connected()
+        self.assertEqual(response["reasonCode"].getName(), "Success")
 
-      aclient.subscribe(topics[0], options=SubscribeOptions(QoS=2))
-      response = callback.wait_subscribed()
-      self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+        aclient.subscribe(topics[0], options=SubscribeOptions(QoS=2))
+        response = callback.wait_subscribed()
+        self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
 
-      aclient.publish(topics[0], b"qos 0")
-      aclient.publish(topics[0], b"qos 1", 1)
-      aclient.publish(topics[0], b"qos 2", 2)
-      i = 0
-      while len(callback.messages) < 3 and i < 10:
-        time.sleep(.2)
-        i += 1
-      self.assertEqual(len(callback.messages), 3)
-      aclient.disconnect()
+        aclient.publish(topics[0], b"qos 0")
+        aclient.publish(topics[0], b"qos 1", 1)
+        aclient.publish(topics[0], b"qos 2", 2)
+        i = 0
+        while len(callback.messages) < 3 and i < 10:
+            time.sleep(.2)
+            i += 1
+        self.assertEqual(len(callback.messages), 3)
+        aclient.disconnect()
 
-      callback.clear()
-      aclient.loop_stop()
-
+        callback.clear()
+        aclient.loop_stop()
 
     def test_retained_message(self):
-      qos0topic="fromb/qos 0"
-      qos1topic="fromb/qos 1"
-      qos2topic="fromb/qos2"
-      wildcardtopic="fromb/+"
+        qos0topic = "fromb/qos 0"
+        qos1topic = "fromb/qos 1"
+        qos2topic = "fromb/qos2"
+        wildcardtopic = "fromb/+"
 
-      publish_properties = Properties(PacketTypes.PUBLISH)
-      publish_properties.UserProperty = ("a", "2")
-      publish_properties.UserProperty = ("c", "3")
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.UserProperty = ("a", "2")
+        publish_properties.UserProperty = ("c", "3")
 
-      # retained messages
-      callback.clear()
-      aclient.connect(host=host, port=port)
-      aclient.loop_start()
-      response = callback.wait_connected()
-      aclient.publish(topics[1], b"qos 0", 0, retain=True, properties=publish_properties)
-      aclient.publish(topics[2], b"qos 1", 1, retain=True, properties=publish_properties)
-      aclient.publish(topics[3], b"qos 2", 2, retain=True, properties=publish_properties)
-      # wait until those messages are published
-      time.sleep(1)
-      aclient.subscribe(wildtopics[5], options=SubscribeOptions(QoS=2))
-      response = callback.wait_subscribed()
-      self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+        # retained messages
+        callback.clear()
+        aclient.connect(host=host, port=port)
+        aclient.loop_start()
+        response = callback.wait_connected()
+        aclient.publish(topics[1], b"qos 0", 0,
+                        retain=True, properties=publish_properties)
+        aclient.publish(topics[2], b"qos 1", 1,
+                        retain=True, properties=publish_properties)
+        aclient.publish(topics[3], b"qos 2", 2,
+                        retain=True, properties=publish_properties)
+        # wait until those messages are published
+        time.sleep(1)
+        aclient.subscribe(wildtopics[5], options=SubscribeOptions(QoS=2))
+        response = callback.wait_subscribed()
+        self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
 
-      time.sleep(1)
-      aclient.disconnect()
-      aclient.loop_stop()
+        time.sleep(1)
+        aclient.disconnect()
+        aclient.loop_stop()
 
-      self.assertEqual(len(callback.messages), 3)
-      userprops = callback.messages[0]["message"].properties.UserProperty
-      self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      userprops = callback.messages[1]["message"].properties.UserProperty
-      self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      userprops = callback.messages[2]["message"].properties.UserProperty
-      self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      qoss = [callback.messages[i]["message"].qos for i in range(3)]
-      self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+        self.assertEqual(len(callback.messages), 3)
+        userprops = callback.messages[0]["message"].properties.UserProperty
+        self.assertTrue(userprops in [[("a", "2"), ("c", "3")], [
+                        ("c", "3"), ("a", "2")]], userprops)
+        userprops = callback.messages[1]["message"].properties.UserProperty
+        self.assertTrue(userprops in [[("a", "2"), ("c", "3")], [
+                        ("c", "3"), ("a", "2")]], userprops)
+        userprops = callback.messages[2]["message"].properties.UserProperty
+        self.assertTrue(userprops in [[("a", "2"), ("c", "3")], [
+                        ("c", "3"), ("a", "2")]], userprops)
+        qoss = [callback.messages[i]["message"].qos for i in range(3)]
+        self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
 
-      cleanRetained()
+        cleanRetained()
 
     def test_will_message(self):
-      # will messages
-      callback.clear()
-      callback2.clear()
-      self.assertEqual(len(callback2.messages), 0, callback2.messages)
+        # will messages
+        callback.clear()
+        callback2.clear()
+        self.assertEqual(len(callback2.messages), 0, callback2.messages)
 
-      will_properties = Properties(PacketTypes.WILLMESSAGE)
-      will_properties.WillDelayInterval = 0 # this is the default anyway
-      will_properties.UserProperty = ("a", "2")
-      will_properties.UserProperty = ("c", "3")
+        will_properties = Properties(PacketTypes.WILLMESSAGE)
+        will_properties.WillDelayInterval = 0  # this is the default anyway
+        will_properties.UserProperty = ("a", "2")
+        will_properties.UserProperty = ("c", "3")
 
-      aclient.will_set(topics[2], payload=b"will message", properties=will_properties)
+        aclient.will_set(topics[2], payload=b"will message",
+                         properties=will_properties)
 
-      aclient.connect(host=host, port=port, keepalive=2)
-      aclient.loop_start()
-      response = callback.wait_connected()
-      bclient.connect(host=host, port=port)
-      bclient.loop_start()
-      response = callback2.wait_connected()
-      bclient.subscribe(topics[2], options=SubscribeOptions(QoS=2))
-      response = callback2.wait_subscribed()
-      self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+        aclient.connect(host=host, port=port, keepalive=2)
+        aclient.loop_start()
+        response = callback.wait_connected()
+        bclient.connect(host=host, port=port)
+        bclient.loop_start()
+        response = callback2.wait_connected()
+        bclient.subscribe(topics[2], qos=2)
+        response = callback2.wait_subscribed()
+        self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
 
-      # keep alive timeout ought to be triggered so the will message is received
-      aclient.loop_stop()
-      self.waitfor(callback2.messages, 1, 10)
-      bclient.disconnect()
-      bclient.loop_stop()
-      self.assertEqual(len(callback2.messages), 1, callback2.messages)  # should have the will message
-      props = callback2.messages[0]["message"].properties
-      self.assertEqual(props.UserProperty, [("a", "2"), ("c", "3")])
+        # keep alive timeout ought to be triggered so the will message is received
+        aclient.loop_stop()
+        self.waitfor(callback2.messages, 1, 10)
+        bclient.disconnect()
+        bclient.loop_stop()
+        # should have the will message
+        self.assertEqual(len(callback2.messages), 1, callback2.messages)
+        props = callback2.messages[0]["message"].properties
+        self.assertEqual(props.UserProperty, [("a", "2"), ("c", "3")])
+
 
 """
     # 0 length clientid
@@ -1227,54 +1249,59 @@ class Test(unittest.TestCase):
 
 """
 
+
 def setData():
     global topics, wildtopics, nosubscribe_topics, host, port
     host = "paho8181.cloudapp.net"
     port = 1883
-    topics =  ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
+    topics = ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
     wildtopics = ("TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#")
     nosubscribe_topics = ("test/nosubscribe",)
 
 
 if __name__ == "__main__":
-  try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "h:p:vzdsn:",
-      ["help", "hostname=", "port=", "iterations="])
-  except getopt.GetoptError as err:
-    logging.info(err) # will print something like "option -a not recognized"
-    usage()
-    sys.exit(2)
+    try:
+        opts, args = getopt.gnu_getopt(sys.argv[1:], "h:p:vzdsn:",
+                                       ["help", "hostname=", "port=", "iterations="])
+    except getopt.GetoptError as err:
+        # will print something like "option -a not recognized"
+        logging.info(err)
+        usage()
+        sys.exit(2)
 
-  iterations = 1
+    iterations = 1
 
-  global topics, wildtopics, nosubscribe_topics, host, topic_prefix
-  topic_prefix = "client_test5/"
-  topics = [topic_prefix+topic for topic in ["TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA"]]
-  wildtopics = [topic_prefix+topic for topic in ["TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#"]]
-  print(wildtopics)
-  nosubscribe_topics = ("test/nosubscribe",)
+    global topics, wildtopics, nosubscribe_topics, host, topic_prefix
+    topic_prefix = "client_test5/"
+    topics = [topic_prefix+topic for topic in ["TopicA",
+                                               "TopicA/B", "Topic/C", "TopicA/C", "/TopicA"]]
+    wildtopics = [topic_prefix+topic for topic in ["TopicA/+",
+                                                   "+/C", "#", "/#", "/+", "+/+", "TopicA/#"]]
+    print(wildtopics)
+    nosubscribe_topics = ("test/nosubscribe",)
 
-  host = "localhost"
-  port = 1883
-  for o, a in opts:
-    if o in ("--help"):
-      usage()
-      sys.exit()
-    elif o in ("-n", "--nosubscribe_topic_filter"):
-      nosubscribe_topic_filter = a
-    elif o in ("-h", "--hostname"):
-      host = a
-    elif o in ("-p", "--port"):
-      port = int(a)
-      sys.argv.remove("-p") if "-p" in sys.argv else sys.argv.remove("--port")
-      sys.argv.remove(a)
-    elif o in ("--iterations"):
-      iterations = int(a)
+    host = "localhost"
+    port = 1883
+    for o, a in opts:
+        if o in ("--help"):
+            usage()
+            sys.exit()
+        elif o in ("-n", "--nosubscribe_topic_filter"):
+            nosubscribe_topic_filter = a
+        elif o in ("-h", "--hostname"):
+            host = a
+        elif o in ("-p", "--port"):
+            port = int(a)
+            sys.argv.remove(
+                "-p") if "-p" in sys.argv else sys.argv.remove("--port")
+            sys.argv.remove(a)
+        elif o in ("--iterations"):
+            iterations = int(a)
 
-  root = logging.getLogger()
-  root.setLevel(logging.ERROR)
+    root = logging.getLogger()
+    root.setLevel(logging.ERROR)
 
-  logging.info("hostname %s port %d", host, port)
-  print("argv", sys.argv)
-  for i in range(iterations):
-    unittest.main()
+    logging.info("hostname %s port %d", host, port)
+    print("argv", sys.argv)
+    for i in range(iterations):
+        unittest.main()
