@@ -3079,7 +3079,6 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_pubackcomp(self, cmd):
-        print("handle_pubackcomp", cmd)
         if self._protocol == MQTTv5:
             if self._in_packet['remaining_length'] < 2:
                 return MQTT_ERR_PROTOCOL
