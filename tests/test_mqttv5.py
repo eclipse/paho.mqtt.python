@@ -16,7 +16,7 @@
 *******************************************************************
 """
 
-import unittest, time
+import unittest, time, getopt, sys, logging
 
 import paho.mqtt
 from paho.mqtt.properties import Properties
@@ -45,21 +45,19 @@ class Callbacks:
   def on_connect(self, client, userdata, flags, reasonCode, properties):
     self.connecteds.append({"userdata":userdata, "flags":flags, "reasonCode":reasonCode, "properties":properties})
 
-  def wait(self, alist):
-    while len(alist) == 0:
-      time.sleep(0.2)
-    return alist.pop(0)
+  def wait(self, alist, timeout=2):
+    interval = 0.2
+    total = 0
+    while len(alist) == 0 and total < timeout:
+      time.sleep(interval)
+      total += interval
+    return alist.pop(0) if len(alist) > 0 else None
   
   def wait_connected(self):
     return self.wait(self.connecteds)
 
   def on_disconnect(self, client, userdata, reasoncode):
-    self.disconnecteds.append({"reasonCode" : reasoncode, "properties" : properties})
-
-  def wait_disconnected(self):
-    while len(self.disconnecteds) == 0:
-      time.sleep(0.2)
-    return self.disconnecteds.pop(0)
+    self.disconnecteds.append({"reasonCode" : reasoncode})
 
   def on_message(self, client, userdata, message):
     self.messages.append({"userdata" : userdata, "message" : message})
@@ -79,7 +77,7 @@ class Callbacks:
     logging.info("unsubscribed %d", msgid)
     self.unsubscribeds.append(msgid)
 
-  def on_log(client, userdata, level, buf):
+  def on_log(self, client, userdata, level, buf):
     print(buf)
 
   def register(self, client):
@@ -94,6 +92,7 @@ class Callbacks:
 def cleanRetained():
   callback = Callbacks()
   curclient = mqtt_client.Client("clean retained".encode("utf-8"), clean_session=True)
+  curclient.loop_start()
   callback.register(curclient)
   curclient.connect(host=host, port=port)
   curclient.subscribe("#", options=SubscribeOptions(QoS=0))
@@ -102,6 +101,7 @@ def cleanRetained():
     logging.info("deleting retained message for topic", message[0])
     curclient.publish(message[0], b"", 0, retained=True)
   curclient.disconnect()
+  curclient.loop_stop()
   time.sleep(.1)
 
 def cleanup():
@@ -111,10 +111,12 @@ def cleanup():
 
   for clientid in clientids:
     curclient = mqtt_client.Client(clientid.encode("utf-8"), clean_session=True)
+    curclient.loop_start()
     curclient.connect(host=host, port=port)
     time.sleep(.1)
     curclient.disconnect()
     time.sleep(.1)
+    curclient.loop_stop()
 
   # clean retained messages
   cleanRetained()
@@ -145,15 +147,15 @@ class Test(unittest.TestCase):
 
       #aclient = mqtt_client.Client(b"\xEF\xBB\xBF" + "myclientid".encode("utf-8"))
       #aclient = mqtt_client.Client("myclientid".encode("utf-8"))
-      aclient = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5)
+      aclient = paho.mqtt.client.Client("myclientid2".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5)
       callback.register(aclient)
 
-      bclient = mqtt_client.Client("myclientid2".encode("utf-8"))
+      bclient = mqtt_client.Client("myclientid2".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5)
       callback2.register(bclient)
 
     def test_basic(self):
-      aclient.loop_start()
       aclient.connect(host=host, port=port)
+      aclient.loop_start()
       response = callback.wait_connected()
       self.assertEqual(response["reasonCode"].getName(), "Success")
       aclient.disconnect()
@@ -178,41 +180,48 @@ class Test(unittest.TestCase):
       aclient.disconnect()
 
       callback.clear()
+      aclient.loop_stop()
 
-"""
+
     def test_retained_message(self):
       qos0topic="fromb/qos 0"
       qos1topic="fromb/qos 1"
       qos2topic="fromb/qos2"
       wildcardtopic="fromb/+"
 
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
+      publish_properties = Properties(PacketTypes.PUBLISH)
       publish_properties.UserProperty = ("a", "2")
       publish_properties.UserProperty = ("c", "3")
 
       # retained messages
       callback.clear()
-      aclient.connect(host=host, port=port, cleanstart=True)
-      aclient.publish(topics[1], b"qos 0", 0, retained=True, properties=publish_properties)
-      aclient.publish(topics[2], b"qos 1", 1, retained=True, properties=publish_properties)
-      aclient.publish(topics[3], b"qos 2", 2, retained=True, properties=publish_properties)
+      aclient.connect(host=host, port=port)
+      aclient.loop_start()
+      response = callback.wait_connected()
+      aclient.publish(topics[1], b"qos 0", 0, retain=True, properties=publish_properties)
+      aclient.publish(topics[2], b"qos 1", 1, retain=True, properties=publish_properties)
+      aclient.publish(topics[3], b"qos 2", 2, retain=True, properties=publish_properties)
+      # wait until those messages are published
       time.sleep(1)
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2)])
+      aclient.subscribe(wildtopics[5], options=SubscribeOptions(QoS=2))
+      response = callback.wait_subscribed()
+      self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+
       time.sleep(1)
       aclient.disconnect()
 
       self.assertEqual(len(callback.messages), 3)
-      userprops = callback.messages[0][5].UserProperty
+      userprops = callback.messages[0]["message"].properties.UserProperty
       self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      userprops = callback.messages[1][5].UserProperty
+      userprops = callback.messages[1]["message"].properties.UserProperty
       self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      userprops = callback.messages[2][5].UserProperty
+      userprops = callback.messages[2]["message"].properties.UserProperty
       self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      qoss = [callback.messages[i][2] for i in range(3)]
+      qoss = [callback.messages[i]["message"].qos for i in range(3)]
       self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
 
       cleanRetained()
-
+"""
     def test_will_message(self):
       # will messages
       callback.clear()
@@ -1215,7 +1224,7 @@ class Test(unittest.TestCase):
 
 def setData():
     global topics, wildtopics, nosubscribe_topics, host, port
-    host = "localhost"
+    host = "paho8181.cloudapp.net"
     port = 1883
     topics =  ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
     wildtopics = ("TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#")

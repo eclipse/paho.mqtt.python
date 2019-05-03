@@ -250,7 +250,7 @@ class Properties(object):
             # check that this attribute applies to the packet type
             if self.packetType not in self.properties[self.getIdentFromName(name)][1]:
                 raise MQTTException("Property %s does not apply to packet type %s"
-                                    % (name, Packets.Names[self.packetType]))
+                                    % (name, PacketTypes.Names[self.packetType]))
             if self.allowsMultiple(name):
                 if type(value) != type([]):
                     value = [value]

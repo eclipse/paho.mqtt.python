@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2018 Roger Light and others
+# Copyright (c) 2012-2019 Roger Light and others
 #
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -1230,7 +1230,7 @@ class Client(object):
                         message.state = mqtt_ms_wait_for_pubrec
 
                     rc = self._send_publish(message.mid, topic, message.payload, message.qos, message.retain,
-                                            message.dup, properties)
+                                            message.dup, MQTTMessageInfo(local_mid), message.properties)
 
                     # remove from inflight messages so it will be send after a connection is made
                     if rc is MQTT_ERR_NO_CONN:
@@ -3001,10 +3001,20 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_pubrec(self):
-        if self._in_packet['remaining_length'] != 2:
+        if self._protocol == MQTTv5:
+            if self._in_packet['remaining_length'] < 2:
+                return MQTT_ERR_PROTOCOL
+        elif self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
-        mid, = struct.unpack("!H", self._in_packet['packet'])
+        mid, = struct.unpack("!H", self._in_packet['packet'][:2])
+        if self._protocol == MQTTv5:
+            if self._in_packet['remaining_length'] > 2:
+                reasonCode = ReasonCodes(PUBREC >> 4)
+                reasonCode.unpack(self._in_packet['packet'][2:])
+                if self._in_packet['remaining_length'] > 3:
+                    properties = Properties(PUBREC >> 4)
+                    props, props_len = properties.unpack(self._in_packet['packet'][3:])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREC (Mid: %d)", mid)
 
         with self._out_message_mutex:
@@ -3069,10 +3079,23 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_pubackcomp(self, cmd):
-        if self._in_packet['remaining_length'] != 2:
+        print("handle_pubackcomp", cmd)
+        if self._protocol == MQTTv5:
+            if self._in_packet['remaining_length'] < 2:
+                return MQTT_ERR_PROTOCOL
+        elif self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
-        mid, = struct.unpack("!H", self._in_packet['packet'])
+        packet_type = PUBACK if cmd == "PUBACK" else PUBCOMP
+        packet_type = packet_type >> 4
+        mid, = struct.unpack("!H", self._in_packet['packet'][:2])
+        if self._protocol == MQTTv5:
+            if self._in_packet['remaining_length'] > 2:
+                reasonCode = ReasonCodes(packet_type)
+                reasonCode.unpack(self._in_packet['packet'][2:])
+                if self._in_packet['remaining_length'] > 3:
+                    properties = Properties(packet_type)
+                    props, props_len = properties.unpack(self._in_packet['packet'][3:])
         self._easy_log(MQTT_LOG_DEBUG, "Received %s (Mid: %d)", cmd, mid)
 
         with self._out_message_mutex:
