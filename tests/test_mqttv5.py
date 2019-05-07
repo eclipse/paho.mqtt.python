@@ -16,11 +16,7 @@
 *******************************************************************
 """
 
-import unittest
-import time
-import getopt
-import sys
-import logging
+import unittest, time, getopt, sys, logging, traceback
 
 import paho.mqtt
 from paho.mqtt.properties import Properties
@@ -104,11 +100,12 @@ def cleanRetained():
     curclient.loop_start()
     callback.register(curclient)
     curclient.connect(host=host, port=port)
+    response = callback.wait_connected()
     curclient.subscribe("#", options=SubscribeOptions(QoS=0))
-    time.sleep(2)  # wait for all retained messages to arrive
+    response = callback.wait_subscribed() # wait for retained messages to arrive
     for message in callback.messages:
-        logging.info("deleting retained message for topic", message[0])
-        curclient.publish(message[0], b"", 0, retained=True)
+        logging.info("deleting retained message for topic", message["message"])
+        curclient.publish(message["message"].topic, b"", 0, retain=True)
     curclient.disconnect()
     curclient.loop_stop()
     time.sleep(.1)
@@ -161,7 +158,7 @@ class Test(unittest.TestCase):
         #aclient = mqtt_client.Client(b"\xEF\xBB\xBF" + "myclientid".encode("utf-8"))
         #aclient = mqtt_client.Client("myclientid".encode("utf-8"))
         aclient = paho.mqtt.client.Client("aclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5,
-                                          clean_session=True)
+                                          clean_start=True)
         callback.register(aclient)
 
         bclient = mqtt_client.Client("bclient".encode(
@@ -174,7 +171,7 @@ class Test(unittest.TestCase):
             interval = .5
             total += interval
             time.sleep(interval)
-
+    
     def test_basic(self):
         aclient.connect(host=host, port=port)
         aclient.loop_start()
@@ -279,60 +276,88 @@ class Test(unittest.TestCase):
         self.assertEqual(props.UserProperty, [("a", "2"), ("c", "3")])
 
 
-"""
-    # 0 length clientid
     def test_zero_length_clientid(self):
       logging.info("Zero length clientid test starting")
-      succeeded = True
-      try:
-        client0 = mqtt_client.Client("")
-        fails = False
-        try:
-          client0.connect(host=host, port=port, cleanstart=False) # should not be rejected
-        except:
-          fails = True
-        assert fails == False
-        client0.disconnect()
-        fails = False
-        try:
-          client0.connect(host=host, port=port, cleanstart=True) # should work
-        except:
-          fails = True
-        assert fails == False
-        client0.disconnect()
-      except:
-        traceback.print_exc()
-        succeeded = False
-      logging.info("Zero length clientid test %s", "succeeded" if succeeded else "failed")
-      return succeeded
+
+      callback0 = Callbacks()
+
+      client0 = mqtt_client.Client(protocol=paho.mqtt.client.MQTTv5, clean_start=False)
+      callback0.register(client0)
+      client0.loop_start()
+      client0.connect(host=host, port=port) # should not be rejected
+      response = callback0.wait_connected()
+      self.assertEqual(response["reasonCode"].getName(), "Success")
+      self.assertTrue(len(response["properties"].AssignedClientIdentifier) > 0)
+      client0.disconnect()
+      client0.loop_stop()
+
+      client0 = mqtt_client.Client(protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+      callback0.register(client0)
+      client0.loop_start()
+      client0.connect(host=host, port=port) # should work
+      response = callback0.wait_connected()
+      self.assertEqual(response["reasonCode"].getName(), "Success")
+      self.assertTrue(len(response["properties"].AssignedClientIdentifier) > 0)
+      client0.disconnect()
+      client0.loop_stop()
+
+      # when we supply a client id, we should not get one assigned
+      client0 = mqtt_client.Client("client0", protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+      callback0.register(client0)
+      client0.loop_start()
+      client0.connect(host=host, port=port) # should work
+      response = callback0.wait_connected()
+      self.assertEqual(response["reasonCode"].getName(), "Success")
+      self.assertFalse(hasattr(response["properties"], "AssignedClientIdentifier"))
+      client0.disconnect()
+      client0.loop_stop()
+    
 
     def test_offline_message_queueing(self):
       # message queueing for offline clients
-      callback.clear()
+      cleanRetained()
       callback2.clear()
+      callback0 = Callbacks()
 
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+      aclient = paho.mqtt.client.Client("aclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5,
+                                          clean_start=True)
+      callback0.register(aclient)
+      connect_properties = Properties(PacketTypes.CONNECT)
       connect_properties.SessionExpiryInterval = 99999
-      aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties)
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2)])
+      aclient.loop_start()
+      aclient.connect(host=host, port=port, properties=connect_properties)
+      response = callback0.wait_connected()
+      aclient.subscribe(wildtopics[5], qos=2)
+      response = callback0.wait_subscribed()
       aclient.disconnect()
+      aclient.loop_stop()
 
-      bclient.connect(host=host, port=port, cleanstart=True)
+      bclient.loop_start()
+      bclient.connect(host=host, port=port)
+      response = callback2.wait_connected()
       bclient.publish(topics[1], b"qos 0", 0)
       bclient.publish(topics[2], b"qos 1", 1)
       bclient.publish(topics[3], b"qos 2", 2)
       time.sleep(2)
       bclient.disconnect()
+      bclient.loop_stop()
 
-      aclient.connect(host=host, port=port, cleanstart=False)
+      aclient = paho.mqtt.client.Client("aclient".encode("utf-8"), protocol=paho.mqtt.client.MQTTv5,
+                                          clean_start=False)
+      callback0.register(aclient)
+      aclient.loop_start()
+      aclient.connect(host=host, port=port)
+      response = callback0.wait_connected()
       time.sleep(2)
       aclient.disconnect()
+      aclient.loop_stop()
 
-      self.assertTrue(len(callback.messages) in [2, 3], len(callback.messages))
+      self.assertTrue(len(callback0.messages) in [2, 3], len(callback0.messages))
       logging.info("This server %s queueing QoS 0 messages for offline clients" % \
-            ("is" if len(callback.messages) == 3 else "is not"))
+            ("is" if len(callback0.messages) == 3 else "is not"))
 
 
+"""
     def test_overlapping_subscriptions(self):
       # overlapping subscriptions. When there is more than one matching subscription for the same client for a topic,
       # the server may send back one message with the highest QoS of any matching subscription, or one message for

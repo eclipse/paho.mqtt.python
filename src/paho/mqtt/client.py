@@ -496,8 +496,8 @@ class Client(object):
       from an external event loop for writing.
     """
 
-    def __init__(self, client_id="", clean_session=True, userdata=None,
-                 protocol=MQTTv311, transport="tcp"):
+    def __init__(self, client_id="", clean_session=True, clean_start=True,
+                 userdata=None, protocol=MQTTv311, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -529,8 +529,20 @@ class Client(object):
         Set transport to "websockets" to use WebSockets as the transport
         mechanism. Set to "tcp" to use raw TCP, which is the default.
         """
-        if not clean_session and (client_id == "" or client_id is None):
-            raise ValueError('A client id must be provided if clean session is False.')
+
+        if protocol == MQTTv5:
+            if not clean_session:
+                raise ValueError('Clean session is not used for MQTT 5.0')
+        else:
+            if not clean_start:
+                raise ValueError('Clean start is only used for MQTT 5.0')
+            if not clean_session and (client_id == "" or client_id is None):
+                raise ValueError('A client id must be provided if clean session is False.')
+                
+        if protocol == MQTTv5:
+            self._clean_session = clean_start
+        else:
+            self._clean_session = clean_session
 
         if transport.lower() not in ('websockets', 'tcp'):
             raise ValueError('transport must be "websockets" or "tcp", not %s' % transport)
@@ -542,7 +554,6 @@ class Client(object):
         self._keepalive = 60
         self._message_retry = 20
         self._last_retry_check = 0
-        self._clean_session = clean_session
         self._client_mode = MQTT_CLIENT
         # [MQTT-3.1.3-4] Client Id must be UTF-8 encoded string.
         if client_id == "" or client_id is None:
