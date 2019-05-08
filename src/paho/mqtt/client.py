@@ -720,7 +720,8 @@ class Client(object):
         if hasattr(context, 'check_hostname'):
             self._tls_insecure = not context.check_hostname
 
-    def tls_set(self, ca_certs=None, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None):
+    def tls_set(self, ca_certs=None, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None,
+                      password=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -778,7 +779,7 @@ class Client(object):
 
         # Configure context
         if certfile is not None:
-            context.load_cert_chain(certfile, keyfile)
+            context.load_cert_chain(certfile, keyfile, password)
 
         if cert_reqs == ssl.CERT_NONE and hasattr(context, 'check_hostname'):
             context.check_hostname = False
