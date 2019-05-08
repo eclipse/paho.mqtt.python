@@ -13,6 +13,19 @@
 #    Roger Light - initial API and implementation
 #    Ian Craggs - MQTT V5 support
 
+from .subscribeoptions import SubscribeOptions
+from .reasoncodes import ReasonCodes
+from .properties import Properties
+from .matcher import MQTTMatcher
+import logging
+import hashlib
+import string
+import base64
+import uuid
+import time
+import threading
+import sys
+import struct
 """
 This is an MQTT client module. MQTT is a lightweight pub/sub messaging
 protocol that is easy to implement and suitable for low powered devices.
@@ -45,16 +58,6 @@ except ImportError:
     import urllib as urllib_dot_request
     import urlparse as urllib_dot_parse
 
-import struct
-import sys
-import threading
-
-import time
-import uuid
-import base64
-import string
-import hashlib
-import logging
 
 try:
     # Use monotonic clock if available
@@ -69,10 +72,6 @@ except ImportError:
 else:
     HAVE_DNS = True
 
-from .matcher import MQTTMatcher
-from .properties import Properties
-from .reasoncodes import ReasonCodes
-from .subscribeoptions import SubscribeOptions
 
 if platform.system() == 'Windows':
     EAGAIN = errno.WSAEWOULDBLOCK
@@ -169,6 +168,7 @@ MQTT_BRIDGE = 1
 
 sockpair_data = b"0"
 
+
 class WebsocketConnectionError(ValueError):
     pass
 
@@ -261,13 +261,15 @@ def topic_matches_sub(sub, topic):
 
 def _socketpair_compat():
     """TCP/IP socketpair including Windows support"""
-    listensock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
+    listensock = socket.socket(
+        socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
     listensock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     listensock.bind(("127.0.0.1", 0))
     listensock.listen(1)
 
     iface, port = listensock.getsockname()
-    sock1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
+    sock1 = socket.socket(
+        socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
     sock1.setblocking(0)
     try:
         sock1.connect(("127.0.0.1", port))
@@ -537,15 +539,17 @@ class Client(object):
             if not clean_start:
                 raise ValueError('Clean start is only used for MQTT 5.0')
             if not clean_session and (client_id == "" or client_id is None):
-                raise ValueError('A client id must be provided if clean session is False.')
-                
+                raise ValueError(
+                    'A client id must be provided if clean session is False.')
+
         if protocol == MQTTv5:
             self._clean_session = clean_start
         else:
             self._clean_session = clean_session
 
         if transport.lower() not in ('websockets', 'tcp'):
-            raise ValueError('transport must be "websockets" or "tcp", not %s' % transport)
+            raise ValueError(
+                'transport must be "websockets" or "tcp", not %s' % transport)
         self._transport = transport.lower()
         self._protocol = protocol
         self._userdata = userdata
@@ -617,7 +621,8 @@ class Client(object):
         self._thread_terminate = False
         self._ssl = False
         self._ssl_context = None
-        self._tls_insecure = False  # Only used when SSL context does not have check_hostname attribute
+        # Only used when SSL context does not have check_hostname attribute
+        self._tls_insecure = False
         self._logger = None
         self._registered_write = False
         # No default callbacks
@@ -711,7 +716,8 @@ class Client(object):
             if isinstance(headers, dict) or callable(headers):
                 self._websocket_extra_headers = headers
             else:
-                raise ValueError("'headers' option to ws_set_options has to be either a dictionary or callable")
+                raise ValueError(
+                    "'headers' option to ws_set_options has to be either a dictionary or callable")
 
     def tls_set_context(self, context=None):
         """Configure network encryption and authentication context. Enables SSL/TLS support.
@@ -782,7 +788,8 @@ class Client(object):
 
         if not hasattr(ssl, 'SSLContext'):
             # Require Python version that has SSL context support in standard library
-            raise ValueError('Python 2.7.9 and 3.2 are the minimum supported versions for TLS.')
+            raise ValueError(
+                'Python 2.7.9 and 3.2 are the minimum supported versions for TLS.')
 
         if ca_certs is None and not hasattr(ssl.SSLContext, 'load_default_certs'):
             raise ValueError('ca_certs must not be None.')
@@ -838,7 +845,8 @@ class Client(object):
         tls_set_context()."""
 
         if self._ssl_context is None:
-            raise ValueError('Must configure SSL context before using tls_insecure_set.')
+            raise ValueError(
+                'Must configure SSL context before using tls_insecure_set.')
 
         self._tls_insecure = value
 
@@ -908,7 +916,8 @@ class Client(object):
         """
 
         if HAVE_DNS is False:
-            raise ValueError('No DNS resolver library found, try "pip install dnspython" or "pip3 install dnspython3".')
+            raise ValueError(
+                'No DNS resolver library found, try "pip install dnspython" or "pip3 install dnspython3".')
 
         if domain is None:
             domain = socket.getfqdn()
@@ -922,7 +931,8 @@ class Client(object):
             answers = []
             for answer in dns.resolver.query(rr, dns.rdatatype.SRV):
                 addr = answer.target.to_text()[:-1]
-                answers.append((addr, answer.port, answer.priority, answer.weight))
+                answers.append(
+                    (addr, answer.port, answer.priority, answer.weight))
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
             raise ValueError("No answer/NXDOMAIN for SRV in %s" % (domain))
 
@@ -1057,7 +1067,7 @@ class Client(object):
         if self._transport == "websockets":
             sock.settimeout(self._keepalive)
             sock = WebsocketWrapper(sock, self._host, self._port, self._ssl,
-                self._websocket_path, self._websocket_extra_headers)
+                                    self._websocket_path, self._websocket_extra_headers)
 
         self._sock = sock
         self._sock.setblocking(0)
@@ -1202,7 +1212,8 @@ class Client(object):
         elif payload is None:
             local_payload = b''
         else:
-            raise TypeError('payload must be a string, bytearray, int, float or None.')
+            raise TypeError(
+                'payload must be a string, bytearray, int, float or None.')
 
         if len(local_payload) > 268435455:
             raise ValueError('Payload too large.')
@@ -1211,7 +1222,8 @@ class Client(object):
 
         if qos == 0:
             info = MQTTMessageInfo(local_mid)
-            rc = self._send_publish(local_mid, topic, local_payload, qos, retain, False, info, properties)
+            rc = self._send_publish(
+                local_mid, topic, local_payload, qos, retain, False, info, properties)
             info.rc = rc
             return info
         else:
@@ -1348,7 +1360,8 @@ class Client(object):
             if self._protocol == MQTTv5:
                 topic, options = topic
                 if not isinstance(options, SubscribeOptions):
-                    raise ValueError('Subscribe options must be instance of SubscribeOptions class.')
+                    raise ValueError(
+                        'Subscribe options must be instance of SubscribeOptions class.')
             else:
                 topic, qos = topic
 
@@ -1360,11 +1373,13 @@ class Client(object):
                     # if no options are provided, use the QoS passed instead
                     options = SubscribeOptions(QoS=qos)
                 elif qos != 0:
-                    raise ValueError('Subscribe options and qos parameters cannot be combined.')
+                    raise ValueError(
+                        'Subscribe options and qos parameters cannot be combined.')
                 if not isinstance(options, SubscribeOptions):
-                    raise ValueError('Subscribe options must be instance of SubscribeOptions class.')
+                    raise ValueError(
+                        'Subscribe options must be instance of SubscribeOptions class.')
                 topic_qos_list = [(topic.encode('utf-8'), options)]
-            else:    
+            else:
                 if topic is None or len(topic) == 0:
                     raise ValueError('Invalid topic.')
                 topic_qos_list = [(topic.encode('utf-8'), qos)]
@@ -1373,7 +1388,8 @@ class Client(object):
             if self._protocol == MQTTv5:
                 for t, o in topic:
                     if not isinstance(o, SubscribeOptions):
-                        raise ValueError('Subscribe options must be instance of SubscribeOptions class.')
+                        raise ValueError(
+                            'Subscribe options must be instance of SubscribeOptions class.')
                     topic_qos_list.append((t.encode('utf-8'), o))
             else:
                 for t, q in topic:
@@ -1528,7 +1544,8 @@ class Client(object):
                         try:
                             self.on_disconnect(self, self._userdata, rc)
                         except Exception as err:
-                            self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+                            self._easy_log(
+                                MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
 
             return MQTT_ERR_CONN_LOST
 
@@ -1596,7 +1613,8 @@ class Client(object):
         elif payload is None:
             self._will_payload = b""
         else:
-            raise TypeError('payload must be a string, bytearray, int, float or None.')
+            raise TypeError(
+                'payload must be a string, bytearray, int, float or None.')
 
         self._will = True
         self._will_topic = topic.encode('utf-8')
@@ -1647,7 +1665,8 @@ class Client(object):
                 except (socket.error, OSError, WebsocketConnectionError):
                     if not retry_first_connection:
                         raise
-                    self._easy_log(MQTT_LOG_DEBUG, "Connection failed, retrying")
+                    self._easy_log(
+                        MQTT_LOG_DEBUG, "Connection failed, retrying")
                     self._reconnect_wait()
             else:
                 break
@@ -1664,10 +1683,9 @@ class Client(object):
                 if (self._thread_terminate is True
                     and self._current_out_packet is None
                     and len(self._out_packet) == 0
-                    and len(self._out_messages) == 0):
+                        and len(self._out_messages) == 0):
                     rc = 1
                     run = False
-
 
             def should_exit():
                 return self._state == mqtt_cs_disconnecting or run is False or self._thread_terminate is True
@@ -1923,7 +1941,8 @@ class Client(object):
                     try:
                         self.on_socket_open(self, self._userdata, self._sock)
                     except Exception as err:
-                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_open: %s', err)
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_socket_open: %s', err)
 
     @property
     def on_socket_close(self):
@@ -1954,7 +1973,8 @@ class Client(object):
                     try:
                         self.on_socket_close(self, self._userdata, sock)
                     except Exception as err:
-                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_close: %s', err)
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_socket_close: %s', err)
 
     @property
     def on_socket_register_write(self):
@@ -1985,9 +2005,11 @@ class Client(object):
         with self._callback_mutex:
             if self.on_socket_register_write:
                 try:
-                    self.on_socket_register_write(self, self._userdata, self._sock)
+                    self.on_socket_register_write(
+                        self, self._userdata, self._sock)
                 except Exception as err:
-                    self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_register_write: %s', err)
+                    self._easy_log(
+                        MQTT_LOG_ERR, 'Caught exception in on_socket_register_write: %s', err)
 
     @property
     def on_socket_unregister_write(self):
@@ -2022,7 +2044,8 @@ class Client(object):
                 try:
                     self.on_socket_unregister_write(self, self._userdata, sock)
                 except Exception as err:
-                    self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_socket_unregister_write: %s', err)
+                    self._easy_log(
+                        MQTT_LOG_ERR, 'Caught exception in on_socket_unregister_write: %s', err)
 
     def message_callback_add(self, sub, callback):
         """Register a message callback for a specific topic.
@@ -2070,7 +2093,8 @@ class Client(object):
                         try:
                             self.on_disconnect(self, self._userdata, rc)
                         except Exception as err:
-                            self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+                            self._easy_log(
+                                MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
         return rc
 
     def _packet_read(self):
@@ -2093,7 +2117,8 @@ class Client(object):
             except WouldBlockError:
                 return MQTT_ERR_AGAIN
             except socket.error as err:
-                self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
+                self._easy_log(
+                    MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
             else:
                 if len(command) == 0:
@@ -2111,7 +2136,8 @@ class Client(object):
                 except WouldBlockError:
                     return MQTT_ERR_AGAIN
                 except socket.error as err:
-                    self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
+                    self._easy_log(
+                        MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                     return 1
                 else:
                     if len(byte) == 0:
@@ -2123,7 +2149,8 @@ class Client(object):
                     if len(self._in_packet['remaining_count']) > 4:
                         return MQTT_ERR_PROTOCOL
 
-                    self._in_packet['remaining_length'] += (byte & 127) * self._in_packet['remaining_mult']
+                    self._in_packet['remaining_length'] += (
+                        byte & 127) * self._in_packet['remaining_mult']
                     self._in_packet['remaining_mult'] = self._in_packet['remaining_mult'] * 128
 
                 if (byte & 128) == 0:
@@ -2138,7 +2165,8 @@ class Client(object):
             except WouldBlockError:
                 return MQTT_ERR_AGAIN
             except socket.error as err:
-                self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
+                self._easy_log(
+                    MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
             else:
                 if len(data) == 0:
@@ -2172,7 +2200,8 @@ class Client(object):
             packet = self._current_out_packet
 
             try:
-                write_length = self._sock_send(packet['packet'][packet['pos']:])
+                write_length = self._sock_send(
+                    packet['packet'][packet['pos']:])
             except (AttributeError, ValueError):
                 self._current_out_packet_mutex.release()
                 return MQTT_ERR_SUCCESS
@@ -2181,7 +2210,8 @@ class Client(object):
                 return MQTT_ERR_AGAIN
             except socket.error as err:
                 self._current_out_packet_mutex.release()
-                self._easy_log(MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
+                self._easy_log(
+                    MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return 1
 
             if write_length > 0:
@@ -2194,9 +2224,11 @@ class Client(object):
                             if self.on_publish:
                                 with self._in_callback_mutex:
                                     try:
-                                        self.on_publish(self, self._userdata, packet['mid'])
+                                        self.on_publish(
+                                            self, self._userdata, packet['mid'])
                                     except Exception as err:
-                                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
+                                        self._easy_log(
+                                            MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
 
                         packet['info']._set_as_published()
 
@@ -2210,9 +2242,11 @@ class Client(object):
                             if self.on_disconnect:
                                 with self._in_callback_mutex:
                                     try:
-                                        self.on_disconnect(self, self._userdata, 0)
+                                        self.on_disconnect(
+                                            self, self._userdata, 0)
                                     except Exception as err:
-                                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+                                        self._easy_log(
+                                            MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
 
                         self._sock_close()
                         return MQTT_ERR_SUCCESS
@@ -2239,7 +2273,7 @@ class Client(object):
                 self.on_log(self, self._userdata, level, buf)
             except Exception:
                 # Can't _easy_log this, as we'll recurse until we break
-                pass # self._logger will pick this up, so we're fine
+                pass  # self._logger will pick this up, so we're fine
         if self._logger is not None:
             level_std = LOGGING_LEVEL[level]
             self._logger.log(level_std, fmt, *args)
@@ -2273,7 +2307,8 @@ class Client(object):
                             try:
                                 self.on_disconnect(self, self._userdata, rc)
                             except Exception as err:
-                                self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+                                self._easy_log(
+                                    MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
 
     def _mid_generate(self):
         with self._mid_generate_mutex:
@@ -2296,7 +2331,7 @@ class Client(object):
     def _filter_wildcard_len_check(sub):
         if (len(sub) == 0 or len(sub) > 65535
             or any(b'+' in p or b'#' in p for p in sub.split(b'/') if len(p) > 1)
-            or b'#/' in sub):
+                or b'#/' in sub):
             return MQTT_ERR_INVAL
         else:
             return MQTT_ERR_SUCCESS
@@ -2343,7 +2378,8 @@ class Client(object):
 
     def _send_publish(self, mid, topic, payload=b'', qos=0, retain=False, dup=False, info=None, properties=None):
         # we assume that topic and payload are already properly encoded
-        assert not isinstance(topic, unicode) and not isinstance(payload, unicode) and payload is not None
+        assert not isinstance(topic, unicode) and not isinstance(
+            payload, unicode) and payload is not None
 
         if self._sock is None:
             return MQTT_ERR_NO_CONN
@@ -2377,7 +2413,7 @@ class Client(object):
                 packed_properties = b'\x00'
             else:
                 packed_properties = properties.pack()
-            remaining_length += len(packed_properties) 
+            remaining_length += len(packed_properties)
 
         self._pack_remaining_length(packet, remaining_length)
         self._pack_str16(packet, topic)
@@ -2418,17 +2454,21 @@ class Client(object):
 
     def _send_connect(self, keepalive, clean_session):
         proto_ver = self._protocol
-        protocol = b"MQTT" if proto_ver >= MQTTv311 else b"MQIsdp"  # hard-coded UTF-8 encoded string
+        # hard-coded UTF-8 encoded string
+        protocol = b"MQTT" if proto_ver >= MQTTv311 else b"MQIsdp"
 
-        remaining_length = 2 + len(protocol) + 1 + 1 + 2 + 2 + len(self._client_id)
+        remaining_length = 2 + len(protocol) + 1 + \
+            1 + 2 + 2 + len(self._client_id)
 
         connect_flags = 0
         if clean_session:
             connect_flags |= 0x02
 
         if self._will:
-            remaining_length += 2 + len(self._will_topic) + 2 + len(self._will_payload)
-            connect_flags |= 0x04 | ((self._will_qos & 0x03) << 3) | ((self._will_retain & 0x01) << 5)
+            remaining_length += 2 + \
+                len(self._will_topic) + 2 + len(self._will_payload)
+            connect_flags |= 0x04 | ((self._will_qos & 0x03) << 3) | (
+                (self._will_retain & 0x01) << 5)
 
         if self._username is not None:
             remaining_length += 2 + len(self._username)
@@ -2442,7 +2482,7 @@ class Client(object):
                 packed_connect_properties = b'\x00'
             else:
                 packed_connect_properties = self._connect_properties.pack()
-            remaining_length += len(packed_connect_properties) 
+            remaining_length += len(packed_connect_properties)
             if self._will:
                 if self._will_properties == None:
                     packed_will_properties = b'\x00'
@@ -2481,22 +2521,43 @@ class Client(object):
                 self._pack_str16(packet, self._password)
 
         self._keepalive = keepalive
-        self._easy_log(
-            MQTT_LOG_DEBUG,
-            "Sending CONNECT (u%d, p%d, wr%d, wq%d, wf%d, c%d, k%d) client_id=%s",
-            (connect_flags & 0x80) >> 7,
-            (connect_flags & 0x40) >> 6,
-            (connect_flags & 0x20) >> 5,
-            (connect_flags & 0x18) >> 3,
-            (connect_flags & 0x4) >> 2,
-            (connect_flags & 0x2) >> 1,
-            keepalive,
-            self._client_id
-        )
+        if self._protocol == MQTTv5:
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Sending CONNECT (u%d, p%d, wr%d, wq%d, wf%d, c%d, k%d) client_id=%s properties=%s",
+                (connect_flags & 0x80) >> 7,
+                (connect_flags & 0x40) >> 6,
+                (connect_flags & 0x20) >> 5,
+                (connect_flags & 0x18) >> 3,
+                (connect_flags & 0x4) >> 2,
+                (connect_flags & 0x2) >> 1,
+                keepalive,
+                self._client_id,
+                self._connect_properties
+            )
+        else:
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Sending CONNECT (u%d, p%d, wr%d, wq%d, wf%d, c%d, k%d) client_id=%s",
+                (connect_flags & 0x80) >> 7,
+                (connect_flags & 0x40) >> 6,
+                (connect_flags & 0x20) >> 5,
+                (connect_flags & 0x18) >> 3,
+                (connect_flags & 0x4) >> 2,
+                (connect_flags & 0x2) >> 1,
+                keepalive,
+                self._client_id
+            )
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_disconnect(self, reasoncode=None, properties=None):
-        self._easy_log(MQTT_LOG_DEBUG, "Sending DISCONNECT")
+        if self._protocol == MQTTv5:
+            self._easy_log(MQTT_LOG_DEBUG, "Sending DISCONNECT reasonCode=%s properties=%s",
+                           reasoncode,
+                           properties
+                           )
+        else:
+            self._easy_log(MQTT_LOG_DEBUG, "Sending DISCONNECT")
 
         remaining_length = 0
 
@@ -2508,14 +2569,18 @@ class Client(object):
             if properties != None or reasoncode != None:
                 if reasoncode == None:
                     reasoncode = ReasonCodes(DISCONNECT >> 4, identifier=0)
-                packet += reasoncode.pack()
                 remaining_length += 1
                 if properties != None:
                     packed_props = properties.pack()
                     remaining_length += len(packed_props)
-                    packet += packed_props
 
         self._pack_remaining_length(packet, remaining_length)
+
+        if self._protocol == MQTTv5:
+            if reasoncode != None:
+                packet += reasoncode.pack()
+                if properties != None:
+                    packet += packed_props
 
         return self._packet_queue(command, packet, 0, 0)
 
@@ -2624,8 +2689,10 @@ class Client(object):
                         self._send_pubrel(m.mid)
 
     def _message_retry_check(self):
-        self._message_retry_check_actual(self._out_messages, self._out_message_mutex)
-        self._message_retry_check_actual(self._in_messages, self._in_message_mutex)
+        self._message_retry_check_actual(
+            self._out_messages, self._out_message_mutex)
+        self._message_retry_check_actual(
+            self._in_messages, self._in_message_mutex)
 
     def _messages_reconnect_reset_out(self):
         with self._out_message_mutex:
@@ -2758,7 +2825,8 @@ class Client(object):
             return MQTT_ERR_PROTOCOL
 
         if self._protocol == MQTTv5:
-            (flags, result) = struct.unpack("!BB", self._in_packet['packet'][:2])
+            (flags, result) = struct.unpack(
+                "!BB", self._in_packet['packet'][:2])
             reason = ReasonCodes(CONNACK >> 4, identifier=result)
             properties = Properties(CONNACK >> 4)
             properties.unpack(self._in_packet['packet'][2:])
@@ -2788,7 +2856,8 @@ class Client(object):
             self._state = mqtt_cs_connected
             self._reconnect_delay = None
 
-        self._easy_log(MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
+        self._easy_log(
+            MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
 
         with self._callback_mutex:
             if self.on_connect:
@@ -2797,11 +2866,14 @@ class Client(object):
                 with self._in_callback_mutex:
                     try:
                         if self._protocol == MQTTv5:
-                            self.on_connect(self, self._userdata, flags_dict, reason, properties)
+                            self.on_connect(self, self._userdata,
+                                            flags_dict, reason, properties)
                         else:
-                            self.on_connect(self, self._userdata, flags_dict, result)
+                            self.on_connect(
+                                self, self._userdata, flags_dict, result)
                     except Exception as err:
-                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_connect: %s', err)
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_connect: %s', err)
 
         if result == 0:
             rc = 0
@@ -2893,12 +2965,14 @@ class Client(object):
                 with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                     try:
                         if self._protocol == MQTTv5:
-                            self.on_subscribe(self, self._userdata, mid, properties, reasoncodes)
+                            self.on_subscribe(
+                                self, self._userdata, mid, properties, reasoncodes)
                         else:
-                            self.on_subscribe(self, self._userdata, mid, granted_qos)
+                            self.on_subscribe(
+                                self, self._userdata, mid, granted_qos)
                     except Exception as err:
-                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_subscribe: %s', err)
-
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_subscribe: %s', err)
 
         return MQTT_ERR_SUCCESS
 
@@ -3031,7 +3105,8 @@ class Client(object):
                 reasonCode.unpack(self._in_packet['packet'][2:])
                 if self._in_packet['remaining_length'] > 3:
                     properties = Properties(PUBREC >> 4)
-                    props, props_len = properties.unpack(self._in_packet['packet'][3:])
+                    props, props_len = properties.unpack(
+                        self._in_packet['packet'][3:])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREC (Mid: %d)", mid)
 
         with self._out_message_mutex:
@@ -3046,7 +3121,7 @@ class Client(object):
     def _handle_unsuback(self):
         if self._protocol == MQTTv5:
             if self._in_packet['remaining_length'] < 4:
-                return MQTT_ERR_PROTOCOL    
+                return MQTT_ERR_PROTOCOL
         elif self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
@@ -3069,11 +3144,13 @@ class Client(object):
                 with self._in_callback_mutex:
                     try:
                         if self._protocol == MQTTv5:
-                            self.on_unsubscribe(self, self._userdata, mid, properties, reasoncodes)
+                            self.on_unsubscribe(
+                                self, self._userdata, mid, properties, reasoncodes)
                         else:
                             self.on_unsubscribe(self, self._userdata, mid)
                     except Exception as err:
-                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_unsubscribe: %s', err)
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_unsubscribe: %s', err)
         return MQTT_ERR_SUCCESS
 
     def _do_on_publish(self, mid):
@@ -3083,7 +3160,8 @@ class Client(object):
                     try:
                         self.on_publish(self, self._userdata, mid)
                     except Exception as err:
-                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
 
         msg = self._out_messages.pop(mid)
         msg.info._set_as_published()
@@ -3111,7 +3189,8 @@ class Client(object):
                 reasonCode.unpack(self._in_packet['packet'][2:])
                 if self._in_packet['remaining_length'] > 3:
                     properties = Properties(packet_type)
-                    props, props_len = properties.unpack(self._in_packet['packet'][3:])
+                    props, props_len = properties.unpack(
+                        self._in_packet['packet'][3:])
         self._easy_log(MQTT_LOG_DEBUG, "Received %s (Mid: %d)", cmd, mid)
 
         with self._out_message_mutex:
@@ -3141,7 +3220,8 @@ class Client(object):
                     try:
                         self.on_message(self, self._userdata, message)
                     except Exception as err:
-                        self._easy_log(MQTT_LOG_ERR, 'Caught exception in on_message: %s', err)
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_message: %s', err)
 
     def _thread_main(self):
         self.loop_forever(retry_first_connection=True)
@@ -3302,7 +3382,8 @@ class WebsocketWrapper(object):
 
         header = "\r\n".join([
             "GET {self._path} HTTP/1.1".format(self=self),
-            "\r\n".join("{}: {}".format(i, j) for i, j in websocket_headers.items()),
+            "\r\n".join("{}: {}".format(i, j)
+                        for i, j in websocket_headers.items()),
             "\r\n",
         ]).encode("utf8")
 
@@ -3323,7 +3404,8 @@ class WebsocketWrapper(object):
                     # check upgrade
                     if b"connection" in str(self._readbuffer).lower().encode('utf-8'):
                         if b"upgrade" not in str(self._readbuffer).lower().encode('utf-8'):
-                            raise WebsocketConnectionError("WebSocket handshake error, connection not upgraded")
+                            raise WebsocketConnectionError(
+                                "WebSocket handshake error, connection not upgraded")
                         else:
                             has_upgrade = True
 
@@ -3331,7 +3413,8 @@ class WebsocketWrapper(object):
                     if b"sec-websocket-accept" in str(self._readbuffer).lower().encode('utf-8'):
                         GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-                        server_hash = self._readbuffer.decode('utf-8').split(": ", 1)[1]
+                        server_hash = self._readbuffer.decode(
+                            'utf-8').split(": ", 1)[1]
                         server_hash = server_hash.strip().encode('utf-8')
 
                         client_hash = sec_websocket_key.decode('utf-8') + GUID
@@ -3339,7 +3422,8 @@ class WebsocketWrapper(object):
                         client_hash = base64.b64encode(client_hash.digest())
 
                         if server_hash != client_hash:
-                            raise WebsocketConnectionError("WebSocket handshake error, invalid secret key")
+                            raise WebsocketConnectionError(
+                                "WebSocket handshake error, invalid secret key")
                         else:
                             has_secret = True
                 else:
@@ -3472,11 +3556,13 @@ class WebsocketWrapper(object):
 
                 # respond to non-binary opcodes, their arrival is not guaranteed beacause of non-blocking sockets
                 if opcode == WebsocketWrapper.OPCODE_CONNCLOSE:
-                    frame = self._create_frame(WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)
+                    frame = self._create_frame(
+                        WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)
                     self._socket.send(frame)
 
                 if opcode == WebsocketWrapper.OPCODE_PING:
-                    frame = self._create_frame(WebsocketWrapper.OPCODE_PONG, payload, 0)
+                    frame = self._create_frame(
+                        WebsocketWrapper.OPCODE_PONG, payload, 0)
                     self._socket.send(frame)
 
             if opcode == WebsocketWrapper.OPCODE_BINARY and payload_length > 0:
@@ -3498,7 +3584,8 @@ class WebsocketWrapper(object):
         # if previous frame was sent successfully
         if len(self._sendbuffer) == 0:
             # create websocket frame
-            frame = self._create_frame(WebsocketWrapper.OPCODE_BINARY, bytearray(data))
+            frame = self._create_frame(
+                WebsocketWrapper.OPCODE_BINARY, bytearray(data))
             self._sendbuffer.extend(frame)
             self._requested_size = len(data)
 

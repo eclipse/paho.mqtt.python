@@ -1,6 +1,6 @@
 """
 *******************************************************************
-  Copyright (c) 2017, 2018 IBM Corp.
+  Copyright (c) 2017, 2019 IBM Corp.
 
   All rights reserved. This program and the accompanying materials
   are made available under the terms of the Eclipse Public License v1.0
@@ -26,7 +26,8 @@ class MQTTException(Exception):
 class SubscribeOptions(object):
 
     # retain handling options
-    RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB, RETAIN_DO_NOT_SEND = range(0, 3)
+    RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB, RETAIN_DO_NOT_SEND = range(
+        0, 3)
 
     def __init__(self, QoS=0, noLocal=False, retainAsPublished=False, retainHandling=0):
         object.__setattr__(self, "names",
@@ -70,6 +71,9 @@ class SubscribeOptions(object):
         assert self.QoS in [
             0, 1, 2], "QoS should be 0, 1 or 2, not %d" % self.QoS
         return 1
+
+    def __repr__(self):
+        return str(self)
 
     def __str__(self):
         return "{QoS="+str(self.QoS)+", noLocal="+str(self.noLocal) +\

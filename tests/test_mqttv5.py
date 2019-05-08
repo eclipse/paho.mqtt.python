@@ -67,6 +67,9 @@ class Callbacks:
     def on_disconnect(self, client, userdata, reasoncode):
         self.disconnecteds.append({"reasonCode": reasoncode})
 
+    def wait_disconnected(self):
+        return self.wait(self.disconnecteds)
+
     def on_message(self, client, userdata, message):
         self.messages.append({"userdata": userdata, "message": message})
         return True
@@ -85,9 +88,12 @@ class Callbacks:
     def wait_subscribed(self):
         return self.wait(self.subscribeds)
 
-    def unsubscribed(self, msgid):
-        logging.info("unsubscribed %d", msgid)
-        self.unsubscribeds.append(msgid)
+    def unsubscribed(self, client, userdata, mid, properties, reasonCodes):
+        self.unsubscribeds.append({"mid": mid, "userdata": userdata,
+                                   "properties": properties, "reasonCodes": reasonCodes})
+
+    def wait_unsubscribed(self):
+        return self.wait(self.unsubscribeds)
 
     def on_log(self, client, userdata, level, buf):
         print(buf)
@@ -250,7 +256,7 @@ class Test(unittest.TestCase):
         cleanRetained()
 
     def test_will_message(self):
-        # will messages
+        # will messages and keep alive
         callback.clear()
         callback2.clear()
         self.assertEqual(len(callback2.messages), 0, callback2.messages)
@@ -274,7 +280,7 @@ class Test(unittest.TestCase):
         self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
 
         # keep alive timeout ought to be triggered so the will message is received
-        aclient.loop_stop()
+        aclient.loop_stop()  # so that pings aren't sent
         self.waitfor(callback2.messages, 1, 10)
         bclient.disconnect()
         bclient.loop_stop()
@@ -404,186 +410,175 @@ class Test(unittest.TestCase):
         oclient.loop_stop()
         ocallback.clear()
 
-
-"""
-    def test_keepalive(self):
-      # keepalive processing.  We should be kicked off by the server if we don't send or receive any data, and don't send
-      # any pings either.
-      logging.info("Keepalive test starting")
-      succeeded = True
-      try:
-        callback2.clear()
-        aclient.connect(host=host, port=port, cleanstart=True, keepalive=5, willFlag=True,
-              willTopic=topics[4], willMessage=b"keepalive expiry")
-        bclient.connect(host=host, port=port, cleanstart=True, keepalive=0)
-        bclient.subscribe([topics[4]], [MQTTV5.SubscribeOptions(2)])
-        time.sleep(15)
-        bclient.disconnect()
-        assert len(callback2.messages) == 1, "length should be 1: %s" % callback2.messages # should have the will message
-      except:
-        traceback.print_exc()
-        succeeded = False
-      logging.info("Keepalive test %s", "succeeded" if succeeded else "failed")
-      self.assertEqual(succeeded, True)
-      return succeeded
-
-
-    def test_redelivery_on_reconnect(self):
-      # redelivery on reconnect. When a QoS 1 or 2 exchange has not been completed, the server should retry the
-      # appropriate MQTT packets
-      logging.info("Redelivery on reconnect test starting")
-      succeeded = True
-      try:
-        callback.clear()
-        callback2.clear()
-        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-        connect_properties.SessionExpiryInterval = 99999
-        bclient.connect(host=host, port=port, cleanstart=False, properties=connect_properties)
-        bclient.subscribe([wildtopics[6]], [MQTTV5.SubscribeOptions(2)])
-        bclient.pause() # stops responding to incoming publishes
-        bclient.publish(topics[1], b"", 1, retained=False)
-        bclient.publish(topics[3], b"", 2, retained=False)
-        time.sleep(1)
-        bclient.disconnect()
-        assert len(callback2.messages) == 0, "length should be 0: %s" % callback2.messages
-        bclient.resume()
-        bclient.connect(host=host, port=port, cleanstart=False, properties=connect_properties)
-        time.sleep(3)
-        assert len(callback2.messages) == 2, "length should be 2: %s" % callback2.messages
-        bclient.disconnect()
-      except:
-        traceback.print_exc()
-        succeeded = False
-      logging.info("Redelivery on reconnect test %s", "succeeded" if succeeded else "failed")
-      self.assertEqual(succeeded, True)
-      return succeeded
-
     def test_subscribe_failure(self):
-      # Subscribe failure.  A new feature of MQTT 3.1.1 is the ability to send back negative reponses to subscribe
-      # requests.  One way of doing this is to subscribe to a topic which is not allowed to be subscribed to.
-      logging.info("Subscribe failure test starting")
-      succeeded = True
-      try:
-        callback.clear()
-        aclient.connect(host=host, port=port)
-        aclient.subscribe([nosubscribe_topics[0]], [MQTTV5.SubscribeOptions(2)])
-        time.sleep(1)
-        # subscribeds is a list of (msgid, [qos])
-        logging.info(callback.subscribeds)
-        assert callback.subscribeds[0][1][0].value == 0x80, "return code should be 0x80 %s" % callback.subscribeds
-      except:
-        traceback.print_exc()
-        succeeded = False
-      logging.info("Subscribe failure test %s", "succeeded" if succeeded else "failed")
-      self.assertEqual(succeeded, True)
-      return succeeded
+        # Subscribe failure.  A new feature of MQTT 3.1.1 is the ability to send back negative reponses to subscribe
+        # requests.  One way of doing this is to subscribe to a topic which is not allowed to be subscribed to.
+        logging.info("Subscribe failure test starting")
 
-    def test_dollar_topics(self):
-      # $ topics. The specification says that a topic filter which starts with a wildcard does not match topic names that
-      # begin with a $.  Publishing to a topic which starts with a $ may not be allowed on some servers (which is entirely valid),
-      # so this test will not work and should be omitted in that case.
-      logging.info("$ topics test starting")
-      succeeded = True
-      try:
-        callback2.clear()
-        bclient.connect(host=host, port=port, cleanstart=True, keepalive=0)
-        bclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2)])
-        time.sleep(1) # wait for all retained messages, hopefully
-        callback2.clear()
-        bclient.publish("$"+topics[1], b"", 1, retained=False)
-        time.sleep(.2)
-        assert len(callback2.messages) == 0, callback2.messages
-        bclient.disconnect()
-      except:
-        traceback.print_exc()
-        succeeded = False
-      logging.info("$ topics test %s", "succeeded" if succeeded else "failed")
-      self.assertEqual(succeeded, True)
-      return succeeded
+        ocallback = Callbacks()
+        clientid = "subscribe failure".encode("utf-8")
+        oclient = paho.mqtt.client.Client(
+            clientid, protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+        ocallback.register(oclient)
+        oclient.loop_start()
+        oclient.connect(host=host, port=port)
+        ocallback.wait_connected()
+        oclient.subscribe(nosubscribe_topics[0], qos=2)
+        response = ocallback.wait_subscribed()
+
+        self.assertEqual(response["reasonCodes"].getName(), "Unspecified error",
+                          "return code should be 0x80 %s" % response["reasonCodes"].getName())
+        oclient.disconnect()
+        oclient.loop_stop()
 
     def test_unsubscribe(self):
-      callback2.clear()
-      bclient.connect(host=host, port=port, cleanstart=True)
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      bclient.subscribe([topics[1]], [MQTTV5.SubscribeOptions(2)])
-      bclient.subscribe([topics[2]], [MQTTV5.SubscribeOptions(2)])
-      time.sleep(1) # wait for any retained messages, hopefully
-      # Unsubscribe from one topic
-      bclient.unsubscribe([topics[0]])
-      callback2.clear() # if there were any retained messsages
+        callback2.clear()
+        bclient.connect(host=host, port=port)
+        bclient.loop_start()
+        callback2.wait_connected()
+        bclient.subscribe(topics[0], qos=2)
+        callback2.wait_subscribed()
+        bclient.subscribe(topics[1], qos=2)
+        callback2.wait_subscribed()
+        bclient.subscribe(topics[2], qos=2)
+        callback2.wait_subscribed()
+        time.sleep(1)  # wait for any retained messages, hopefully
+        # Unsubscribe from one topic
+        bclient.unsubscribe(topics[0])
+        callback2.wait_unsubscribed()
+        callback2.clear()  # if there were any retained messsages
 
-      aclient.connect(host=host, port=port, cleanstart=True)
-      aclient.publish(topics[0], b"topic 0 - unsubscribed", 1, retained=False)
-      aclient.publish(topics[1], b"topic 1", 1, retained=False)
-      aclient.publish(topics[2], b"topic 2", 1, retained=False)
-      time.sleep(2)
+        aclient.connect(host=host, port=port)
+        aclient.loop_start()
+        callback.wait_connected()
+        aclient.publish(topics[0], b"topic 0 - unsubscribed", 1, retain=False)
+        aclient.publish(topics[1], b"topic 1", 1, retain=False)
+        aclient.publish(topics[2], b"topic 2", 1, retain=False)
+        time.sleep(2)
 
-      bclient.disconnect()
-      aclient.disconnect()
-      self.assertEqual(len(callback2.messages), 2, callback2.messages)
+        bclient.disconnect()
+        bclient.loop_stop()
+        aclient.disconnect()
+        aclient.loop_stop()
+        self.assertEqual(len(callback2.messages), 2, callback2.messages)
+
+    def new_client(self, clientid, clean_start=True):
+        callback = Callbacks()
+        client = paho.mqtt.client.Client(
+            clientid.encode("utf-8"), protocol=paho.mqtt.client.MQTTv5, clean_start=clean_start)
+        callback.register(client)
+        client.loop_start()
+        return client, callback
 
     def test_session_expiry(self):
-      # no session expiry property == never expire
+        # no session expiry property == never expire
 
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties = Properties(PacketTypes.CONNECT)
+        connect_properties.SessionExpiryInterval = 0  # expire immediately
 
-      connect_properties.SessionExpiryInterval = 0
-      connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      aclient.disconnect()
+        clientid = "session expiry"
 
-      # session should immediately expire
-      connack = aclient.connect(host=host, port=port, cleanstart=False, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      aclient.disconnect()
+        eclient, ecallback = self.new_client(clientid)
 
-      connect_properties.SessionExpiryInterval = 5
-      connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      aclient.disconnect()
+        eclient.connect(host=host, port=port, properties=connect_properties)
+        connack = ecallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], False)
+        eclient.subscribe(topics[0], qos=2)
+        ecallback.wait_subscribed()
+        eclient.disconnect()
+        ecallback.wait_disconnected()
+        eclient.loop_stop()
 
-      time.sleep(2)
-      # session should still exist
-      connack = aclient.connect(host=host, port=port, cleanstart=False, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, True)
-      aclient.disconnect()
+        fclient, fcallback = self.new_client(clientid, clean_start=False)
 
-      time.sleep(6)
-      # session should not exist
-      connack = aclient.connect(host=host, port=port, cleanstart=False, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      aclient.disconnect()
+        # session should immediately expire
+        fclient.connect_async(host=host, port=port,
+                              properties=connect_properties)
+        connack = fcallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], False)
+        fclient.disconnect()
+        fcallback.wait_disconnected()
 
-      connect_properties.SessionExpiryInterval = 1
-      connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      disconnect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.DISCONNECT)
-      disconnect_properties.SessionExpiryInterval = 5
-      aclient.disconnect(properties = disconnect_properties)
+        connect_properties.SessionExpiryInterval = 5
 
-      time.sleep(3)
-      # session should still exist
-      connack = aclient.connect(host=host, port=port, cleanstart=False, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, True)
-      disconnect_properties.SessionExpiryInterval = 0
-      aclient.disconnect(properties = disconnect_properties)
+        eclient, ecallback = self.new_client(clientid)
 
-      # session should immediately expire
-      connack = aclient.connect(host=host, port=port, cleanstart=False, properties=connect_properties)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      aclient.disconnect()
+        eclient.connect(host=host, port=port, properties=connect_properties)
+        connack = ecallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], False)
+        eclient.subscribe(topics[0], qos=2)
+        ecallback.wait_subscribed()
+        eclient.disconnect()
+        ecallback.wait_disconnected()
+        eclient.loop_stop()
 
+        time.sleep(2)
+        # session should still exist
+        fclient, fcallback = self.new_client(clientid, clean_start=False)
+        fclient.connect(host=host, port=port, properties=connect_properties)
+        connack = fcallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], True)
+        fclient.disconnect()
+        fcallback.wait_disconnected()
+        fclient.loop_stop()
+
+        time.sleep(6)
+        # session should not exist
+        fclient, fcallback = self.new_client(clientid, clean_start=False)
+        fclient.connect(host=host, port=port, properties=connect_properties)
+        connack = fcallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], False)
+        fclient.disconnect()
+        fcallback.wait_disconnected()
+        fclient.loop_stop()
+
+        eclient, ecallback = self.new_client(clientid)
+        connect_properties.SessionExpiryInterval = 1
+        connack = eclient.connect(
+            host=host, port=port, properties=connect_properties)
+        connack = ecallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], False)
+        eclient.subscribe(topics[0], qos=2)
+        ecallback.wait_subscribed()
+        disconnect_properties = Properties(PacketTypes.DISCONNECT)
+        disconnect_properties.SessionExpiryInterval = 5
+        eclient.disconnect(properties=disconnect_properties)
+        ecallback.wait_disconnected()
+        eclient.loop_stop()
+
+        time.sleep(3)
+        # session should still exist as we changed the expiry interval on disconnect
+        fclient, fcallback = self.new_client(clientid, clean_start=False)
+        fclient.connect(host=host, port=port, properties=connect_properties)
+        connack = fcallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], True)
+        disconnect_properties.SessionExpiryInterval = 0
+        fclient.disconnect(properties=disconnect_properties)
+        fcallback.wait_disconnected()
+        fclient.loop_stop()
+
+        # session should immediately expire
+        fclient, fcallback = self.new_client(clientid, clean_start=False)
+        fclient.connect(host=host, port=port, properties=connect_properties)
+        connack = fcallback.wait_connected()
+        self.assertEqual(connack["reasonCode"].getName(), "Success")
+        self.assertEqual(connack["flags"]["session present"], False)
+        fclient.disconnect()
+        fcallback.wait_disconnected()
+        fclient.loop_stop()
+
+        fclient.loop_stop()
+        eclient.loop_stop()
+
+
+"""
     def test_user_properties(self):
       callback.clear()
       aclient.connect(host=host, port=port, cleanstart=True)
@@ -606,6 +601,7 @@ class Test(unittest.TestCase):
       self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
       qoss = [callback.messages[i][2] for i in range(3)]
       self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+
 
     def test_payload_format(self):
       callback.clear()
@@ -1299,6 +1295,7 @@ class Test(unittest.TestCase):
 def setData():
     global topics, wildtopics, nosubscribe_topics, host, port
     host = "paho8181.cloudapp.net"
+    host = "localhost"
     port = 1883
     topics = ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
     wildtopics = ("TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#")
