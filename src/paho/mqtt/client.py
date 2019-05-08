@@ -3035,12 +3035,12 @@ class Client(object):
         if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
             # Have to short-circuit here because of unsupported source_address
             # param in earlier Python versions.
-            return socket.create_connection(addr)
+            return socket.create_connection(addr, timeout=self._keepalive)
 
         if proxy:
-            return socks.create_connection(addr, source_address=source, **proxy)
+            return socks.create_connection(addr, source_address=source, timeout=self._keepalive, **proxy)
         else:
-            return socket.create_connection(addr, source_address=source)
+            return socket.create_connection(addr, source_address=source, timeout=self._keepalive)
 
 
 # Compatibility class for easy porting from mosquitto.py.
