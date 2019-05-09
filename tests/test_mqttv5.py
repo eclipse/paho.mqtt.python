@@ -1294,7 +1294,7 @@ class Test(unittest.TestCase):
 
 def setData():
     global topics, wildtopics, nosubscribe_topics, host, port
-    host = "paho8181.cloudapp.net"
+    host = "localhost" #"paho8181.cloudapp.net"
     port = 1883
     topics = ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
     wildtopics = ("TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#")

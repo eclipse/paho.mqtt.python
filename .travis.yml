@@ -13,6 +13,9 @@ matrix:
     - python: 2.7
       env: TOXENV=py27
 
+before_install:
+  - ./travis-install.sh
+
 install:
   - pip install tox
 
