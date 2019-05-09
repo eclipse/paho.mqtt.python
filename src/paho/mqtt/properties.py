@@ -48,7 +48,7 @@ def readInt32(buf):
 def writeUTF(data):
     # data could be a string, or bytes.  If string, encode into bytes with utf-8
     if sys.version_info[0] < 3:
-        data = bytearray(data)
+        data = bytearray(data, 'utf-8')
     else:
         data = data if type(data) == type(b"") else bytes(data, "utf-8")
     return writeInt16(len(data)) + data
