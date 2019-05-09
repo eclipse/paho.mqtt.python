@@ -16,6 +16,7 @@
 *******************************************************************
 """
 
+import sys
 from .packettypes import PacketTypes
 
 
@@ -53,7 +54,10 @@ class ReasonCodes:
         self.value = self.getId(name)
 
     def unpack(self, buffer):
-        name = self.__getName__(self.packetType, buffer[0])
+        c = buffer[0]
+        if sys.version_info[0] < 3:
+            c = ord(c)
+        name = self.__getName__(self.packetType, c)
         self.value = self.getId(name)
         return 1
 
