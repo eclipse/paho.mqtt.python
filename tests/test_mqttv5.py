@@ -620,23 +620,20 @@ class Test(unittest.TestCase):
     def test_payload_format(self):
         clientid = "payload format"
         pclient, pcallback = self.new_client(clientid)
-        pclient.loop_start()
-        pclient.connect(host=host, port=port)
-        pcallback.wait_connected()
-
         pclient.connect(host=host, port=port)
         response = pcallback.wait_connected()
+        pclient.loop_start()
         pclient.subscribe(topics[0], qos=2)
         response = pcallback.wait_subscribed()
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.PayloadFormatIndicator = 1
         publish_properties.ContentType = "My name"
-        pclient.publish(topics[0], b"", 0, retain=False,
-                        properties=publish_properties)
-        pclient.publish(topics[0], b"", 1, retain=False,
-                        properties=publish_properties)
-        pclient.publish(topics[0], b"", 2, retain=False,
-                        properties=publish_properties)
+        pclient.publish(topics[0], b"", 0, retain=False, properties=publish_properties)
+        pcallback.wait_published()
+        pclient.publish(topics[0], b"", 1, retain=False, properties=publish_properties)
+        pcallback.wait_published()
+        pclient.publish(topics[0], b"", 2, retain=False, properties=publish_properties)
+        pcallback.wait_published()
         count = 0
         while len(pcallback.messages) < 3 and count < 50:
             time.sleep(.1)
