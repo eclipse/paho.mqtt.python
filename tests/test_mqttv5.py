@@ -622,7 +622,7 @@ class Test(unittest.TestCase):
         clientid = "payload format"
         pclient, pcallback = self.new_client(clientid)
         pclient.loop_start()
-        pclient.async_connect(host=host, port=port)
+        pclient.connect_async(host=host, port=port)
         response = pcallback.wait_connected()
 
         pclient.subscribe(topics[0], qos=2)
