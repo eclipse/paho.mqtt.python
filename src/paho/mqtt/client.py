@@ -1190,10 +1190,15 @@ class Client(object):
         is defined.
 
         A ValueError will be raised if topic is None, has zero length or is
-        invalid (contains a wildcard), if qos is not one of 0, 1 or 2, or if
+        invalid (contains a wildcard), except if the MQTT protocol version 
+        being used is 5.0.  For version 5.0, a zero length topic can be used
+        when a Topic Alias has been set.
+        
+        A ValueError will be raised if qos is not one of 0, 1 or 2, or if
         the length of the payload is greater than 268435455 bytes."""
-        if topic is None or len(topic) == 0:
-            raise ValueError('Invalid topic.')
+        if self._protocol != MQTTv5:
+            if topic is None or len(topic) == 0:
+                raise ValueError('Invalid topic.')
 
         topic = topic.encode('utf-8')
 
@@ -1371,7 +1376,7 @@ class Client(object):
             if self._protocol == MQTTv5:
                 if options == None:
                     # if no options are provided, use the QoS passed instead
-                    options = SubscribeOptions(QoS=qos)
+                    options = SubscribeOptions(qos=qos)
                 elif qos != 0:
                     raise ValueError(
                         'Subscribe options and qos parameters cannot be combined.')
@@ -2322,7 +2327,7 @@ class Client(object):
         # Search for + or # in a topic. Return MQTT_ERR_INVAL if found.
         # Also returns MQTT_ERR_INVAL if the topic string is too long.
         # Returns MQTT_ERR_SUCCESS if everything is fine.
-        if b'+' in topic or b'#' in topic or len(topic) == 0 or len(topic) > 65535:
+        if b'+' in topic or b'#' in topic or len(topic) > 65535:
             return MQTT_ERR_INVAL
         else:
             return MQTT_ERR_SUCCESS
@@ -2392,17 +2397,31 @@ class Client(object):
         remaining_length = 2 + len(topic) + payloadlen
 
         if payloadlen == 0:
-            self._easy_log(
-                MQTT_LOG_DEBUG,
-                "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s' (NULL payload)",
-                dup, qos, retain, mid, topic
-            )
+            if self._protocol == MQTTv5:
+                self._easy_log(
+                    MQTT_LOG_DEBUG,
+                    "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s', properties=%s (NULL payload)",
+                    dup, qos, retain, mid, topic, properties
+                )
+            else:
+                self._easy_log(
+                    MQTT_LOG_DEBUG,
+                    "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s' (NULL payload)",
+                    dup, qos, retain, mid, topic
+                )
         else:
-            self._easy_log(
-                MQTT_LOG_DEBUG,
-                "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s', ... (%d bytes)",
-                dup, qos, retain, mid, topic, payloadlen
-            )
+            if self._protocol == MQTTv5:
+                self._easy_log(
+                    MQTT_LOG_DEBUG,
+                    "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s', properties=%s, ... (%d bytes)",
+                    dup, qos, retain, mid, topic, properties, payloadlen
+                )
+            else:
+                self._easy_log(
+                    MQTT_LOG_DEBUG,
+                    "Sending PUBLISH (d%d, q%d, r%d, m%d), '%s', ... (%d bytes)",
+                    dup, qos, retain, mid, topic, payloadlen
+                )
 
         if qos > 0:
             # For message id
@@ -2856,8 +2875,12 @@ class Client(object):
             self._state = mqtt_cs_connected
             self._reconnect_delay = None
 
-        self._easy_log(
-            MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
+        if self._protocol == MQTTv5:
+            self._easy_log(
+                MQTT_LOG_DEBUG, "Received CONNACK (%s, %s) properties=%s", flags, reason, properties)
+        else:
+            self._easy_log(
+                MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
 
         with self._callback_mutex:
             if self.on_connect:
@@ -2893,6 +2916,7 @@ class Client(object):
                                 m.qos,
                                 m.retain,
                                 m.dup,
+                                properties = m.properties
                             )
                         if rc != 0:
                             return rc
@@ -2908,6 +2932,7 @@ class Client(object):
                                     m.qos,
                                     m.retain,
                                     m.dup,
+                                    properties = m.properties
                                 )
                             if rc != 0:
                                 return rc
@@ -2923,6 +2948,7 @@ class Client(object):
                                     m.qos,
                                     m.retain,
                                     m.dup,
+                                    properties = m.properties
                                 )
                             if rc != 0:
                                 return rc
@@ -3015,12 +3041,20 @@ class Client(object):
 
         message.payload = packet
 
-        self._easy_log(
-            MQTT_LOG_DEBUG,
-            "Received PUBLISH (d%d, q%d, r%d, m%d), '%s', ...  (%d bytes)",
-            message.dup, message.qos, message.retain, message.mid,
-            print_topic, len(message.payload)
-        )
+        if self._protocol == MQTTv5:
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Received PUBLISH (d%d, q%d, r%d, m%d), '%s', properties=%s, ...  (%d bytes)",
+                message.dup, message.qos, message.retain, message.mid,
+                print_topic, message.properties, len(message.payload)
+            )
+        else:
+            self._easy_log(
+                MQTT_LOG_DEBUG,
+                "Received PUBLISH (d%d, q%d, r%d, m%d), '%s', ...  (%d bytes)",
+                message.dup, message.qos, message.retain, message.mid,
+                print_topic, len(message.payload)
+            )
 
         message.timestamp = time_func()
         if message.qos == 0:

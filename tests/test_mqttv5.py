@@ -59,7 +59,7 @@ class Callbacks:
         while len(alist) == 0 and total < timeout:
             time.sleep(interval)
             total += interval
-        return alist.pop(0) if len(alist) > 0 else None
+        return alist.pop(0) #if len(alist) > 0 else None
 
     def wait_connected(self):
         return self.wait(self.connecteds)
@@ -74,8 +74,7 @@ class Callbacks:
         self.messages.append({"userdata": userdata, "message": message})
         return True
 
-    def published(self, msgid):
-        logging.info("published %d", msgid)
+    def published(self, client, userdata, msgid):
         self.publisheds.append(msgid)
 
     def wait_published(self):
@@ -101,6 +100,7 @@ class Callbacks:
     def register(self, client):
         client.on_connect = self.on_connect
         client.on_subscribe = self.on_subscribe
+        client.on_publish = self.published
         client.on_unsubscribe = self.unsubscribed
         client.on_message = self.on_message
         client.on_disconnect = self.on_disconnect
@@ -115,7 +115,7 @@ def cleanRetained():
     callback.register(curclient)
     curclient.connect(host=host, port=port)
     response = callback.wait_connected()
-    curclient.subscribe("#", options=SubscribeOptions(QoS=0))
+    curclient.subscribe("#", options=SubscribeOptions(qos=0))
     response = callback.wait_subscribed()  # wait for retained messages to arrive
     for message in callback.messages:
         logging.info("deleting retained message for topic", message["message"])
@@ -192,7 +192,7 @@ class Test(unittest.TestCase):
         response = callback.wait_connected()
         self.assertEqual(response["reasonCode"].getName(), "Success")
 
-        aclient.subscribe(topics[0], options=SubscribeOptions(QoS=2))
+        aclient.subscribe(topics[0], options=SubscribeOptions(qos=2))
         response = callback.wait_subscribed()
         self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
 
@@ -232,7 +232,7 @@ class Test(unittest.TestCase):
                         retain=True, properties=publish_properties)
         # wait until those messages are published
         time.sleep(1)
-        aclient.subscribe(wildtopics[5], options=SubscribeOptions(QoS=2))
+        aclient.subscribe(wildtopics[5], options=SubscribeOptions(qos=2))
         response = callback.wait_subscribed()
         self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
 
@@ -389,8 +389,8 @@ class Test(unittest.TestCase):
         oclient.loop_start()
         oclient.connect(host=host, port=port)
         ocallback.wait_connected()
-        oclient.subscribe([(wildtopics[6], SubscribeOptions(QoS=2)),
-                           (wildtopics[0], SubscribeOptions(QoS=1))])
+        oclient.subscribe([(wildtopics[6], SubscribeOptions(qos=2)),
+                           (wildtopics[0], SubscribeOptions(qos=1))])
         ocallback.wait_subscribed()
         oclient.publish(topics[3], b"overlapping topic filters", 2)
         ocallback.wait_published()
@@ -427,7 +427,7 @@ class Test(unittest.TestCase):
         response = ocallback.wait_subscribed()
 
         self.assertEqual(response["reasonCodes"].getName(), "Unspecified error",
-                          "return code should be 0x80 %s" % response["reasonCodes"].getName())
+                         "return code should be 0x80 %s" % response["reasonCodes"].getName())
         oclient.disconnect()
         oclient.loop_stop()
 
@@ -577,724 +577,866 @@ class Test(unittest.TestCase):
         fclient.loop_stop()
         eclient.loop_stop()
 
-
-"""
     def test_user_properties(self):
-      callback.clear()
-      aclient.connect(host=host, port=port, cleanstart=True)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
-      publish_properties.UserProperty = ("a", "2")
-      publish_properties.UserProperty = ("c", "3")
-      aclient.publish(topics[0], b"", 0, retained=False, properties=publish_properties)
-      aclient.publish(topics[0], b"", 1, retained=False, properties=publish_properties)
-      aclient.publish(topics[0], b"", 2, retained=False, properties=publish_properties)
-      while len(callback.messages) < 3:
-        time.sleep(.1)
-      aclient.disconnect()
-      self.assertEqual(len(callback.messages), 3, callback.messages)
-      userprops = callback.messages[0][5].UserProperty
-      self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      userprops = callback.messages[1][5].UserProperty
-      self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      userprops = callback.messages[2][5].UserProperty
-      self.assertTrue(userprops in [[("a", "2"), ("c", "3")],[("c", "3"), ("a", "2")]], userprops)
-      qoss = [callback.messages[i][2] for i in range(3)]
-      self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+        clientid = "user properties"
+        uclient, ucallback = self.new_client(clientid)
+        uclient.loop_start()
+        uclient.connect(host=host, port=port)
+        ucallback.wait_connected()
 
+        uclient.subscribe(topics[0], qos=2)
+        ucallback.wait_subscribed()
 
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.UserProperty = ("a", "2")
+        publish_properties.UserProperty = ("c", "3")
+        uclient.publish(topics[0], b"", 0, retain=False,
+                        properties=publish_properties)
+        uclient.publish(topics[0], b"", 1, retain=False,
+                        properties=publish_properties)
+        uclient.publish(topics[0], b"", 2, retain=False,
+                        properties=publish_properties)
+        count = 0
+        while len(ucallback.messages) < 3 and count < 50:
+            time.sleep(.1)
+            count += 1
+        uclient.disconnect()
+        ucallback.wait_disconnected()
+        uclient.loop_stop()
+        self.assertEqual(len(ucallback.messages), 3, ucallback.messages)
+        userprops = ucallback.messages[0]["message"].properties.UserProperty
+        self.assertTrue(userprops in [[("a", "2"), ("c", "3")], [
+                        ("c", "3"), ("a", "2")]], userprops)
+        userprops = ucallback.messages[1]["message"].properties.UserProperty
+        self.assertTrue(userprops in [[("a", "2"), ("c", "3")], [
+                        ("c", "3"), ("a", "2")]], userprops)
+        userprops = ucallback.messages[2]["message"].properties.UserProperty
+        self.assertTrue(userprops in [[("a", "2"), ("c", "3")], [
+                        ("c", "3"), ("a", "2")]], userprops)
+        qoss = [ucallback.messages[i]["message"].qos for i in range(3)]
+        self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+
+  
     def test_payload_format(self):
-      callback.clear()
-      aclient.connect(host=host, port=port, cleanstart=True)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
-      publish_properties.PayloadFormatIndicator = 1
-      publish_properties.ContentType = "My name"
-      aclient.publish(topics[0], b"", 0, retained=False, properties=publish_properties)
-      aclient.publish(topics[0], b"", 1, retained=False, properties=publish_properties)
-      aclient.publish(topics[0], b"", 2, retained=False, properties=publish_properties)
-      while len(callback.messages) < 3:
-        time.sleep(.1)
-      aclient.disconnect()
+        clientid = "payload format"
+        pclient, pcallback = self.new_client(clientid)
+        pclient.loop_start()
+        pclient.connect(host=host, port=port)
+        pcallback.wait_connected()
 
-      self.assertEqual(len(callback.messages), 3, callback.messages)
-      props = callback.messages[0][5]
-      self.assertEqual(props.ContentType, "My name", props.ContentType)
-      self.assertEqual(props.PayloadFormatIndicator, 1, props.PayloadFormatIndicator)
-      props = callback.messages[1][5]
-      self.assertEqual(props.ContentType, "My name", props.ContentType)
-      self.assertEqual(props.PayloadFormatIndicator, 1, props.PayloadFormatIndicator)
-      props = callback.messages[2][5]
-      self.assertEqual(props.ContentType, "My name", props.ContentType)
-      self.assertEqual(props.PayloadFormatIndicator, 1, props.PayloadFormatIndicator)
-      qoss = [callback.messages[i][2] for i in range(3)]
-      self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+        pclient.connect(host=host, port=port)
+        response = pcallback.wait_connected()
+        pclient.subscribe(topics[0], qos=2)
+        response = pcallback.wait_subscribed()
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.PayloadFormatIndicator = 1
+        publish_properties.ContentType = "My name"
+        pclient.publish(topics[0], b"", 0, retain=False,
+                        properties=publish_properties)
+        pclient.publish(topics[0], b"", 1, retain=False,
+                        properties=publish_properties)
+        pclient.publish(topics[0], b"", 2, retain=False,
+                        properties=publish_properties)
+        count = 0
+        while len(pcallback.messages) < 3 and count < 50:
+            time.sleep(.1)
+            count += 1
+        pclient.disconnect()
+        pcallback.wait_disconnected()
+        pclient.loop_stop()
 
-    def test_publication_expiry(self):
-      callback.clear()
-      callback2.clear()
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      connect_properties.SessionExpiryInterval = 99999
-      bclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties)
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      disconnect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.DISCONNECT)
-      disconnect_properties.SessionExpiryInterval = 999999999
-      bclient.disconnect(properties = disconnect_properties)
+        self.assertEqual(len(pcallback.messages), 3, pcallback.messages)
+        props = pcallback.messages[0]["message"].properties
+        self.assertEqual(props.ContentType, "My name", props.ContentType)
+        self.assertEqual(props.PayloadFormatIndicator,
+                         1, props.PayloadFormatIndicator)
+        props = pcallback.messages[1]["message"].properties
+        self.assertEqual(props.ContentType, "My name", props.ContentType)
+        self.assertEqual(props.PayloadFormatIndicator,
+                         1, props.PayloadFormatIndicator)
+        props = pcallback.messages[2]["message"].properties
+        self.assertEqual(props.ContentType, "My name", props.ContentType)
+        self.assertEqual(props.PayloadFormatIndicator,
+                         1, props.PayloadFormatIndicator)
+        qoss = [pcallback.messages[i]["message"].qos for i in range(3)]
+        self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
 
-      aclient.connect(host=host, port=port, cleanstart=True)
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
-      publish_properties.MessageExpiryInterval = 1
-      aclient.publish(topics[0], b"qos 1 - expire", 1, retained=False, properties=publish_properties)
-      aclient.publish(topics[0], b"qos 2 - expire", 2, retained=False, properties=publish_properties)
-      publish_properties.MessageExpiryInterval = 6
-      aclient.publish(topics[0], b"qos 1 - don't expire", 1, retained=False, properties=publish_properties)
-      aclient.publish(topics[0], b"qos 2 - don't expire", 2, retained=False, properties=publish_properties)
+    
+    def test_message_expiry(self):
+        clientid = "message expiry"
 
-      time.sleep(3)
-      bclient.connect(host=host, port=port, cleanstart=False)
-      self.waitfor(callback2.messages, 1, 3)
-      time.sleep(1)
-      self.assertEqual(len(callback2.messages), 2, callback2.messages)
-      self.assertTrue(callback2.messages[0][5].MessageExpiryInterval < 6,
-                             callback2.messages[0][5].MessageExpiryInterval)
-      self.assertTrue(callback2.messages[1][5].MessageExpiryInterval < 6,
-                                   callback2.messages[1][5].MessageExpiryInterval)
-      aclient.disconnect()
+        connect_properties = Properties(PacketTypes.CONNECT)
+        connect_properties.SessionExpiryInterval = 99999
 
+        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient.loop_start()
+        lbclient.connect(host=host, port=port, properties=connect_properties)
+        response = lbcallback.wait_connected()
+        lbclient.subscribe(topics[0], qos=2)
+        response = lbcallback.wait_subscribed()
+        disconnect_properties = Properties(PacketTypes.DISCONNECT)
+        disconnect_properties.SessionExpiryInterval = 999999999
+        lbclient.disconnect(properties=disconnect_properties)
+        lbcallback.wait_disconnected()
+        lbclient.loop_stop()
+
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.loop_start()
+        laclient.connect(host=host, port=port)
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.MessageExpiryInterval = 1
+        laclient.publish(topics[0], b"qos 1 - expire", 1,
+                        retain=False, properties=publish_properties)
+        laclient.publish(topics[0], b"qos 2 - expire", 2,
+                        retain=False, properties=publish_properties)
+        
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.MessageExpiryInterval = 6
+        laclient.publish(topics[0], b"qos 1 - don't expire",
+                        1, retain=False, properties=publish_properties)
+        laclient.publish(topics[0], b"qos 2 - don't expire",
+                        2, retain=False, properties=publish_properties)
+
+        time.sleep(3)
+        lbclient, lbcallback = self.new_client(clientid+" b", clean_start=False)
+        lbclient.loop_start()
+        lbclient.connect(host=host, port=port)
+        lbcallback.wait_connected()
+        self.waitfor(lbcallback.messages, 1, 3)
+        time.sleep(1)
+        self.assertEqual(len(lbcallback.messages), 2, lbcallback.messages)
+        self.assertTrue(lbcallback.messages[0]["message"].properties.MessageExpiryInterval < 6,
+                        lbcallback.messages[0]["message"].properties.MessageExpiryInterval)
+        self.assertTrue(lbcallback.messages[1]["message"].properties.MessageExpiryInterval < 6,
+                        lbcallback.messages[1]["message"].properties.MessageExpiryInterval)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
+
+        lbclient.disconnect()
+        lbcallback.wait_disconnected()
+        lbclient.loop_stop()
+
+    
     def test_subscribe_options(self):
-      callback.clear()
-      callback2.clear()
+        # noLocal
+        clientid = 'subscribe options - noLocal'
 
-      # noLocal
-      aclient.connect(host=host, port=port, cleanstart=True)
-      bclient.connect(host=host, port=port, cleanstart=True)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2, noLocal=True)])
-      self.waitfor(callback.subscribeds, 1, 3)
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2, noLocal=True)])
-      self.waitfor(callback.subscribeds, 1, 3)
-      aclient.publish(topics[0], b"noLocal test", 1, retained=False)
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port)
+        lacallback.wait_connected()
+        laclient.loop_start()
+        laclient.subscribe(topics[0], options=SubscribeOptions(qos=2, noLocal=True))
+        lacallback.wait_subscribed()
 
-      self.waitfor(callback2.messages, 1, 3)
-      time.sleep(1)
+        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient.connect(host=host, port=port)
+        lbcallback.wait_connected()
+        lbclient.loop_start()
+        lbclient.subscribe(topics[0], options=SubscribeOptions(qos=2, noLocal=True))
+        lbcallback.wait_subscribed()
 
-      self.assertEqual(callback.messages, [], callback.messages)
-      self.assertEqual(len(callback2.messages), 1, callback2.messages)
-      aclient.disconnect()
-      bclient.disconnect()
+        laclient.publish(topics[0], b"noLocal test", 1, retain=False)
+        self.waitfor(lbcallback.messages, 1, 3)
+        time.sleep(1)
 
-      callback.clear()
-      callback2.clear()
+        self.assertEqual(lacallback.messages, [], lacallback.messages)
+        self.assertEqual(len(lbcallback.messages), 1, lbcallback.messages)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        lbclient.disconnect()
+        lbcallback.wait_disconnected()
+        laclient.loop_stop()
+        lbclient.loop_stop()
 
-      # retainAsPublished
-      aclient.connect(host=host, port=port, cleanstart=True)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2, retainAsPublished=True)])
-      self.waitfor(callback.subscribeds, 1, 3)
-      aclient.publish(topics[0], b"retain as published false", 1, retained=False)
-      aclient.publish(topics[0], b"retain as published true", 1, retained=True)
+        # retainAsPublished
+        clientid = 'subscribe options - retain as published'
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port)
+        lacallback.wait_connected()
+        laclient.subscribe(topics[0], options=SubscribeOptions(qos=2, retainAsPublished=True))
+        lacallback.wait_subscribed()
+        self.waitfor(lacallback.subscribeds, 1, 3)
+        laclient.publish(topics[0], b"retain as published false", 1, retain=False)
+        laclient.publish(topics[0], b"retain as published true", 1, retain=True)
 
-      self.waitfor(callback.messages, 2, 3)
-      time.sleep(1)
+        self.waitfor(lacallback.messages, 2, 3)
+        time.sleep(1)
 
-      self.assertEqual(len(callback.messages), 2, callback.messages)
-      aclient.disconnect()
-      self.assertEqual(callback.messages[0][3], False)
-      self.assertEqual(callback.messages[1][3], True)
+        self.assertEqual(len(lacallback.messages), 2, lacallback.messages)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
+        self.assertEqual(lacallback.messages[0]["message"].retain, False)
+        self.assertEqual(lacallback.messages[1]["message"].retain, True)
 
-      # retainHandling
-      callback.clear()
-      aclient.connect(host=host, port=port, cleanstart=True)
-      aclient.publish(topics[1], b"qos 0", 0, retained=True)
-      aclient.publish(topics[2], b"qos 1", 1, retained=True)
-      aclient.publish(topics[3], b"qos 2", 2, retained=True)
-      time.sleep(1)
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2, retainHandling=1)])
-      time.sleep(1)
-      self.assertEqual(len(callback.messages), 3)
-      qoss = [callback.messages[i][2] for i in range(3)]
-      self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
-      callback.clear()
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2, retainHandling=1)])
-      time.sleep(1)
-      self.assertEqual(len(callback.messages), 0)
-      aclient.disconnect()
+        # retainHandling
+        clientid = 'subscribe options - retain handling'
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port)
+        lacallback.wait_connected()
+        laclient.publish(topics[1], b"qos 0", 0, retain=True)
+        laclient.publish(topics[2], b"qos 1", 1, retain=True)
+        laclient.publish(topics[3], b"qos 2", 2, retain=True)
+        time.sleep(1)
 
-      callback.clear()
-      aclient.connect(host=host, port=port, cleanstart=True)
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2, retainHandling=2)])
-      time.sleep(1)
-      self.assertEqual(len(callback.messages), 0)
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2, retainHandling=2)])
-      time.sleep(1)
-      self.assertEqual(len(callback.messages), 0)
-      aclient.disconnect()
+        # retain handling 1 only gives us retained messages on a new subscription
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        lacallback.wait_subscribed()
+        self.assertEqual(len(lacallback.messages), 3)
+        qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
+        self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+        lacallback.clear()
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        lacallback.wait_subscribed()
+        time.sleep(1)
+        self.assertEqual(len(lacallback.messages), 0)
 
-      callback.clear()
-      aclient.connect(host=host, port=port, cleanstart=True)
-      time.sleep(1)
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2, retainHandling=0)])
-      time.sleep(1)
-      self.assertEqual(len(callback.messages), 3)
-      qoss = [callback.messages[i][2] for i in range(3)]
-      self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
-      callback.clear()
-      aclient.subscribe([wildtopics[5]], [MQTTV5.SubscribeOptions(2, retainHandling=0)])
-      time.sleep(1)
-      self.assertEqual(len(callback.messages), 3)
-      qoss = [callback.messages[i][2] for i in range(3)]
-      self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
-      aclient.disconnect()
+        # remove that subscription
+        properties = Properties(PacketTypes.UNSUBSCRIBE)
+        properties.UserProperty = ("a", "2")
+        properties.UserProperty = ("c", "3")
+        laclient.unsubscribe(wildtopics[5], properties)
+        response = lacallback.wait_unsubscribed()
 
-      cleanRetained()
+        # check that we really did remove that subscription
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        lacallback.wait_subscribed()
+        self.assertEqual(len(lacallback.messages), 3)
+        qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
+        self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+        lacallback.clear()
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        lacallback.wait_subscribed()
+        time.sleep(1)
+        self.assertEqual(len(lacallback.messages), 0)
 
+        # remove that subscription
+        properties = Properties(PacketTypes.UNSUBSCRIBE)
+        properties.UserProperty = ("a", "2")
+        properties.UserProperty = ("c", "3")
+        laclient.unsubscribe(wildtopics[5], properties)
+        response = lacallback.wait_unsubscribed()
 
-    def test_subscribe_identifiers(self):
-      callback.clear()
-      callback2.clear()
+        lacallback.clear()
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=2))
+        lacallback.wait_subscribed()
+        self.assertEqual(len(lacallback.messages), 0)
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=2))
+        lacallback.wait_subscribed()
+        self.assertEqual(len(lacallback.messages), 0)
 
-      aclient.connect(host=host, port=port, cleanstart=True)
-      sub_properties = MQTTV5.Properties(MQTTV5.PacketTypes.SUBSCRIBE)
-      sub_properties.SubscriptionIdentifier = 456789
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)], properties=sub_properties)
-      self.waitfor(callback.subscribeds, 1, 3)
+        # remove that subscription
+        laclient.unsubscribe(wildtopics[5])
+        response = lacallback.wait_unsubscribed()
 
-      bclient.connect(host=host, port=port, cleanstart=True)
-      sub_properties = MQTTV5.Properties(MQTTV5.PacketTypes.SUBSCRIBE)
-      sub_properties.SubscriptionIdentifier = 2
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)], properties=sub_properties)
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=0))
+        lacallback.wait_subscribed()
+        self.assertEqual(len(lacallback.messages), 3)
+        qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
+        self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+        lacallback.clear()
+        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=0))
+        time.sleep(1)
+        self.assertEqual(len(lacallback.messages), 3)
+        qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
+        self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
 
-      sub_properties.clear()
-      sub_properties.SubscriptionIdentifier = 3
-      bclient.subscribe([topics[0]+"/#"], [MQTTV5.SubscribeOptions(2)], properties=sub_properties)
+        cleanRetained()
 
-      bclient.publish(topics[0], b"sub identifier test", 1, retained=False)
+    
+    def test_subscription_identifiers(self):
+        clientid = 'subscription identifiers'
 
-      self.waitfor(callback.messages, 1, 3)
-      self.assertEqual(len(callback.messages), 1, callback.messages)
-      self.assertEqual(callback.messages[0][5].SubscriptionIdentifier[0], 456789, callback.messages[0][5].SubscriptionIdentifier)
-      aclient.disconnect()
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port)
+        lacallback.wait_connected()
+        laclient.loop_start()
 
-      self.waitfor(callback2.messages, 1, 3)
-      self.assertEqual(len(callback2.messages), 1, callback2.messages)
-      expected_subsids = set([2, 3])
-      received_subsids = set(callback2.messages[0][5].SubscriptionIdentifier)
-      self.assertEqual(received_subsids, expected_subsids, received_subsids)
-      bclient.disconnect()
+        sub_properties = Properties(PacketTypes.SUBSCRIBE)
+        sub_properties.SubscriptionIdentifier = 456789
+        laclient.subscribe(topics[0], qos=2, properties=sub_properties)
+        lacallback.wait_subscribed()
 
-      callback.clear()
-      callback2.clear()
+        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient.connect(host=host, port=port)
+        lbcallback.wait_connected()
+        lbclient.loop_start()
+        sub_properties = Properties(PacketTypes.SUBSCRIBE)
+        sub_properties.SubscriptionIdentifier = 2
+        lbclient.subscribe(topics[0], qos=2, properties=sub_properties)
+        lbcallback.wait_subscribed()
+
+        sub_properties.clear()
+        sub_properties.SubscriptionIdentifier = 3
+        lbclient.subscribe(topics[0]+"/#", qos=2, properties=sub_properties)
+
+        lbclient.publish(topics[0], b"sub identifier test", 1, retain=False)
+
+        self.waitfor(lacallback.messages, 1, 3)
+        self.assertEqual(len(lacallback.messages), 1, lacallback.messages)
+        self.assertEqual(lacallback.messages[0]["message"].properties.SubscriptionIdentifier[0],
+                         456789, lacallback.messages[0]["message"].properties.SubscriptionIdentifier)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
+
+        self.waitfor(lbcallback.messages, 1, 3)
+        self.assertEqual(len(lbcallback.messages), 1, lbcallback.messages)
+        expected_subsids = set([2, 3])
+        received_subsids = set(lbcallback.messages[0]["message"].properties.SubscriptionIdentifier)
+        self.assertEqual(received_subsids, expected_subsids, received_subsids)
+        lbclient.disconnect()
+        lbcallback.wait_disconnected()
+        lbclient.loop_stop()
+
 
     def test_request_response(self):
-      callback.clear()
-      callback2.clear()
+        clientid = 'request response'
 
-      aclient.connect(host=host, port=port, cleanstart=True)
-      bclient.connect(host=host, port=port, cleanstart=True)
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2, noLocal=True)])
-      self.waitfor(callback.subscribeds, 1, 3)
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port)
+        lacallback.wait_connected()
+        laclient.loop_start()
 
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2, noLocal=True)])
-      self.waitfor(callback.subscribeds, 1, 3)
+        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient.connect(host=host, port=port)
+        lbcallback.wait_connected()
+        lbclient.loop_start()
 
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
-      publish_properties.ResponseTopic = topics[0]
-      publish_properties.CorrelationData = b"334"
-      # client a is the requester
-      aclient.publish(topics[0], b"request", 1, properties=publish_properties)
+        laclient.subscribe(topics[0], options=SubscribeOptions(2, noLocal=True))
+        lacallback.wait_subscribed()
 
-      # client b is the responder
-      self.waitfor(callback2.messages, 1, 3)
-      self.assertEqual(len(callback2.messages), 1, callback2.messages)
+        lbclient.subscribe(topics[0], options=SubscribeOptions(2, noLocal=True))
+        lbcallback.wait_subscribed()
 
-      self.assertEqual(len(callback2.messages), 1, callback2.messages)
-      self.assertEqual(callback2.messages[0][5].ResponseTopic, topics[0],
-                       callback2.messages[0][5])
-      self.assertEqual(callback2.messages[0][5].CorrelationData, b"334",
-                       callback2.messages[0][5])
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.ResponseTopic = topics[0]
+        publish_properties.CorrelationData = b"334"
+        # client a is the requester
+        laclient.publish(topics[0], b"request", 1, properties=publish_properties)
 
-      bclient.publish(callback2.messages[0][5].ResponseTopic, b"response", 1,
-                      properties=callback2.messages[0][5])
+        # client b is the responder
+        self.waitfor(lbcallback.messages, 1, 3)
+        self.assertEqual(len(lbcallback.messages), 1, lbcallback.messages)
+        self.assertEqual(lbcallback.messages[0]["message"].properties.ResponseTopic, topics[0],
+                         lbcallback.messages[0]["message"].properties)
+        self.assertEqual(lbcallback.messages[0]["message"].properties.CorrelationData, b"334",
+                         lbcallback.messages[0]["message"].properties)
 
-      # client a gets the response
-      self.waitfor(callback.messages, 1, 3)
-      self.assertEqual(len(callback.messages), 1, callback.messages)
+        lbclient.publish(lbcallback.messages[0]["message"].properties.ResponseTopic, b"response", 1,
+                        properties=lbcallback.messages[0]["message"].properties)
 
-      aclient.disconnect()
-      bclient.disconnect()
+        # client a gets the response
+        self.waitfor(lacallback.messages, 1, 3)
+        self.assertEqual(len(lacallback.messages), 1, lacallback.messages)
 
-      callback.clear()
-      callback2.clear()
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
+        lbclient.disconnect()
+        lbcallback.wait_disconnected()
+        lbclient.loop_stop()
 
+    
     def test_client_topic_alias(self):
-      callback.clear()
+        clientid = 'client topic alias'
 
-      # no server side topic aliases allowed
-      connack = aclient.connect(host=host, port=port, cleanstart=True)
+        # no server side topic aliases allowed
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port)
+        connack = lacallback.wait_connected()
+        laclient.loop_start()
 
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
-      publish_properties.TopicAlias = 0 # topic alias 0 not allowed
-      aclient.publish(topics[0], "topic alias 0", 1, properties=publish_properties)
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.TopicAlias = 0  # topic alias 0 not allowed
+        laclient.publish(topics[0], "topic alias 0", 1, properties=publish_properties)
 
-      # should get back a disconnect with Topic alias invalid
-      self.waitfor(callback.disconnects, 1, 2)
-      self.assertEqual(len(callback.disconnects), 1, callback.disconnects)
-      #print("disconnect", str(callback.disconnects[0]["reasonCode"]))
-      #self.assertEqual(callback.disconnects, 1, callback.disconnects)
+        # should get back a disconnect with Topic alias invalid
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
 
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      connect_properties.TopicAliasMaximum = 0 # server topic aliases not allowed
-      connect_properties.SessionExpiryInterval = 99999
-      connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                           properties=connect_properties)
-      clientTopicAliasMaximum = 0
-      if hasattr(connack.properties, "TopicAliasMaximum"):
-        clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
+        connect_properties = Properties(PacketTypes.CONNECT)
+        connect_properties.TopicAliasMaximum = 0  # server topic aliases not allowed
+        connect_properties.SessionExpiryInterval = 99999
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port, properties=connect_properties)
+        connack = lacallback.wait_connected()
+        clientTopicAliasMaximum = 0
+        if hasattr(connack["properties"], "TopicAliasMaximum"):
+            clientTopicAliasMaximum = connack["properties"].TopicAliasMaximum
 
-      if clientTopicAliasMaximum == 0:
-        aclient.disconnect()
-        return
+        if clientTopicAliasMaximum == 0:
+            laclient.disconnect()
+            lacallback.wait_disconnected()
+            laclient.loop_stop()
+            return
 
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      self.waitfor(callback.subscribeds, 1, 3)
+        laclient.subscribe(topics[0], qos=2)
+        lacallback.wait_subscribed()
 
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
-      publish_properties.TopicAlias = 1
-      aclient.publish(topics[0], b"topic alias 1", 1, properties=publish_properties)
-      self.waitfor(callback.messages, 1, 3)
-      self.assertEqual(len(callback.messages), 1, callback.messages)
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.TopicAlias = 1
+        laclient.publish(topics[0], b"topic alias 1", 1, properties=publish_properties)
+        self.waitfor(lacallback.messages, 1, 3)
+        self.assertEqual(len(lacallback.messages), 1, lacallback.messages)
 
-      aclient.publish("", b"topic alias 2", 1, properties=publish_properties)
-      self.waitfor(callback.messages, 2, 3)
-      self.assertEqual(len(callback.messages), 2, callback.messages)
+        laclient.publish("", b"topic alias 2", 1, properties=publish_properties)
+        self.waitfor(lacallback.messages, 2, 3)
+        self.assertEqual(len(lacallback.messages), 2, lacallback.messages)
 
-      aclient.disconnect() # should get rid of the topic aliases but not subscriptions
+        laclient.disconnect()  # should get rid of the topic aliases but not subscriptions
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
 
-      # check aliases have been deleted
-      callback.clear()
-      aclient.connect(host=host, port=port, cleanstart=False)
+        # check aliases have been deleted
+        laclient, lacallback = self.new_client(clientid+" a", clean_start=False)
+        laclient.connect(host=host, port=port, properties=connect_properties)
+ 
+        laclient.publish(topics[0], b"topic alias 3", 1)
+        self.waitfor(lacallback.messages, 1, 3)
+        self.assertEqual(len(lacallback.messages), 1, lacallback.messages)
 
-      aclient.publish(topics[0], b"topic alias 3", 1)
-      self.waitfor(callback.messages, 1, 3)
-      self.assertEqual(len(callback.messages), 1, callback.messages)
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.TopicAlias = 1
+        laclient.publish("", b"topic alias 4", 1, properties=publish_properties)
 
-      publish_properties = MQTTV5.Properties(MQTTV5.PacketTypes.PUBLISH)
-      publish_properties.TopicAlias = 1
-      aclient.publish("", b"topic alias 4", 1, properties=publish_properties)
+        # should get back a disconnect with Topic alias invalid
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
 
-      # should get back a disconnect with Topic alias invalid
-      self.waitfor(callback.disconnects, 1, 2)
-      self.assertEqual(len(callback.disconnects), 1, callback.disconnects)
-      #print("disconnect", str(callback.disconnects[0]["reasonCode"]))
-      #self.assertEqual(callback.disconnects, 1, callback.disconnects)
-
+    """
     def test_server_topic_alias(self):
-      callback.clear()
+        callback.clear()
 
-      serverTopicAliasMaximum = 1 # server topic alias allowed
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      connect_properties.TopicAliasMaximum = serverTopicAliasMaximum
-      connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                       properties=connect_properties)
-      clientTopicAliasMaximum = 0
-      if hasattr(connack.properties, "TopicAliasMaximum"):
-        clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
+        serverTopicAliasMaximum = 1  # server topic alias allowed
+        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties.TopicAliasMaximum = serverTopicAliasMaximum
+        connack = aclient.connect(host=host, port=port, cleanstart=True,
+                                  properties=connect_properties)
+        clientTopicAliasMaximum = 0
+        if hasattr(connack.properties, "TopicAliasMaximum"):
+            clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
 
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      self.waitfor(callback.subscribeds, 1, 3)
+        aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        self.waitfor(callback.subscribeds, 1, 3)
 
-      for qos in range(3):
-         aclient.publish(topics[0], b"topic alias 1", qos)
-      self.waitfor(callback.messages, 3, 3)
-      self.assertEqual(len(callback.messages), 3, callback.messages)
-      aclient.disconnect()
+        for qos in range(3):
+            aclient.publish(topics[0], b"topic alias 1", qos)
+        self.waitfor(callback.messages, 3, 3)
+        self.assertEqual(len(callback.messages), 3, callback.messages)
+        aclient.disconnect()
 
-      # first message should set the topic alias
-      self.assertTrue(hasattr(callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
-      topicalias = callback.messagedicts[0]["properties"].TopicAlias
+        # first message should set the topic alias
+        self.assertTrue(hasattr(
+            callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
+        topicalias = callback.messagedicts[0]["properties"].TopicAlias
 
-      self.assertTrue(topicalias > 0)
-      self.assertEqual(callback.messagedicts[0]["topicname"], topics[0])
+        self.assertTrue(topicalias > 0)
+        self.assertEqual(callback.messagedicts[0]["topicname"], topics[0])
 
-      self.assertEqual(callback.messagedicts[1]["properties"].TopicAlias, topicalias)
-      self.assertEqual(callback.messagedicts[1]["topicname"], "")
+        self.assertEqual(
+            callback.messagedicts[1]["properties"].TopicAlias, topicalias)
+        self.assertEqual(callback.messagedicts[1]["topicname"], "")
 
-      self.assertEqual(callback.messagedicts[2]["properties"].TopicAlias, topicalias)
-      self.assertEqual(callback.messagedicts[1]["topicname"], "")
+        self.assertEqual(
+            callback.messagedicts[2]["properties"].TopicAlias, topicalias)
+        self.assertEqual(callback.messagedicts[1]["topicname"], "")
 
-      callback.clear()
+        callback.clear()
 
-      serverTopicAliasMaximum = 0 # no server topic alias allowed
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      #connect_properties.TopicAliasMaximum = serverTopicAliasMaximum # default is 0
-      connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                       properties=connect_properties)
-      clientTopicAliasMaximum = 0
-      if hasattr(connack.properties, "TopicAliasMaximum"):
-        clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
+        serverTopicAliasMaximum = 0  # no server topic alias allowed
+        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        # connect_properties.TopicAliasMaximum = serverTopicAliasMaximum # default is 0
+        connack = aclient.connect(host=host, port=port, cleanstart=True,
+                                  properties=connect_properties)
+        clientTopicAliasMaximum = 0
+        if hasattr(connack.properties, "TopicAliasMaximum"):
+            clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
 
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      self.waitfor(callback.subscribeds, 1, 3)
+        aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        self.waitfor(callback.subscribeds, 1, 3)
 
-      for qos in range(3):
-         aclient.publish(topics[0], b"topic alias 1", qos)
-      self.waitfor(callback.messages, 3, 3)
-      self.assertEqual(len(callback.messages), 3, callback.messages)
-      aclient.disconnect()
+        for qos in range(3):
+            aclient.publish(topics[0], b"topic alias 1", qos)
+        self.waitfor(callback.messages, 3, 3)
+        self.assertEqual(len(callback.messages), 3, callback.messages)
+        aclient.disconnect()
 
-      # No topic aliases
-      self.assertFalse(hasattr(callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
-      self.assertFalse(hasattr(callback.messagedicts[1]["properties"], "TopicAlias"), callback.messagedicts[1]["properties"])
-      self.assertFalse(hasattr(callback.messagedicts[2]["properties"], "TopicAlias"), callback.messagedicts[2]["properties"])
+        # No topic aliases
+        self.assertFalse(hasattr(
+            callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
+        self.assertFalse(hasattr(
+            callback.messagedicts[1]["properties"], "TopicAlias"), callback.messagedicts[1]["properties"])
+        self.assertFalse(hasattr(
+            callback.messagedicts[2]["properties"], "TopicAlias"), callback.messagedicts[2]["properties"])
 
-      callback.clear()
+        callback.clear()
 
-      serverTopicAliasMaximum = 0 # no server topic alias allowed
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      connect_properties.TopicAliasMaximum = serverTopicAliasMaximum # default is 0
-      connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                       properties=connect_properties)
-      clientTopicAliasMaximum = 0
-      if hasattr(connack.properties, "TopicAliasMaximum"):
-        clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
+        serverTopicAliasMaximum = 0  # no server topic alias allowed
+        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties.TopicAliasMaximum = serverTopicAliasMaximum  # default is 0
+        connack = aclient.connect(host=host, port=port, cleanstart=True,
+                                  properties=connect_properties)
+        clientTopicAliasMaximum = 0
+        if hasattr(connack.properties, "TopicAliasMaximum"):
+            clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
 
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      self.waitfor(callback.subscribeds, 1, 3)
+        aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        self.waitfor(callback.subscribeds, 1, 3)
 
-      for qos in range(3):
-         aclient.publish(topics[0], b"topic alias 1", qos)
-      self.waitfor(callback.messages, 3, 3)
-      self.assertEqual(len(callback.messages), 3, callback.messages)
-      aclient.disconnect()
+        for qos in range(3):
+            aclient.publish(topics[0], b"topic alias 1", qos)
+        self.waitfor(callback.messages, 3, 3)
+        self.assertEqual(len(callback.messages), 3, callback.messages)
+        aclient.disconnect()
 
-      # No topic aliases
-      self.assertFalse(hasattr(callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
-      self.assertFalse(hasattr(callback.messagedicts[1]["properties"], "TopicAlias"), callback.messagedicts[1]["properties"])
-      self.assertFalse(hasattr(callback.messagedicts[2]["properties"], "TopicAlias"), callback.messagedicts[2]["properties"])
-
+        # No topic aliases
+        self.assertFalse(hasattr(
+            callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
+        self.assertFalse(hasattr(
+            callback.messagedicts[1]["properties"], "TopicAlias"), callback.messagedicts[1]["properties"])
+        self.assertFalse(hasattr(
+            callback.messagedicts[2]["properties"], "TopicAlias"), callback.messagedicts[2]["properties"])
 
     def test_maximum_packet_size(self):
-      callback.clear()
+        callback.clear()
 
-      # 1. server max packet size
-      connack = aclient.connect(host=host, port=port, cleanstart=True)
-      serverMaximumPacketSize = 2**28-1
-      if hasattr(connack.properties, "MaximumPacketSize"):
-        serverMaximumPacketSize = connack.properties.MaximumPacketSize
+        # 1. server max packet size
+        connack = aclient.connect(host=host, port=port, cleanstart=True)
+        serverMaximumPacketSize = 2**28-1
+        if hasattr(connack.properties, "MaximumPacketSize"):
+            serverMaximumPacketSize = connack.properties.MaximumPacketSize
 
-      if serverMaximumPacketSize < 65535:
-        # publish bigger packet than server can accept
-        payload = b"."*serverMaximumPacketSize
+        if serverMaximumPacketSize < 65535:
+            # publish bigger packet than server can accept
+            payload = b"."*serverMaximumPacketSize
+            aclient.publish(topics[0], payload, 0)
+            # should get back a disconnect with packet size too big
+            self.waitfor(callback.disconnects, 1, 2)
+            self.assertEqual(len(callback.disconnects),
+                             1, callback.disconnects)
+            self.assertEqual(str(callback.disconnects[0]["reasonCode"]),
+                             "Packet too large", str(callback.disconnects[0]["reasonCode"]))
+        else:
+            aclient.disconnect()
+
+        # 1. client max packet size
+        maximumPacketSize = 64  # max packet size we want to receive
+        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties.MaximumPacketSize = maximumPacketSize
+        connack = aclient.connect(host=host, port=port, cleanstart=True,
+                                  properties=connect_properties)
+        serverMaximumPacketSize = 2**28-1
+        if hasattr(connack.properties, "MaximumPacketSize"):
+            serverMaximumPacketSize = connack.properties.MaximumPacketSize
+
+        aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        self.waitfor(callback.subscribeds, 1, 3)
+
+        # send a small enough packet, should get this one back
+        payload = b"."*(int(maximumPacketSize/2))
         aclient.publish(topics[0], payload, 0)
-        # should get back a disconnect with packet size too big
-        self.waitfor(callback.disconnects, 1, 2)
-        self.assertEqual(len(callback.disconnects), 1, callback.disconnects)
-        self.assertEqual(str(callback.disconnects[0]["reasonCode"]),
-          "Packet too large", str(callback.disconnects[0]["reasonCode"]))
-      else:
+        self.waitfor(callback.messages, 1, 3)
+        self.assertEqual(len(callback.messages), 1, callback.messages)
+
+        # send a packet too big to receive
+        payload = b"."*maximumPacketSize
+        aclient.publish(topics[0], payload, 1)
+        self.waitfor(callback.messages, 2, 3)
+        self.assertEqual(len(callback.messages), 1, callback.messages)
+
         aclient.disconnect()
 
-      # 1. client max packet size
-      maximumPacketSize = 64 # max packet size we want to receive
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      connect_properties.MaximumPacketSize = maximumPacketSize
-      connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                             properties=connect_properties)
-      serverMaximumPacketSize = 2**28-1
-      if hasattr(connack.properties, "MaximumPacketSize"):
-        serverMaximumPacketSize = connack.properties.MaximumPacketSize
-
-      aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      self.waitfor(callback.subscribeds, 1, 3)
-
-      # send a small enough packet, should get this one back
-      payload = b"."*(int(maximumPacketSize/2))
-      aclient.publish(topics[0], payload, 0)
-      self.waitfor(callback.messages, 1, 3)
-      self.assertEqual(len(callback.messages), 1, callback.messages)
-
-      # send a packet too big to receive
-      payload = b"."*maximumPacketSize
-      aclient.publish(topics[0], payload, 1)
-      self.waitfor(callback.messages, 2, 3)
-      self.assertEqual(len(callback.messages), 1, callback.messages)
-
-      aclient.disconnect()
-
     def test_server_keep_alive(self):
-      callback.clear()
+        callback.clear()
 
-      connack = aclient.connect(host=host, port=port, keepalive=120, cleanstart=True)
-      self.assertTrue(hasattr(connack.properties, "ServerKeepAlive"))
-      self.assertEqual(connack.properties.ServerKeepAlive, 60)
+        connack = aclient.connect(
+            host=host, port=port, keepalive=120, cleanstart=True)
+        self.assertTrue(hasattr(connack.properties, "ServerKeepAlive"))
+        self.assertEqual(connack.properties.ServerKeepAlive, 60)
 
-      aclient.disconnect()
-
+        aclient.disconnect()
 
     def test_flow_control1(self):
-      testcallback = Callbacks()
-      # no callback means no background thread, to control receiving
-      testclient = mqtt_client.Client("myclientid".encode("utf-8"))
+        testcallback = Callbacks()
+        # no callback means no background thread, to control receiving
+        testclient = mqtt_client.Client("myclientid".encode("utf-8"))
 
-      # set receive maximum - the number of concurrent QoS 1 and 2 messages
-      clientReceiveMaximum = 2 # set to low number so we can test
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      connect_properties.ReceiveMaximum = clientReceiveMaximum
-      connect_properties.SessionExpiryInterval = 0
-      connack = testclient.connect(host=host, port=port, cleanstart=True,
-                   properties=connect_properties)
+        # set receive maximum - the number of concurrent QoS 1 and 2 messages
+        clientReceiveMaximum = 2  # set to low number so we can test
+        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties.ReceiveMaximum = clientReceiveMaximum
+        connect_properties.SessionExpiryInterval = 0
+        connack = testclient.connect(host=host, port=port, cleanstart=True,
+                                     properties=connect_properties)
 
-      serverReceiveMaximum = 2**16-1 # the default
-      if hasattr(connack.properties, "ReceiveMaximum"):
-        serverReceiveMaximum = connack.properties.ReceiveMaximum
+        serverReceiveMaximum = 2**16-1  # the default
+        if hasattr(connack.properties, "ReceiveMaximum"):
+            serverReceiveMaximum = connack.properties.ReceiveMaximum
 
-      receiver = testclient.getReceiver()
+        receiver = testclient.getReceiver()
 
-      testclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-      receiver.receive(testcallback)
-      self.waitfor(testcallback.subscribeds, 1, 3)
+        testclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        receiver.receive(testcallback)
+        self.waitfor(testcallback.subscribeds, 1, 3)
 
-      pubs = 0
-      for i in range(1, clientReceiveMaximum + 2):
-        testclient.publish(topics[0], "message %d" % i, 1)
-        pubs += 1
+        pubs = 0
+        for i in range(1, clientReceiveMaximum + 2):
+            testclient.publish(topics[0], "message %d" % i, 1)
+            pubs += 1
 
-      # get two publishes
-      acks = 0
-      while True:
-        response1 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-        if response1.fh.PacketType == MQTTV5.PacketTypes.PUBLISH:
-          break
-        self.assertEqual(response1.fh.PacketType, MQTTV5.PacketTypes.PUBACK)
-        acks += 1
-        del receiver.outMsgs[response1.packetIdentifier]
-      self.assertEqual(response1.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
-      self.assertEqual(response1.fh.QoS, 1, response1.fh.QoS)
+        # get two publishes
+        acks = 0
+        while True:
+            response1 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
+            if response1.fh.PacketType == MQTTV5.PacketTypes.PUBLISH:
+                break
+            self.assertEqual(response1.fh.PacketType,
+                             MQTTV5.PacketTypes.PUBACK)
+            acks += 1
+            del receiver.outMsgs[response1.packetIdentifier]
+        self.assertEqual(response1.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
+        self.assertEqual(response1.fh.QoS, 1, response1.fh.QoS)
 
-      while True:
-        response2 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-        if response2.fh.PacketType == MQTTV5.PacketTypes.PUBLISH:
-          break
-        self.assertEqual(response2.fh.PacketType, MQTTV5.PacketTypes.PUBACK)
-        acks += 1
-        del receiver.outMsgs[response2.packetIdentifier]
-      self.assertEqual(response2.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
-      self.assertEqual(response2.fh.QoS, 1, response1.fh.QoS)
+        while True:
+            response2 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
+            if response2.fh.PacketType == MQTTV5.PacketTypes.PUBLISH:
+                break
+            self.assertEqual(response2.fh.PacketType,
+                             MQTTV5.PacketTypes.PUBACK)
+            acks += 1
+            del receiver.outMsgs[response2.packetIdentifier]
+        self.assertEqual(response2.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
+        self.assertEqual(response2.fh.QoS, 1, response1.fh.QoS)
 
-      while acks < pubs:
-        ack = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-        self.assertEqual(ack.fh.PacketType, MQTTV5.PacketTypes.PUBACK)
-        acks += 1
-        del receiver.outMsgs[ack.packetIdentifier]
+        while acks < pubs:
+            ack = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
+            self.assertEqual(ack.fh.PacketType, MQTTV5.PacketTypes.PUBACK)
+            acks += 1
+            del receiver.outMsgs[ack.packetIdentifier]
 
-      with self.assertRaises(socket.timeout):
-        # this should time out because we haven't acknowledged the first one
+        with self.assertRaises(socket.timeout):
+            # this should time out because we haven't acknowledged the first one
+            response3 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
+
+        # ack the first one
+        puback = MQTTV5.Pubacks()
+        puback.packetIdentifier = response1.packetIdentifier
+        testclient.sock.send(puback.pack())
+
+        # now get the next packet
         response3 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
+        self.assertEqual(response3.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
+        self.assertEqual(response3.fh.QoS, 1, response1.fh.QoS)
 
-      # ack the first one
-      puback = MQTTV5.Pubacks()
-      puback.packetIdentifier = response1.packetIdentifier
-      testclient.sock.send(puback.pack())
+        # ack the second one
+        puback.packetIdentifier = response2.packetIdentifier
+        testclient.sock.send(puback.pack())
 
-      # now get the next packet
-      response3 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-      self.assertEqual(response3.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
-      self.assertEqual(response3.fh.QoS, 1, response1.fh.QoS)
+        # ack the third one
+        puback.packetIdentifier = response3.packetIdentifier
+        testclient.sock.send(puback.pack())
 
-      # ack the second one
-      puback.packetIdentifier = response2.packetIdentifier
-      testclient.sock.send(puback.pack())
-
-      # ack the third one
-      puback.packetIdentifier = response3.packetIdentifier
-      testclient.sock.send(puback.pack())
-
-      testclient.disconnect()
+        testclient.disconnect()
 
     def test_flow_control2(self):
-      testcallback = Callbacks()
-      # no callback means no background thread, to control receiving
-      testclient = mqtt_client.Client("myclientid".encode("utf-8"))
+        testcallback = Callbacks()
+        # no callback means no background thread, to control receiving
+        testclient = mqtt_client.Client("myclientid".encode("utf-8"))
 
-      # get receive maximum - the number of concurrent QoS 1 and 2 messages
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-      connect_properties.SessionExpiryInterval = 0
-      connack = testclient.connect(host=host, port=port, cleanstart=True)
+        # get receive maximum - the number of concurrent QoS 1 and 2 messages
+        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties.SessionExpiryInterval = 0
+        connack = testclient.connect(host=host, port=port, cleanstart=True)
 
-      serverReceiveMaximum = 2**16-1 # the default
-      if hasattr(connack.properties, "ReceiveMaximum"):
-        serverReceiveMaximum = connack.properties.ReceiveMaximum
+        serverReceiveMaximum = 2**16-1  # the default
+        if hasattr(connack.properties, "ReceiveMaximum"):
+            serverReceiveMaximum = connack.properties.ReceiveMaximum
 
-      receiver = testclient.getReceiver()
+        receiver = testclient.getReceiver()
 
-      # send number of messages to exceed receive maximum
-      qos = 2
-      pubs = 0
-      for i in range(1, serverReceiveMaximum + 2):
-        testclient.publish(topics[0], "message %d" % i, qos)
-        pubs += 1
+        # send number of messages to exceed receive maximum
+        qos = 2
+        pubs = 0
+        for i in range(1, serverReceiveMaximum + 2):
+            testclient.publish(topics[0], "message %d" % i, qos)
+            pubs += 1
 
-      # should get disconnected...
-      while testcallback.disconnects == []:
-        receiver.receive(testcallback)
-      self.waitfor(testcallback.disconnects, 1, 1)
-      self.assertEqual(len(testcallback.disconnects), 1, len(testcallback.disconnects))
-      self.assertEqual(testcallback.disconnects[0]["reasonCode"].value, 147,
-                       testcallback.disconnects[0]["reasonCode"].value)
+        # should get disconnected...
+        while testcallback.disconnects == []:
+            receiver.receive(testcallback)
+        self.waitfor(testcallback.disconnects, 1, 1)
+        self.assertEqual(len(testcallback.disconnects),
+                         1, len(testcallback.disconnects))
+        self.assertEqual(testcallback.disconnects[0]["reasonCode"].value, 147,
+                         testcallback.disconnects[0]["reasonCode"].value)
 
     def test_will_delay(self):
-      #the will message should be received earlier than the session expiry
+        # the will message should be received earlier than the session expiry
 
-      callback.clear()
-      callback2.clear()
+        callback.clear()
+        callback2.clear()
 
-      will_properties = MQTTV5.Properties(MQTTV5.PacketTypes.WILLMESSAGE)
-      connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        will_properties = MQTTV5.Properties(MQTTV5.PacketTypes.WILLMESSAGE)
+        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
 
-      # set the will delay and session expiry to the same value -
-      # then both should occur at the same time
-      will_properties.WillDelayInterval = 3 # in seconds
-      connect_properties.SessionExpiryInterval = 5
+        # set the will delay and session expiry to the same value -
+        # then both should occur at the same time
+        will_properties.WillDelayInterval = 3  # in seconds
+        connect_properties.SessionExpiryInterval = 5
 
-      connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties,
-        willProperties=will_properties, willFlag=True, willTopic=topics[0], willMessage=b"test_will_delay will message")
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
+        connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties,
+                                  willProperties=will_properties, willFlag=True, willTopic=topics[0], willMessage=b"test_will_delay will message")
+        self.assertEqual(connack.reasonCode.getName(), "Success")
+        self.assertEqual(connack.sessionPresent, False)
 
-      connack = bclient.connect(host=host, port=port, cleanstart=True)
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)]) # subscribe to will message topic
-      self.waitfor(callback2.subscribeds, 1, 3)
+        connack = bclient.connect(host=host, port=port, cleanstart=True)
+        # subscribe to will message topic
+        bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        self.waitfor(callback2.subscribeds, 1, 3)
 
-      # terminate client a and wait for the will message
-      aclient.terminate()
-      start = time.time()
-      while callback2.messages == []:
-        time.sleep(.1)
-      duration = time.time() - start
-      #print(duration)
-      self.assertAlmostEqual(duration, 4, delta=1)
-      self.assertEqual(callback2.messages[0][0], topics[0])
-      self.assertEqual(callback2.messages[0][1], b"test_will_delay will message")
+        # terminate client a and wait for the will message
+        aclient.terminate()
+        start = time.time()
+        while callback2.messages == []:
+            time.sleep(.1)
+        duration = time.time() - start
+        # print(duration)
+        self.assertAlmostEqual(duration, 4, delta=1)
+        self.assertEqual(callback2.messages[0][0], topics[0])
+        self.assertEqual(
+            callback2.messages[0][1], b"test_will_delay will message")
 
-      aclient.disconnect()
-      bclient.disconnect()
+        aclient.disconnect()
+        bclient.disconnect()
 
-      callback.clear()
-      callback2.clear()
+        callback.clear()
+        callback2.clear()
 
-      # if session expiry is less than will delay then session expiry is used
-      will_properties.WillDelayInterval = 5 # in seconds
-      connect_properties.SessionExpiryInterval = 0
+        # if session expiry is less than will delay then session expiry is used
+        will_properties.WillDelayInterval = 5  # in seconds
+        connect_properties.SessionExpiryInterval = 0
 
-      connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties,
-        willProperties=will_properties, willFlag=True, willTopic=topics[0], willMessage=b"test_will_delay will message")
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
+        connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties,
+                                  willProperties=will_properties, willFlag=True, willTopic=topics[0], willMessage=b"test_will_delay will message")
+        self.assertEqual(connack.reasonCode.getName(), "Success")
+        self.assertEqual(connack.sessionPresent, False)
 
-      connack = bclient.connect(host=host, port=port, cleanstart=True)
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)]) # subscribe to will message topic
-      self.waitfor(callback2.subscribeds, 1, 3)
+        connack = bclient.connect(host=host, port=port, cleanstart=True)
+        # subscribe to will message topic
+        bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        self.waitfor(callback2.subscribeds, 1, 3)
 
-      # terminate client a and wait for the will message
-      aclient.terminate()
-      start = time.time()
-      while callback2.messages == []:
-        time.sleep(.1)
-      duration = time.time() - start
-      #print(duration)
-      self.assertAlmostEqual(duration, 1, delta=1)
-      self.assertEqual(callback2.messages[0][0], topics[0])
-      self.assertEqual(callback2.messages[0][1], b"test_will_delay will message")
+        # terminate client a and wait for the will message
+        aclient.terminate()
+        start = time.time()
+        while callback2.messages == []:
+            time.sleep(.1)
+        duration = time.time() - start
+        # print(duration)
+        self.assertAlmostEqual(duration, 1, delta=1)
+        self.assertEqual(callback2.messages[0][0], topics[0])
+        self.assertEqual(
+            callback2.messages[0][1], b"test_will_delay will message")
 
-      aclient.disconnect()
-      bclient.disconnect()
+        aclient.disconnect()
+        bclient.disconnect()
 
-      callback.clear()
-      callback2.clear()
+        callback.clear()
+        callback2.clear()
 
-            # if session expiry is less than will delay then session expiry is used
-      will_properties.WillDelayInterval = 5 # in seconds
-      connect_properties.SessionExpiryInterval = 2
+        # if session expiry is less than will delay then session expiry is used
+        will_properties.WillDelayInterval = 5  # in seconds
+        connect_properties.SessionExpiryInterval = 2
 
-      connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties,
-        willProperties=will_properties, willFlag=True, willTopic=topics[0], willMessage=b"test_will_delay will message")
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
+        connack = aclient.connect(host=host, port=port, cleanstart=True, properties=connect_properties,
+                                  willProperties=will_properties, willFlag=True, willTopic=topics[0], willMessage=b"test_will_delay will message")
+        self.assertEqual(connack.reasonCode.getName(), "Success")
+        self.assertEqual(connack.sessionPresent, False)
 
-      connack = bclient.connect(host=host, port=port, cleanstart=True)
-      bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)]) # subscribe to will message topic
-      self.waitfor(callback2.subscribeds, 1, 3)
+        connack = bclient.connect(host=host, port=port, cleanstart=True)
+        # subscribe to will message topic
+        bclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
+        self.waitfor(callback2.subscribeds, 1, 3)
 
-      # terminate client a and wait for the will message
-      aclient.terminate()
-      start = time.time()
-      while callback2.messages == []:
-        time.sleep(.1)
-      duration = time.time() - start
-      #print(duration)
-      self.assertAlmostEqual(duration, 3, delta=1)
-      self.assertEqual(callback2.messages[0][0], topics[0])
-      self.assertEqual(callback2.messages[0][1], b"test_will_delay will message")
+        # terminate client a and wait for the will message
+        aclient.terminate()
+        start = time.time()
+        while callback2.messages == []:
+            time.sleep(.1)
+        duration = time.time() - start
+        # print(duration)
+        self.assertAlmostEqual(duration, 3, delta=1)
+        self.assertEqual(callback2.messages[0][0], topics[0])
+        self.assertEqual(
+            callback2.messages[0][1], b"test_will_delay will message")
 
-      aclient.disconnect()
-      bclient.disconnect()
+        aclient.disconnect()
+        bclient.disconnect()
 
-      callback.clear()
-      callback2.clear()
+        callback.clear()
+        callback2.clear()
 
     def test_shared_subscriptions(self):
 
-      callback.clear()
-      callback2.clear()
-      shared_sub_topic = '$share/sharename/' + topic_prefix + 'x'
-      shared_pub_topic = topic_prefix + 'x'
+        callback.clear()
+        callback2.clear()
+        shared_sub_topic = '$share/sharename/' + topic_prefix + 'x'
+        shared_pub_topic = topic_prefix + 'x'
 
-      connack = aclient.connect(host=host, port=port, cleanstart=True)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      aclient.subscribe([shared_sub_topic, topics[0]], [MQTTV5.SubscribeOptions(2)]*2) 
-      self.waitfor(callback.subscribeds, 1, 3)
+        connack = aclient.connect(host=host, port=port, cleanstart=True)
+        self.assertEqual(connack.reasonCode.getName(), "Success")
+        self.assertEqual(connack.sessionPresent, False)
+        aclient.subscribe([shared_sub_topic, topics[0]],
+                          [MQTTV5.SubscribeOptions(2)]*2)
+        self.waitfor(callback.subscribeds, 1, 3)
 
-      connack = bclient.connect(host=host, port=port, cleanstart=True)
-      self.assertEqual(connack.reasonCode.getName(), "Success")
-      self.assertEqual(connack.sessionPresent, False)
-      bclient.subscribe([shared_sub_topic, topics[0]], [MQTTV5.SubscribeOptions(2)]*2) 
-      self.waitfor(callback2.subscribeds, 1, 3)
+        connack = bclient.connect(host=host, port=port, cleanstart=True)
+        self.assertEqual(connack.reasonCode.getName(), "Success")
+        self.assertEqual(connack.sessionPresent, False)
+        bclient.subscribe([shared_sub_topic, topics[0]],
+                          [MQTTV5.SubscribeOptions(2)]*2)
+        self.waitfor(callback2.subscribeds, 1, 3)
 
-      callback.clear()
-      callback2.clear()
+        callback.clear()
+        callback2.clear()
 
-      count = 1
-      for i in range(count):
-        bclient.publish(topics[0], "message "+str(i), 0)
-      j = 0
-      while len(callback.messages) + len(callback2.messages) < 2*count and j < 20:
-        time.sleep(.1)
-        j += 1
-      time.sleep(1)
-      self.assertEqual(len(callback.messages), count)
-      self.assertEqual(len(callback2.messages), count)
+        count = 1
+        for i in range(count):
+            bclient.publish(topics[0], "message "+str(i), 0)
+        j = 0
+        while len(callback.messages) + len(callback2.messages) < 2*count and j < 20:
+            time.sleep(.1)
+            j += 1
+        time.sleep(1)
+        self.assertEqual(len(callback.messages), count)
+        self.assertEqual(len(callback2.messages), count)
 
-      callback.clear()
-      callback2.clear()
+        callback.clear()
+        callback2.clear()
 
-      for i in range(count):
-        bclient.publish(shared_pub_topic, "message "+str(i), 0)
-      j = 0
-      while len(callback.messages) + len(callback2.messages) < count and j < 20:
-        time.sleep(.1)
-        j += 1
-      time.sleep(1)
-      # Each message should only be received once
-      self.assertEqual(len(callback.messages) + len(callback2.messages), count)
+        for i in range(count):
+            bclient.publish(shared_pub_topic, "message "+str(i), 0)
+        j = 0
+        while len(callback.messages) + len(callback2.messages) < count and j < 20:
+            time.sleep(.1)
+            j += 1
+        time.sleep(1)
+        # Each message should only be received once
+        self.assertEqual(len(callback.messages) +
+                         len(callback2.messages), count)
 
-      aclient.disconnect()
-      bclient.disconnect()
-
+        aclient.disconnect()
+        bclient.disconnect()
 """
-
 
 def setData():
     global topics, wildtopics, nosubscribe_topics, host, port
-    host = "localhost" #"paho8181.cloudapp.net"
+    host = "localhost"  # "paho8181.cloudapp.net"
     port = 1883
     topics = ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
     wildtopics = ("TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#")

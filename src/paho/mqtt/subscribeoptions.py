@@ -29,10 +29,10 @@ class SubscribeOptions(object):
     RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB, RETAIN_DO_NOT_SEND = range(
         0, 3)
 
-    def __init__(self, QoS=0, noLocal=False, retainAsPublished=False, retainHandling=0):
+    def __init__(self, qos=0, noLocal=False, retainAsPublished=False, retainHandling=0):
         object.__setattr__(self, "names",
                            ["QoS", "noLocal", "retainAsPublished", "retainHandling"])
-        self.QoS = QoS  # bits 0,1
+        self.QoS = qos  # bits 0,1
         self.noLocal = noLocal  # bit 2
         self.retainAsPublished = retainAsPublished  # bit 3
         self.retainHandling = retainHandling  # bits 4 and 5: 0, 1 or 2
