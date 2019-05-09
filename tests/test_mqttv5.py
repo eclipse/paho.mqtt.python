@@ -117,6 +117,7 @@ def cleanRetained():
     response = callback.wait_connected()
     curclient.subscribe("#", options=SubscribeOptions(qos=0))
     response = callback.wait_subscribed()  # wait for retained messages to arrive
+    time.sleep(1)
     for message in callback.messages:
         logging.info("deleting retained message for topic", message["message"])
         curclient.publish(message["message"].topic, b"", 0, retain=True)
@@ -620,20 +621,19 @@ class Test(unittest.TestCase):
     def test_payload_format(self):
         clientid = "payload format"
         pclient, pcallback = self.new_client(clientid)
-        pclient.connect(host=host, port=port)
-        response = pcallback.wait_connected()
         pclient.loop_start()
+        pclient.async_connect(host=host, port=port)
+        response = pcallback.wait_connected()
+
         pclient.subscribe(topics[0], qos=2)
         response = pcallback.wait_subscribed()
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.PayloadFormatIndicator = 1
         publish_properties.ContentType = "My name"
-        pclient.publish(topics[0], b"", 0, retain=False, properties=publish_properties)
-        pcallback.wait_published()
-        pclient.publish(topics[0], b"", 1, retain=False, properties=publish_properties)
-        pcallback.wait_published()
-        pclient.publish(topics[0], b"", 2, retain=False, properties=publish_properties)
-        pcallback.wait_published()
+        pclient.publish(topics[0], b"qos 0", 0, retain=False, properties=publish_properties)
+        pclient.publish(topics[0], b"qos 1", 1, retain=False, properties=publish_properties)
+        pclient.publish(topics[0], b"qos 2", 2, retain=False, properties=publish_properties)
+
         count = 0
         while len(pcallback.messages) < 3 and count < 50:
             time.sleep(.1)
@@ -657,7 +657,7 @@ class Test(unittest.TestCase):
                          1, props.PayloadFormatIndicator)
         qoss = [pcallback.messages[i]["message"].qos for i in range(3)]
         self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
-
+    
     
     def test_message_expiry(self):
         clientid = "message expiry"
