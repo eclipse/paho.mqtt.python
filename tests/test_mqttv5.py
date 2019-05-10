@@ -72,7 +72,6 @@ class Callbacks:
 
     def on_message(self, client, userdata, message):
         self.messages.append({"userdata": userdata, "message": message})
-        return True
 
     def published(self, client, userdata, msgid):
         self.publisheds.append(msgid)
@@ -630,9 +629,12 @@ class Test(unittest.TestCase):
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.PayloadFormatIndicator = 1
         publish_properties.ContentType = "My name"
-        pclient.publish(topics[0], b"qos 0", 0, retain=False, properties=publish_properties)
-        pclient.publish(topics[0], b"qos 1", 1, retain=False, properties=publish_properties)
-        pclient.publish(topics[0], b"qos 2", 2, retain=False, properties=publish_properties)
+        info = pclient.publish(topics[0], b"qos 0", 0, retain=False, properties=publish_properties)
+        info.wait_for_publish()
+        info = pclient.publish(topics[0], b"qos 1", 1, retain=False, properties=publish_properties)
+        info.wait_for_publish()
+        info = pclient.publish(topics[0], b"qos 2", 2, retain=False, properties=publish_properties)
+        info.wait_for_publish()
 
         count = 0
         while len(pcallback.messages) < 3 and count < 50:
@@ -1005,100 +1007,115 @@ class Test(unittest.TestCase):
         lacallback.wait_disconnected()
         laclient.loop_stop()
 
-    """
+    
     def test_server_topic_alias(self):
-        callback.clear()
+        clientid = 'server topic alias'
 
         serverTopicAliasMaximum = 1  # server topic alias allowed
-        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.TopicAliasMaximum = serverTopicAliasMaximum
-        connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                  properties=connect_properties)
-        clientTopicAliasMaximum = 0
-        if hasattr(connack.properties, "TopicAliasMaximum"):
-            clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
 
-        aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-        self.waitfor(callback.subscribeds, 1, 3)
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port, properties=connect_properties)
+        connack = lacallback.wait_connected()
+        laclient.loop_start()
+        clientTopicAliasMaximum = 0
+        if hasattr(connack["properties"], "TopicAliasMaximum"):
+            clientTopicAliasMaximum = connack["properties"].TopicAliasMaximum
+
+        laclient.subscribe(topics[0], qos=2)
+        lacallback.wait_subscribed()
 
         for qos in range(3):
-            aclient.publish(topics[0], b"topic alias 1", qos)
-        self.waitfor(callback.messages, 3, 3)
-        self.assertEqual(len(callback.messages), 3, callback.messages)
-        aclient.disconnect()
+            laclient.publish(topics[0], b"topic alias 1", qos)
+        self.waitfor(lacallback.messages, 3, 3)
+        self.assertEqual(len(lacallback.messages), 3, lacallback.messages)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
 
         # first message should set the topic alias
         self.assertTrue(hasattr(
-            callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
-        topicalias = callback.messagedicts[0]["properties"].TopicAlias
+            lacallback.messages[0]["message"].properties, "TopicAlias"), lacallback.messages[0]["message"].properties)
+        topicalias = lacallback.messages[0]["message"].properties.TopicAlias
 
         self.assertTrue(topicalias > 0)
-        self.assertEqual(callback.messagedicts[0]["topicname"], topics[0])
+        self.assertEqual(lacallback.messages[0]["message"].topic, topics[0])
 
         self.assertEqual(
-            callback.messagedicts[1]["properties"].TopicAlias, topicalias)
-        self.assertEqual(callback.messagedicts[1]["topicname"], "")
+            lacallback.messages[1]["message"].properties.TopicAlias, topicalias)
+        self.assertEqual(lacallback.messages[1]["message"].topic, "")
 
         self.assertEqual(
-            callback.messagedicts[2]["properties"].TopicAlias, topicalias)
-        self.assertEqual(callback.messagedicts[1]["topicname"], "")
-
-        callback.clear()
+            lacallback.messages[2]["message"].properties.TopicAlias, topicalias)
+        self.assertEqual(lacallback.messages[2]["message"].topic, "")
 
         serverTopicAliasMaximum = 0  # no server topic alias allowed
-        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties = Properties(PacketTypes.CONNECT)
         # connect_properties.TopicAliasMaximum = serverTopicAliasMaximum # default is 0
-        connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                  properties=connect_properties)
-        clientTopicAliasMaximum = 0
-        if hasattr(connack.properties, "TopicAliasMaximum"):
-            clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
 
-        aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-        self.waitfor(callback.subscribeds, 1, 3)
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port, properties=connect_properties)
+        connack = lacallback.wait_connected()
+        laclient.loop_start()
+
+        clientTopicAliasMaximum = 0
+        if hasattr(connack["properties"], "TopicAliasMaximum"):
+            clientTopicAliasMaximum = connack["properties"].TopicAliasMaximum
+
+        laclient.subscribe(topics[0], qos=2)
+        lacallback.wait_subscribed()
 
         for qos in range(3):
-            aclient.publish(topics[0], b"topic alias 1", qos)
-        self.waitfor(callback.messages, 3, 3)
-        self.assertEqual(len(callback.messages), 3, callback.messages)
-        aclient.disconnect()
+            laclient.publish(topics[0], b"topic alias 2", qos)
+        self.waitfor(lacallback.messages, 3, 3)
+        self.assertEqual(len(lacallback.messages), 3, lacallback.messages)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
 
         # No topic aliases
         self.assertFalse(hasattr(
-            callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
+            lacallback.messages[0]["message"].properties, "TopicAlias"), lacallback.messages[0]["message"].properties)
         self.assertFalse(hasattr(
-            callback.messagedicts[1]["properties"], "TopicAlias"), callback.messagedicts[1]["properties"])
+            lacallback.messages[1]["message"].properties, "TopicAlias"), lacallback.messages[1]["message"].properties)
         self.assertFalse(hasattr(
-            callback.messagedicts[2]["properties"], "TopicAlias"), callback.messagedicts[2]["properties"])
+            lacallback.messages[2]["message"].properties, "TopicAlias"), lacallback.messages[2]["message"].properties)
 
-        callback.clear()
 
         serverTopicAliasMaximum = 0  # no server topic alias allowed
-        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
+        connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.TopicAliasMaximum = serverTopicAliasMaximum  # default is 0
-        connack = aclient.connect(host=host, port=port, cleanstart=True,
-                                  properties=connect_properties)
-        clientTopicAliasMaximum = 0
-        if hasattr(connack.properties, "TopicAliasMaximum"):
-            clientTopicAliasMaximum = connack.properties.TopicAliasMaximum
 
-        aclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-        self.waitfor(callback.subscribeds, 1, 3)
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port, properties=connect_properties)
+        connack = lacallback.wait_connected()
+        laclient.loop_start()
+
+        clientTopicAliasMaximum = 0
+        if hasattr(connack["properties"], "TopicAliasMaximum"):
+            clientTopicAliasMaximum = connack["properties"].TopicAliasMaximum
+
+        laclient.subscribe(topics[0], qos=2)
+        lacallback.wait_subscribed()
 
         for qos in range(3):
-            aclient.publish(topics[0], b"topic alias 1", qos)
-        self.waitfor(callback.messages, 3, 3)
-        self.assertEqual(len(callback.messages), 3, callback.messages)
-        aclient.disconnect()
+            laclient.publish(topics[0], b"topic alias 3", qos)
+        self.waitfor(lacallback.messages, 3, 3)
+        self.assertEqual(len(lacallback.messages), 3, lacallback.messages)
+        laclient.disconnect()
+        lacallback.wait_disconnected()
+        laclient.loop_stop()
 
         # No topic aliases
         self.assertFalse(hasattr(
-            callback.messagedicts[0]["properties"], "TopicAlias"), callback.messagedicts[0]["properties"])
+            lacallback.messages[0]["message"].properties, "TopicAlias"), lacallback.messages[0]["message"].properties)
         self.assertFalse(hasattr(
-            callback.messagedicts[1]["properties"], "TopicAlias"), callback.messagedicts[1]["properties"])
+            lacallback.messages[1]["message"].properties, "TopicAlias"), lacallback.messages[1]["message"].properties)
         self.assertFalse(hasattr(
-            callback.messagedicts[2]["properties"], "TopicAlias"), callback.messagedicts[2]["properties"])
+            lacallback.messages[2]["message"].properties, "TopicAlias"), lacallback.messages[2]["message"].properties)
 
+    """
     def test_maximum_packet_size(self):
         callback.clear()
 
@@ -1158,119 +1175,6 @@ class Test(unittest.TestCase):
 
         aclient.disconnect()
 
-    def test_flow_control1(self):
-        testcallback = Callbacks()
-        # no callback means no background thread, to control receiving
-        testclient = mqtt_client.Client("myclientid".encode("utf-8"))
-
-        # set receive maximum - the number of concurrent QoS 1 and 2 messages
-        clientReceiveMaximum = 2  # set to low number so we can test
-        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-        connect_properties.ReceiveMaximum = clientReceiveMaximum
-        connect_properties.SessionExpiryInterval = 0
-        connack = testclient.connect(host=host, port=port, cleanstart=True,
-                                     properties=connect_properties)
-
-        serverReceiveMaximum = 2**16-1  # the default
-        if hasattr(connack.properties, "ReceiveMaximum"):
-            serverReceiveMaximum = connack.properties.ReceiveMaximum
-
-        receiver = testclient.getReceiver()
-
-        testclient.subscribe([topics[0]], [MQTTV5.SubscribeOptions(2)])
-        receiver.receive(testcallback)
-        self.waitfor(testcallback.subscribeds, 1, 3)
-
-        pubs = 0
-        for i in range(1, clientReceiveMaximum + 2):
-            testclient.publish(topics[0], "message %d" % i, 1)
-            pubs += 1
-
-        # get two publishes
-        acks = 0
-        while True:
-            response1 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-            if response1.fh.PacketType == MQTTV5.PacketTypes.PUBLISH:
-                break
-            self.assertEqual(response1.fh.PacketType,
-                             MQTTV5.PacketTypes.PUBACK)
-            acks += 1
-            del receiver.outMsgs[response1.packetIdentifier]
-        self.assertEqual(response1.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
-        self.assertEqual(response1.fh.QoS, 1, response1.fh.QoS)
-
-        while True:
-            response2 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-            if response2.fh.PacketType == MQTTV5.PacketTypes.PUBLISH:
-                break
-            self.assertEqual(response2.fh.PacketType,
-                             MQTTV5.PacketTypes.PUBACK)
-            acks += 1
-            del receiver.outMsgs[response2.packetIdentifier]
-        self.assertEqual(response2.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
-        self.assertEqual(response2.fh.QoS, 1, response1.fh.QoS)
-
-        while acks < pubs:
-            ack = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-            self.assertEqual(ack.fh.PacketType, MQTTV5.PacketTypes.PUBACK)
-            acks += 1
-            del receiver.outMsgs[ack.packetIdentifier]
-
-        with self.assertRaises(socket.timeout):
-            # this should time out because we haven't acknowledged the first one
-            response3 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-
-        # ack the first one
-        puback = MQTTV5.Pubacks()
-        puback.packetIdentifier = response1.packetIdentifier
-        testclient.sock.send(puback.pack())
-
-        # now get the next packet
-        response3 = MQTTV5.unpackPacket(MQTTV5.getPacket(testclient.sock))
-        self.assertEqual(response3.fh.PacketType, MQTTV5.PacketTypes.PUBLISH)
-        self.assertEqual(response3.fh.QoS, 1, response1.fh.QoS)
-
-        # ack the second one
-        puback.packetIdentifier = response2.packetIdentifier
-        testclient.sock.send(puback.pack())
-
-        # ack the third one
-        puback.packetIdentifier = response3.packetIdentifier
-        testclient.sock.send(puback.pack())
-
-        testclient.disconnect()
-
-    def test_flow_control2(self):
-        testcallback = Callbacks()
-        # no callback means no background thread, to control receiving
-        testclient = mqtt_client.Client("myclientid".encode("utf-8"))
-
-        # get receive maximum - the number of concurrent QoS 1 and 2 messages
-        connect_properties = MQTTV5.Properties(MQTTV5.PacketTypes.CONNECT)
-        connect_properties.SessionExpiryInterval = 0
-        connack = testclient.connect(host=host, port=port, cleanstart=True)
-
-        serverReceiveMaximum = 2**16-1  # the default
-        if hasattr(connack.properties, "ReceiveMaximum"):
-            serverReceiveMaximum = connack.properties.ReceiveMaximum
-
-        receiver = testclient.getReceiver()
-
-        # send number of messages to exceed receive maximum
-        qos = 2
-        pubs = 0
-        for i in range(1, serverReceiveMaximum + 2):
-            testclient.publish(topics[0], "message %d" % i, qos)
-            pubs += 1
-
-        # should get disconnected...
-        while testcallback.disconnects == []:
-            receiver.receive(testcallback)
-        self.waitfor(testcallback.disconnects, 1, 1)
-        self.assertEqual(len(testcallback.disconnects),
-                         1, len(testcallback.disconnects))
-        self.assertEqual(testcallback.disconnects[0]["reasonCode"].value, 147,
-                         testcallback.disconnects[0]["reasonCode"].value)
 
     def test_will_delay(self):
         # the will message should be received earlier than the session expiry

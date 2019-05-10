@@ -3016,7 +3016,7 @@ class Client(object):
         pack_format = '!' + str(slen) + 's' + str(len(packet) - slen) + 's'
         (topic, packet) = struct.unpack(pack_format, packet)
 
-        if len(topic) == 0:
+        if self._protocol != MQTTv5 and len(topic) == 0:
             return MQTT_ERR_PROTOCOL
 
         # Handle topics with invalid UTF-8
