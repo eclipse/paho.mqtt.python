@@ -152,6 +152,8 @@ class ReasonCodes:
                   [PacketTypes.SUBACK, PacketTypes.DISCONNECT]},
         }
         if identifier == -1:
+            if packetType == PacketTypes.DISCONNECT and aName == "Success":
+                  aName = "Normal disconnection"
             self.set(aName)
         else:
             self.value = identifier

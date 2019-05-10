@@ -2085,7 +2085,7 @@ class Client(object):
     # Private functions
     # ============================================================
 
-    def _loop_rc_handle(self, rc):
+    def _loop_rc_handle(self, rc, properties=None):
         if rc:
             self._sock_close()
 
@@ -2096,7 +2096,10 @@ class Client(object):
                 if self.on_disconnect:
                     with self._in_callback_mutex:
                         try:
-                            self.on_disconnect(self, self._userdata, rc)
+                            if properties:
+                                self.on_disconnect(self, self._userdata, rc, properties)
+                            else:
+                                self.on_disconnect(self, self._userdata, rc)
                         except Exception as err:
                             self._easy_log(
                                 MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
@@ -2815,6 +2818,8 @@ class Client(object):
             return self._handle_suback()
         elif cmd == UNSUBACK:
             return self._handle_unsuback()
+        elif cmd == DISCONNECT and self._protocol == MQTTv5: # only allowed in MQTT 5.0
+            return self._handle_disconnect()
         else:
             # If we don't recognise the command, return an error straight away.
             self._easy_log(MQTT_LOG_ERR, "Error: Unrecognised command %s", cmd)
@@ -2966,6 +2971,25 @@ class Client(object):
             return MQTT_ERR_CONN_REFUSED
         else:
             return MQTT_ERR_PROTOCOL
+
+    def _handle_disconnect(self):
+        packet_type = DISCONNECT >> 4
+        reasonCode = properties = None
+        if self._in_packet['remaining_length'] > 2:
+            reasonCode = ReasonCodes(packet_type)
+            reasonCode.unpack(self._in_packet['packet'])
+            if self._in_packet['remaining_length'] > 3:
+                properties = Properties(packet_type)
+                props, props_len = properties.unpack(self._in_packet['packet'][1:])
+        self._easy_log(MQTT_LOG_DEBUG, "Received DISCONNECT %s %s", 
+            reasonCode,
+            properties
+        )
+
+        self._loop_rc_handle(reasonCode, properties)
+
+        return MQTT_ERR_SUCCESS
+
 
     def _handle_suback(self):
         self._easy_log(MQTT_LOG_DEBUG, "Received SUBACK")
