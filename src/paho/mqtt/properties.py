@@ -290,7 +290,10 @@ class Properties(object):
         buffer = b""
         buffer += VariableByteIntegers.encode(identifier)  # identifier
         if type == self.types.index("Byte"):  # value
-            buffer += bytes([value])
+            if sys.version_info[0] < 3:
+                buffer += chr(value)
+            else:
+                buffer += bytes([value])
         elif type == self.types.index("Two Byte Integer"):
             buffer += writeInt16(value)
         elif type == self.types.index("Four Byte Integer"):
