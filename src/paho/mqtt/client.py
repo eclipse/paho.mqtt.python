@@ -498,8 +498,8 @@ class Client(object):
       from an external event loop for writing.
     """
 
-    def __init__(self, client_id="", clean_session=True, clean_start=True,
-                 userdata=None, protocol=MQTTv311, transport="tcp"):
+    def __init__(self, client_id="", clean_session=None, userdata=None, 
+                    protocol=MQTTv311, transport="tcp", clean_start=None):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -533,11 +533,15 @@ class Client(object):
         """
 
         if protocol == MQTTv5:
-            if not clean_session:
+            if clean_session != None:
                 raise ValueError('Clean session is not used for MQTT 5.0')
+            if clean_start == None:
+                clean_start = True
         else:
-            if not clean_start:
+            if clean_start != None:
                 raise ValueError('Clean start is only used for MQTT 5.0')
+            if clean_session == None:
+                clean_session = True
             if not clean_session and (client_id == "" or client_id is None):
                 raise ValueError(
                     'A client id must be provided if clean session is False.')
@@ -1258,7 +1262,7 @@ class Client(object):
                         message.state = mqtt_ms_wait_for_pubrec
 
                     rc = self._send_publish(message.mid, topic, message.payload, message.qos, message.retain,
-                                            message.dup, MQTTMessageInfo(local_mid), message.properties)
+                                            message.dup, message.info, message.properties)
 
                     # remove from inflight messages so it will be send after a connection is made
                     if rc is MQTT_ERR_NO_CONN:
@@ -1393,8 +1397,10 @@ class Client(object):
             if self._protocol == MQTTv5:
                 for t, o in topic:
                     if not isinstance(o, SubscribeOptions):
-                        raise ValueError(
-                            'Subscribe options must be instance of SubscribeOptions class.')
+                        # then the second value should be QoS
+                        if o < 0 or o > 2:
+                            raise ValueError('Invalid QoS level.')
+                        o = SubscribeOptions(qos=o)
                     topic_qos_list.append((t.encode('utf-8'), o))
             else:
                 for t, q in topic:

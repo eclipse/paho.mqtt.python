@@ -109,7 +109,7 @@ class Callbacks:
 def cleanRetained():
     callback = Callbacks()
     curclient = paho.mqtt.client.Client("clean retained".encode("utf-8"),
-                                        protocol=paho.mqtt.client.MQTTv5, clean_session=True)
+                                        protocol=paho.mqtt.client.MQTTv5, clean_start=True)
     curclient.loop_start()
     callback.register(curclient)
     curclient.connect(host=host, port=port)
@@ -132,7 +132,7 @@ def cleanup():
 
     for clientid in clientids:
         curclient = paho.mqtt.client.Client(clientid.encode("utf-8"),
-                                            protocol=paho.mqtt.client.MQTTv5, clean_session=True)
+                                            protocol=paho.mqtt.client.MQTTv5, clean_start=True)
         curclient.loop_start()
         curclient.connect(host=host, port=port)
         time.sleep(.1)
@@ -1264,7 +1264,7 @@ class Test(unittest.TestCase):
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
 
-        lbclient.subscribe([(shared_sub_topic, SubscribeOptions(2)), (topics[0], SubscribeOptions(2))])
+        lbclient.subscribe([(shared_sub_topic, SubscribeOptions(2)), (topics[0], 2)])
         response = lbcallback.wait_subscribed()
 
         lacallback.clear()
