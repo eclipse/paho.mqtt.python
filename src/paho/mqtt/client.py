@@ -166,6 +166,9 @@ MQTT_ERR_QUEUE_SIZE = 15
 MQTT_CLIENT = 0
 MQTT_BRIDGE = 1
 
+# For MQTT V5, use the clean start flag only on the first successful connect
+MQTT_CLEAN_START_FIRST_ONLY = 3
+
 sockpair_data = b"0"
 
 
@@ -498,8 +501,8 @@ class Client(object):
       from an external event loop for writing.
     """
 
-    def __init__(self, client_id="", clean_session=None, userdata=None, 
-                    protocol=MQTTv311, transport="tcp", clean_start=None):
+    def __init__(self, client_id="", clean_session=None, userdata=None,
+                 protocol=MQTTv311, transport="tcp"):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -535,20 +538,12 @@ class Client(object):
         if protocol == MQTTv5:
             if clean_session != None:
                 raise ValueError('Clean session is not used for MQTT 5.0')
-            if clean_start == None:
-                clean_start = True
         else:
-            if clean_start != None:
-                raise ValueError('Clean start is only used for MQTT 5.0')
             if clean_session == None:
                 clean_session = True
             if not clean_session and (client_id == "" or client_id is None):
                 raise ValueError(
                     'A client id must be provided if clean session is False.')
-
-        if protocol == MQTTv5:
-            self._clean_session = clean_start
-        else:
             self._clean_session = clean_session
 
         if transport.lower() not in ('websockets', 'tcp'):
@@ -643,6 +638,8 @@ class Client(object):
         self._on_socket_unregister_write = None
         self._websocket_path = "/mqtt"
         self._websocket_extra_headers = None
+        # for clean_start == MQTT_CLEAN_START_FIRST_ONLY
+        self._mqttv5_first_connect = True
 
     def __del__(self):
         self._reset_sockets()
@@ -897,7 +894,8 @@ class Client(object):
     def disable_logger(self):
         self._logger = None
 
-    def connect(self, host, port=1883, keepalive=60, bind_address="", properties=None):
+    def connect(self, host, port=1883, keepalive=60, bind_address="",
+                clean_start=MQTT_CLEAN_START_FIRST_ONLY, properties=None):
         """Connect to a remote broker.
 
         host is the hostname or IP address of the remote broker.
@@ -908,10 +906,21 @@ class Client(object):
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
         """
-        self.connect_async(host, port, keepalive, bind_address, properties)
+
+        if self._protocol == MQTTv5:
+            self._mqttv5_first_connect == True
+        else:
+            if clean_start != MQTT_CLEAN_START_FIRST_ONLY:
+                raise ValueError("Clean start only applies to MQTT V5")
+            if properties != None:
+                raise ValueError("Properties only apply to MQTT V5")
+
+        self.connect_async(host, port, keepalive,
+                           bind_address, clean_start, properties)
         return self.reconnect()
 
-    def connect_srv(self, domain=None, keepalive=60, bind_address="", properties=None):
+    def connect_srv(self, domain=None, keepalive=60, bind_address="",
+                    clean_start=MQTT_CLEAN_START_FIRST_ONLY, properties=None):
         """Connect to a remote broker.
 
         domain is the DNS domain to search for SRV records; if None,
@@ -945,13 +954,14 @@ class Client(object):
             host, port, prio, weight = answer
 
             try:
-                return self.connect(host, port, keepalive, bind_address, properties)
+                return self.connect(host, port, keepalive, bind_address, clean_start, properties)
             except Exception:
                 pass
 
         raise ValueError("No SRV hosts responded")
 
-    def connect_async(self, host, port=1883, keepalive=60, bind_address="", properties=None):
+    def connect_async(self, host, port=1883, keepalive=60, bind_address="",
+                      clean_start=MQTT_CLEAN_START_FIRST_ONLY, properties=None):
         """Connect to a remote broker asynchronously. This is a non-blocking
         connect call that can be used with loop_start() to provide very quick
         start.
@@ -978,6 +988,7 @@ class Client(object):
         self._port = port
         self._keepalive = keepalive
         self._bind_address = bind_address
+        self._clean_start = clean_start
         self._connect_properties = properties
         self._state = mqtt_cs_connect_async
 
@@ -1078,7 +1089,7 @@ class Client(object):
         self._registered_write = False
         self._call_socket_open()
 
-        return self._send_connect(self._keepalive, self._clean_session)
+        return self._send_connect(self._keepalive)
 
     def loop(self, timeout=1.0, max_packets=1):
         """Process network events.
@@ -1197,7 +1208,7 @@ class Client(object):
         invalid (contains a wildcard), except if the MQTT protocol version 
         being used is 5.0.  For version 5.0, a zero length topic can be used
         when a Topic Alias has been set.
-        
+
         A ValueError will be raised if qos is not one of 0, 1 or 2, or if
         the length of the payload is greater than 268435455 bytes."""
         if self._protocol != MQTTv5:
@@ -2103,7 +2114,8 @@ class Client(object):
                     with self._in_callback_mutex:
                         try:
                             if properties:
-                                self.on_disconnect(self, self._userdata, rc, properties)
+                                self.on_disconnect(
+                                    self, self._userdata, rc, properties)
                             else:
                                 self.on_disconnect(self, self._userdata, rc)
                         except Exception as err:
@@ -2480,7 +2492,7 @@ class Client(object):
         packet = struct.pack('!BB', command, remaining_length)
         return self._packet_queue(command, packet, 0, 0)
 
-    def _send_connect(self, keepalive, clean_session):
+    def _send_connect(self, keepalive):
         proto_ver = self._protocol
         # hard-coded UTF-8 encoded string
         protocol = b"MQTT" if proto_ver >= MQTTv311 else b"MQIsdp"
@@ -2489,7 +2501,12 @@ class Client(object):
             1 + 2 + 2 + len(self._client_id)
 
         connect_flags = 0
-        if clean_session:
+        if self._protocol == MQTTv5:
+            if self._clean_start == True:
+                connect_flags |= 0x02
+            elif self._clean_start == MQTT_CLEAN_START_FIRST_ONLY and self._mqttv5_first_connect == True:
+                connect_flags |= 0x02
+        elif self._clean_session:
             connect_flags |= 0x02
 
         if self._will:
@@ -2722,6 +2739,15 @@ class Client(object):
         self._message_retry_check_actual(
             self._in_messages, self._in_message_mutex)
 
+    def _check_clean_session(self):
+        if self._protocol == MQTTv5:
+            if self._clean_start == MQTT_CLEAN_START_FIRST_ONLY:
+                return self._mqttv5_first_connect
+            else:
+                return self._clean_start
+        else:
+            return self._clean_session
+
     def _messages_reconnect_reset_out(self):
         with self._out_message_mutex:
             self._inflight_messages = 0
@@ -2737,7 +2763,7 @@ class Client(object):
                         m.state = mqtt_ms_publish
                     elif m.qos == 2:
                         # self._inflight_messages = self._inflight_messages + 1
-                        if self._clean_session:
+                        if self._check_clean_session():
                             if m.state != mqtt_ms_publish:
                                 m.dup = True
                             m.state = mqtt_ms_publish
@@ -2753,7 +2779,7 @@ class Client(object):
 
     def _messages_reconnect_reset_in(self):
         with self._in_message_mutex:
-            if self._clean_session:
+            if self._check_clean_session():
                 self._in_messages = collections.OrderedDict()
                 return
             for m in self._in_messages.values():
@@ -2824,7 +2850,7 @@ class Client(object):
             return self._handle_suback()
         elif cmd == UNSUBACK:
             return self._handle_unsuback()
-        elif cmd == DISCONNECT and self._protocol == MQTTv5: # only allowed in MQTT 5.0
+        elif cmd == DISCONNECT and self._protocol == MQTTv5:  # only allowed in MQTT 5.0
             return self._handle_disconnect()
         else:
             # If we don't recognise the command, return an error straight away.
@@ -2893,6 +2919,9 @@ class Client(object):
             self._easy_log(
                 MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
 
+        # it won't be the first successful connect any more
+        self._mqttv5_first_connect == False
+
         with self._callback_mutex:
             if self.on_connect:
                 flags_dict = {}
@@ -2927,7 +2956,7 @@ class Client(object):
                                 m.qos,
                                 m.retain,
                                 m.dup,
-                                properties = m.properties
+                                properties=m.properties
                             )
                         if rc != 0:
                             return rc
@@ -2943,7 +2972,7 @@ class Client(object):
                                     m.qos,
                                     m.retain,
                                     m.dup,
-                                    properties = m.properties
+                                    properties=m.properties
                                 )
                             if rc != 0:
                                 return rc
@@ -2959,7 +2988,7 @@ class Client(object):
                                     m.qos,
                                     m.retain,
                                     m.dup,
-                                    properties = m.properties
+                                    properties=m.properties
                                 )
                             if rc != 0:
                                 return rc
@@ -2986,16 +3015,16 @@ class Client(object):
             reasonCode.unpack(self._in_packet['packet'])
             if self._in_packet['remaining_length'] > 3:
                 properties = Properties(packet_type)
-                props, props_len = properties.unpack(self._in_packet['packet'][1:])
-        self._easy_log(MQTT_LOG_DEBUG, "Received DISCONNECT %s %s", 
-            reasonCode,
-            properties
-        )
+                props, props_len = properties.unpack(
+                    self._in_packet['packet'][1:])
+        self._easy_log(MQTT_LOG_DEBUG, "Received DISCONNECT %s %s",
+                       reasonCode,
+                       properties
+                       )
 
         self._loop_rc_handle(reasonCode, properties)
 
         return MQTT_ERR_SUCCESS
-
 
     def _handle_suback(self):
         self._easy_log(MQTT_LOG_DEBUG, "Received SUBACK")

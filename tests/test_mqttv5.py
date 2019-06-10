@@ -59,13 +59,14 @@ class Callbacks:
         while len(alist) == 0 and total < timeout:
             time.sleep(interval)
             total += interval
-        return alist.pop(0) #if len(alist) > 0 else None
+        return alist.pop(0)  # if len(alist) > 0 else None
 
     def wait_connected(self):
         return self.wait(self.connecteds)
 
     def on_disconnect(self, client, userdata, reasonCode, properties=None):
-        self.disconnecteds.append({"reasonCode": reasonCode, "properties": properties})
+        self.disconnecteds.append(
+            {"reasonCode": reasonCode, "properties": properties})
 
     def wait_disconnected(self):
         return self.wait(self.disconnecteds)
@@ -109,7 +110,7 @@ class Callbacks:
 def cleanRetained():
     callback = Callbacks()
     curclient = paho.mqtt.client.Client("clean retained".encode("utf-8"),
-                                        protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+                                        protocol=paho.mqtt.client.MQTTv5)
     curclient.loop_start()
     callback.register(curclient)
     curclient.connect(host=host, port=port)
@@ -131,10 +132,10 @@ def cleanup():
     clientids = ("aclient", "bclient")
 
     for clientid in clientids:
-        curclient = paho.mqtt.client.Client(clientid.encode("utf-8"),
-                                            protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+        curclient = paho.mqtt.client.Client(clientid.encode(
+            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
         curclient.loop_start()
-        curclient.connect(host=host, port=port)
+        curclient.connect(host=host, port=port, clean_start=True)
         time.sleep(.1)
         curclient.disconnect()
         time.sleep(.1)
@@ -294,11 +295,11 @@ class Test(unittest.TestCase):
 
         callback0 = Callbacks()
 
-        client0 = paho.mqtt.client.Client(
-            protocol=paho.mqtt.client.MQTTv5, clean_start=False)
+        client0 = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5)
         callback0.register(client0)
         client0.loop_start()
-        client0.connect(host=host, port=port)  # should not be rejected
+        # should not be rejected
+        client0.connect(host=host, port=port, clean_start=False)
         response = callback0.wait_connected()
         self.assertEqual(response["reasonCode"].getName(), "Success")
         self.assertTrue(
@@ -306,8 +307,7 @@ class Test(unittest.TestCase):
         client0.disconnect()
         client0.loop_stop()
 
-        client0 = paho.mqtt.client.Client(
-            protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+        client0 = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5)
         callback0.register(client0)
         client0.loop_start()
         client0.connect(host=host, port=port)  # should work
@@ -320,7 +320,7 @@ class Test(unittest.TestCase):
 
         # when we supply a client id, we should not get one assigned
         client0 = paho.mqtt.client.Client(
-            "client0", protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+            "client0", protocol=paho.mqtt.client.MQTTv5)
         callback0.register(client0)
         client0.loop_start()
         client0.connect(host=host, port=port)  # should work
@@ -338,7 +338,7 @@ class Test(unittest.TestCase):
         clientid = "offline message queueing".encode("utf-8")
 
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+            clientid, protocol=paho.mqtt.client.MQTTv5)
         ocallback.register(oclient)
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.SessionExpiryInterval = 99999
@@ -361,10 +361,10 @@ class Test(unittest.TestCase):
         bclient.loop_stop()
 
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5, clean_start=False)
+            clientid, protocol=paho.mqtt.client.MQTTv5)
         ocallback.register(oclient)
         oclient.loop_start()
-        oclient.connect(host=host, port=port)
+        oclient.connect(host=host, port=port, clean_start=False)
         response = ocallback.wait_connected()
         time.sleep(2)
         oclient.disconnect()
@@ -383,7 +383,7 @@ class Test(unittest.TestCase):
         clientid = "overlapping subscriptions".encode("utf-8")
 
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+            clientid, protocol=paho.mqtt.client.MQTTv5)
         ocallback.register(oclient)
 
         oclient.loop_start()
@@ -418,7 +418,7 @@ class Test(unittest.TestCase):
         ocallback = Callbacks()
         clientid = "subscribe failure".encode("utf-8")
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5, clean_start=True)
+            clientid, protocol=paho.mqtt.client.MQTTv5)
         ocallback.register(oclient)
         oclient.loop_start()
         oclient.connect(host=host, port=port)
@@ -462,10 +462,10 @@ class Test(unittest.TestCase):
         aclient.loop_stop()
         self.assertEqual(len(callback2.messages), 2, callback2.messages)
 
-    def new_client(self, clientid, clean_start=True):
+    def new_client(self, clientid):
         callback = Callbacks()
-        client = paho.mqtt.client.Client(
-            clientid.encode("utf-8"), protocol=paho.mqtt.client.MQTTv5, clean_start=clean_start)
+        client = paho.mqtt.client.Client(clientid.encode(
+            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
         callback.register(client)
         client.loop_start()
         return client, callback
@@ -490,10 +490,10 @@ class Test(unittest.TestCase):
         ecallback.wait_disconnected()
         eclient.loop_stop()
 
-        fclient, fcallback = self.new_client(clientid, clean_start=False)
+        fclient, fcallback = self.new_client(clientid)
 
         # session should immediately expire
-        fclient.connect_async(host=host, port=port,
+        fclient.connect_async(host=host, port=port, clean_start=False,
                               properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
@@ -517,8 +517,9 @@ class Test(unittest.TestCase):
 
         time.sleep(2)
         # session should still exist
-        fclient, fcallback = self.new_client(clientid, clean_start=False)
-        fclient.connect(host=host, port=port, properties=connect_properties)
+        fclient, fcallback = self.new_client(clientid)
+        fclient.connect(host=host, port=port, clean_start=False,
+                        properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], True)
@@ -528,8 +529,9 @@ class Test(unittest.TestCase):
 
         time.sleep(6)
         # session should not exist
-        fclient, fcallback = self.new_client(clientid, clean_start=False)
-        fclient.connect(host=host, port=port, properties=connect_properties)
+        fclient, fcallback = self.new_client(clientid)
+        fclient.connect(host=host, port=port, clean_start=False,
+                        properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
@@ -554,8 +556,9 @@ class Test(unittest.TestCase):
 
         time.sleep(3)
         # session should still exist as we changed the expiry interval on disconnect
-        fclient, fcallback = self.new_client(clientid, clean_start=False)
-        fclient.connect(host=host, port=port, properties=connect_properties)
+        fclient, fcallback = self.new_client(clientid)
+        fclient.connect(host=host, port=port, clean_start=False,
+                        properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], True)
@@ -565,8 +568,9 @@ class Test(unittest.TestCase):
         fclient.loop_stop()
 
         # session should immediately expire
-        fclient, fcallback = self.new_client(clientid, clean_start=False)
-        fclient.connect(host=host, port=port, properties=connect_properties)
+        fclient, fcallback = self.new_client(clientid)
+        fclient.connect(host=host, port=port, clean_start=False,
+                        properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
@@ -616,7 +620,6 @@ class Test(unittest.TestCase):
         qoss = [ucallback.messages[i]["message"].qos for i in range(3)]
         self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
 
-  
     def test_payload_format(self):
         clientid = "payload format"
         pclient, pcallback = self.new_client(clientid)
@@ -629,11 +632,14 @@ class Test(unittest.TestCase):
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.PayloadFormatIndicator = 1
         publish_properties.ContentType = "My name"
-        info = pclient.publish(topics[0], b"qos 0", 0, retain=False, properties=publish_properties)
+        info = pclient.publish(
+            topics[0], b"qos 0", 0, retain=False, properties=publish_properties)
         info.wait_for_publish()
-        info = pclient.publish(topics[0], b"qos 1", 1, retain=False, properties=publish_properties)
+        info = pclient.publish(
+            topics[0], b"qos 1", 1, retain=False, properties=publish_properties)
         info.wait_for_publish()
-        info = pclient.publish(topics[0], b"qos 2", 2, retain=False, properties=publish_properties)
+        info = pclient.publish(
+            topics[0], b"qos 2", 2, retain=False, properties=publish_properties)
         info.wait_for_publish()
 
         count = 0
@@ -659,8 +665,7 @@ class Test(unittest.TestCase):
                          1, props.PayloadFormatIndicator)
         qoss = [pcallback.messages[i]["message"].qos for i in range(3)]
         self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
-    
-    
+
     def test_message_expiry(self):
         clientid = "message expiry"
 
@@ -685,21 +690,21 @@ class Test(unittest.TestCase):
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.MessageExpiryInterval = 1
         laclient.publish(topics[0], b"qos 1 - expire", 1,
-                        retain=False, properties=publish_properties)
+                         retain=False, properties=publish_properties)
         laclient.publish(topics[0], b"qos 2 - expire", 2,
-                        retain=False, properties=publish_properties)
-        
+                         retain=False, properties=publish_properties)
+
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.MessageExpiryInterval = 6
         laclient.publish(topics[0], b"qos 1 - don't expire",
-                        1, retain=False, properties=publish_properties)
+                         1, retain=False, properties=publish_properties)
         laclient.publish(topics[0], b"qos 2 - don't expire",
-                        2, retain=False, properties=publish_properties)
+                         2, retain=False, properties=publish_properties)
 
         time.sleep(3)
-        lbclient, lbcallback = self.new_client(clientid+" b", clean_start=False)
+        lbclient, lbcallback = self.new_client(clientid+" b")
         lbclient.loop_start()
-        lbclient.connect(host=host, port=port)
+        lbclient.connect(host=host, port=port, clean_start=False)
         lbcallback.wait_connected()
         self.waitfor(lbcallback.messages, 1, 3)
         time.sleep(1)
@@ -716,7 +721,6 @@ class Test(unittest.TestCase):
         lbcallback.wait_disconnected()
         lbclient.loop_stop()
 
-    
     def test_subscribe_options(self):
         # noLocal
         clientid = 'subscribe options - noLocal'
@@ -725,14 +729,16 @@ class Test(unittest.TestCase):
         laclient.connect(host=host, port=port)
         lacallback.wait_connected()
         laclient.loop_start()
-        laclient.subscribe(topics[0], options=SubscribeOptions(qos=2, noLocal=True))
+        laclient.subscribe(
+            topics[0], options=SubscribeOptions(qos=2, noLocal=True))
         lacallback.wait_subscribed()
 
         lbclient, lbcallback = self.new_client(clientid+" b")
         lbclient.connect(host=host, port=port)
         lbcallback.wait_connected()
         lbclient.loop_start()
-        lbclient.subscribe(topics[0], options=SubscribeOptions(qos=2, noLocal=True))
+        lbclient.subscribe(
+            topics[0], options=SubscribeOptions(qos=2, noLocal=True))
         lbcallback.wait_subscribed()
 
         laclient.publish(topics[0], b"noLocal test", 1, retain=False)
@@ -753,11 +759,14 @@ class Test(unittest.TestCase):
         laclient, lacallback = self.new_client(clientid+" a")
         laclient.connect(host=host, port=port)
         lacallback.wait_connected()
-        laclient.subscribe(topics[0], options=SubscribeOptions(qos=2, retainAsPublished=True))
+        laclient.subscribe(topics[0], options=SubscribeOptions(
+            qos=2, retainAsPublished=True))
         lacallback.wait_subscribed()
         self.waitfor(lacallback.subscribeds, 1, 3)
-        laclient.publish(topics[0], b"retain as published false", 1, retain=False)
-        laclient.publish(topics[0], b"retain as published true", 1, retain=True)
+        laclient.publish(
+            topics[0], b"retain as published false", 1, retain=False)
+        laclient.publish(
+            topics[0], b"retain as published true", 1, retain=True)
 
         self.waitfor(lacallback.messages, 2, 3)
         time.sleep(1)
@@ -780,13 +789,15 @@ class Test(unittest.TestCase):
         time.sleep(1)
 
         # retain handling 1 only gives us retained messages on a new subscription
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
         lacallback.wait_subscribed()
         self.assertEqual(len(lacallback.messages), 3)
         qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
         self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
         lacallback.clear()
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
         lacallback.wait_subscribed()
         time.sleep(1)
         self.assertEqual(len(lacallback.messages), 0)
@@ -799,13 +810,15 @@ class Test(unittest.TestCase):
         response = lacallback.wait_unsubscribed()
 
         # check that we really did remove that subscription
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
         lacallback.wait_subscribed()
         self.assertEqual(len(lacallback.messages), 3)
         qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
         self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
         lacallback.clear()
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
         lacallback.wait_subscribed()
         time.sleep(1)
         self.assertEqual(len(lacallback.messages), 0)
@@ -818,10 +831,12 @@ class Test(unittest.TestCase):
         response = lacallback.wait_unsubscribed()
 
         lacallback.clear()
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=2))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=2))
         lacallback.wait_subscribed()
         self.assertEqual(len(lacallback.messages), 0)
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=2))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=2))
         lacallback.wait_subscribed()
         self.assertEqual(len(lacallback.messages), 0)
 
@@ -829,13 +844,15 @@ class Test(unittest.TestCase):
         laclient.unsubscribe(wildtopics[5])
         response = lacallback.wait_unsubscribed()
 
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=0))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=0))
         lacallback.wait_subscribed()
         self.assertEqual(len(lacallback.messages), 3)
         qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
         self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
         lacallback.clear()
-        laclient.subscribe(wildtopics[5], options=SubscribeOptions(2, retainHandling=0))
+        laclient.subscribe(
+            wildtopics[5], options=SubscribeOptions(2, retainHandling=0))
         time.sleep(1)
         self.assertEqual(len(lacallback.messages), 3)
         qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
@@ -846,7 +863,6 @@ class Test(unittest.TestCase):
 
         cleanRetained()
 
-    
     def test_subscription_identifiers(self):
         clientid = 'subscription identifiers'
 
@@ -886,12 +902,12 @@ class Test(unittest.TestCase):
         self.waitfor(lbcallback.messages, 1, 3)
         self.assertEqual(len(lbcallback.messages), 1, lbcallback.messages)
         expected_subsids = set([2, 3])
-        received_subsids = set(lbcallback.messages[0]["message"].properties.SubscriptionIdentifier)
+        received_subsids = set(
+            lbcallback.messages[0]["message"].properties.SubscriptionIdentifier)
         self.assertEqual(received_subsids, expected_subsids, received_subsids)
         lbclient.disconnect()
         lbcallback.wait_disconnected()
         lbclient.loop_stop()
-
 
     def test_request_response(self):
         clientid = 'request response'
@@ -906,17 +922,20 @@ class Test(unittest.TestCase):
         lbcallback.wait_connected()
         lbclient.loop_start()
 
-        laclient.subscribe(topics[0], options=SubscribeOptions(2, noLocal=True))
+        laclient.subscribe(
+            topics[0], options=SubscribeOptions(2, noLocal=True))
         lacallback.wait_subscribed()
 
-        lbclient.subscribe(topics[0], options=SubscribeOptions(2, noLocal=True))
+        lbclient.subscribe(
+            topics[0], options=SubscribeOptions(2, noLocal=True))
         lbcallback.wait_subscribed()
 
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.ResponseTopic = topics[0]
         publish_properties.CorrelationData = b"334"
         # client a is the requester
-        laclient.publish(topics[0], b"request", 1, properties=publish_properties)
+        laclient.publish(topics[0], b"request", 1,
+                         properties=publish_properties)
 
         # client b is the responder
         self.waitfor(lbcallback.messages, 1, 3)
@@ -927,7 +946,7 @@ class Test(unittest.TestCase):
                          lbcallback.messages[0]["message"].properties)
 
         lbclient.publish(lbcallback.messages[0]["message"].properties.ResponseTopic, b"response", 1,
-                        properties=lbcallback.messages[0]["message"].properties)
+                         properties=lbcallback.messages[0]["message"].properties)
 
         # client a gets the response
         self.waitfor(lacallback.messages, 1, 3)
@@ -940,7 +959,6 @@ class Test(unittest.TestCase):
         lbcallback.wait_disconnected()
         lbclient.loop_stop()
 
-    
     def test_client_topic_alias(self):
         clientid = 'client topic alias'
 
@@ -952,7 +970,8 @@ class Test(unittest.TestCase):
 
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.TopicAlias = 0  # topic alias 0 not allowed
-        laclient.publish(topics[0], "topic alias 0", 1, properties=publish_properties)
+        laclient.publish(topics[0], "topic alias 0", 1,
+                         properties=publish_properties)
 
         # should get back a disconnect with Topic alias invalid
         lacallback.wait_disconnected()
@@ -979,11 +998,13 @@ class Test(unittest.TestCase):
 
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.TopicAlias = 1
-        laclient.publish(topics[0], b"topic alias 1", 1, properties=publish_properties)
+        laclient.publish(topics[0], b"topic alias 1",
+                         1, properties=publish_properties)
         self.waitfor(lacallback.messages, 1, 3)
         self.assertEqual(len(lacallback.messages), 1, lacallback.messages)
 
-        laclient.publish("", b"topic alias 2", 1, properties=publish_properties)
+        laclient.publish("", b"topic alias 2", 1,
+                         properties=publish_properties)
         self.waitfor(lacallback.messages, 2, 3)
         self.assertEqual(len(lacallback.messages), 2, lacallback.messages)
 
@@ -992,22 +1013,23 @@ class Test(unittest.TestCase):
         laclient.loop_stop()
 
         # check aliases have been deleted
-        laclient, lacallback = self.new_client(clientid+" a", clean_start=False)
-        laclient.connect(host=host, port=port, properties=connect_properties)
- 
+        laclient, lacallback = self.new_client(clientid+" a")
+        laclient.connect(host=host, port=port, clean_start=False,
+                         properties=connect_properties)
+
         laclient.publish(topics[0], b"topic alias 3", 1)
         self.waitfor(lacallback.messages, 1, 3)
         self.assertEqual(len(lacallback.messages), 1, lacallback.messages)
 
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.TopicAlias = 1
-        laclient.publish("", b"topic alias 4", 1, properties=publish_properties)
+        laclient.publish("", b"topic alias 4", 1,
+                         properties=publish_properties)
 
         # should get back a disconnect with Topic alias invalid
         lacallback.wait_disconnected()
         laclient.loop_stop()
 
-    
     def test_server_topic_alias(self):
         clientid = 'server topic alias'
 
@@ -1082,7 +1104,6 @@ class Test(unittest.TestCase):
         self.assertFalse(hasattr(
             lacallback.messages[2]["message"].properties, "TopicAlias"), lacallback.messages[2]["message"].properties)
 
-
         serverTopicAliasMaximum = 0  # no server topic alias allowed
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.TopicAliasMaximum = serverTopicAliasMaximum  # default is 0
@@ -1115,7 +1136,6 @@ class Test(unittest.TestCase):
         self.assertFalse(hasattr(
             lacallback.messages[2]["message"].properties, "TopicAlias"), lacallback.messages[2]["message"].properties)
 
-    
     def test_maximum_packet_size(self):
         clientid = 'maximum packet size'
 
@@ -1135,7 +1155,8 @@ class Test(unittest.TestCase):
             laclient.publish(topics[0], payload, 0)
             # should get back a disconnect with packet size too big
             response = lacallback.wait_disconnected()
-            self.assertEqual(len(lacallback.disconnecteds), 0, lacallback.disconnecteds)
+            self.assertEqual(len(lacallback.disconnecteds),
+                             0, lacallback.disconnecteds)
             self.assertEqual(response["reasonCode"].getName(),
                              "Packet too large", response["reasonCode"].getName())
         else:
@@ -1193,7 +1214,6 @@ class Test(unittest.TestCase):
         laclient.loop_stop()
     """
 
-
     def test_will_delay(self):
         # the will message should be received earlier than the session expiry
 
@@ -1208,13 +1228,14 @@ class Test(unittest.TestCase):
         connect_properties.SessionExpiryInterval = 5
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.will_set(topics[0], payload=b"test_will_delay will message", properties=will_properties)
+        laclient.will_set(
+            topics[0], payload=b"test_will_delay will message", properties=will_properties)
         laclient.connect(host=host, port=port, properties=connect_properties)
         connack = lacallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
         laclient.loop_start()
-        
+
         lbclient, lbcallback = self.new_client(clientid+" b")
         lbclient.connect(host=host, port=port, properties=connect_properties)
         connack = lbcallback.wait_connected()
@@ -1232,12 +1253,12 @@ class Test(unittest.TestCase):
         duration = time.time() - start
         self.assertAlmostEqual(duration, 4, delta=1)
         self.assertEqual(lbcallback.messages[0]["message"].topic, topics[0])
-        self.assertEqual(lbcallback.messages[0]["message"].payload, b"test_will_delay will message")
+        self.assertEqual(
+            lbcallback.messages[0]["message"].payload, b"test_will_delay will message")
 
         lbclient.disconnect()
         lbcallback.wait_disconnected()
         lbclient.loop_stop()
-
 
     def test_shared_subscriptions(self):
         clientid = 'shared subscriptions'
@@ -1253,7 +1274,8 @@ class Test(unittest.TestCase):
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
 
-        laclient.subscribe([(shared_sub_topic, SubscribeOptions(2)), (topics[0], SubscribeOptions(2))])
+        laclient.subscribe(
+            [(shared_sub_topic, SubscribeOptions(2)), (topics[0], SubscribeOptions(2))])
         response = lacallback.wait_subscribed()
 
         lbclient, lbcallback = self.new_client(clientid+" b")
@@ -1264,7 +1286,8 @@ class Test(unittest.TestCase):
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
 
-        lbclient.subscribe([(shared_sub_topic, SubscribeOptions(2)), (topics[0], 2)])
+        lbclient.subscribe(
+            [(shared_sub_topic, SubscribeOptions(2)), (topics[0], 2)])
         response = lbcallback.wait_subscribed()
 
         lacallback.clear()
@@ -1292,7 +1315,8 @@ class Test(unittest.TestCase):
             j += 1
         time.sleep(1)
         # Each message should only be received once
-        self.assertEqual(len(lacallback.messages) + len(lbcallback.messages), count)
+        self.assertEqual(len(lacallback.messages) +
+                         len(lbcallback.messages), count)
 
         laclient.disconnect()
         lacallback.wait_disconnected()
