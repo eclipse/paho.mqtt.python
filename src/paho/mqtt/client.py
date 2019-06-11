@@ -1693,7 +1693,7 @@ class Client(object):
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
 
-        if not isinstance(properties, Properties):
+        if properties != None and not isinstance(properties, Properties):
             raise ValueError(
                 "The properties argument must be an instance of the Properties class.")
 
