@@ -361,6 +361,7 @@ class MQTTMessage(object):
     qos : Integer. The message Quality of Service 0, 1 or 2.
     retain : Boolean. If true, the message is a retained message and not fresh.
     mid : Integer. The message id.
+    properties: Properties class. In MQTT v5.0, the properties associated with the message.
 
     On Python 3, topic must be bytes.
     """
@@ -458,6 +459,11 @@ class Client(object):
       other value the disconnection was unexpected, such as might be caused by
       a network error.
 
+    on_disconnect(client, userdata, rc, properties): called when the MQTT V5 client disconnects from the broker.
+      When using MQTT V5, the broker can send a disconnect message to the client.  The
+      message can contain a reason code and MQTT V5 properties.  The properties parameter could be
+      None if they do not exist in the disconnect message.
+
     on_message(client, userdata, message): called when a message has been received on a
       topic that the client subscribes to. The message variable is a
       MQTTMessage that describes all of the message parameters.
@@ -519,17 +525,18 @@ class Client(object):
         Note that a client will never discard its own outgoing messages on
         disconnect. Calling connect() or reconnect() will cause the messages to
         be resent.  Use reinitialise() to reset a client to its original state.
+        The clean_session argument only applies to MQTT versions v3.1.1 and v3.1.
+        It is not accepted if the MQTT version is v5.0 - use the clean_start
+        argument on connect() instead.
 
         userdata is user defined data of any type that is passed as the "userdata"
         parameter to callbacks. It may be updated at a later point with the
         user_data_set() function.
 
         The protocol argument allows explicit setting of the MQTT version to
-        use for this client. Can be paho.mqtt.client.MQTTv311 (v3.1.1) or
-        paho.mqtt.client.MQTTv31 (v3.1), with the default being v3.1.1 If the
-        broker reports that the client connected with an invalid protocol
-        version, the client will automatically attempt to reconnect using v3.1
-        instead.
+        use for this client. Can be paho.mqtt.client.MQTTv311 (v3.1.1),
+        paho.mqtt.client.MQTTv31 (v3.1) or paho.mqtt.client.MQTTv5 (v5.0), 
+        with the default being v3.1.1.
 
         Set transport to "websockets" to use WebSockets as the transport
         mechanism. Set to "tcp" to use raw TCP, which is the default.
@@ -905,6 +912,12 @@ class Client(object):
         keepalive: Maximum period in seconds between communications with the
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
+        clean_start: (MQTT v5.0 only) True, False or MQTT_CLEAN_START_FIRST_ONLY.  
+        Sets the MQTT v5.0 clean_start flag always, never or on the first successful connect only,
+        respectively.  MQTT session data (such as outstanding messages and subscriptions)
+        is cleared on successful connect when the clean_start flag is set.
+        properties: (MQTT v5.0 only) the MQTT v5.0 properties to be sent in the
+        MQTT connect packet.
         """
 
         if self._protocol == MQTTv5:
@@ -925,7 +938,7 @@ class Client(object):
 
         domain is the DNS domain to search for SRV records; if None,
         try to determine local domain name.
-        keepalive and bind_address are as for connect()
+        keepalive, bind_address, clean_start and properties are as for connect()
         """
 
         if HAVE_DNS is False:
@@ -973,6 +986,12 @@ class Client(object):
         keepalive: Maximum period in seconds between communications with the
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
+        clean_start: (MQTT v5.0 only) True, False or MQTT_CLEAN_START_FIRST_ONLY.  
+        Sets the MQTT v5.0 clean_start flag always, never or on the first successful connect only,
+        respectively.  MQTT session data (such as outstanding messages and subscriptions)
+        is cleared on successful connect when the clean_start flag is set.
+        properties: (MQTT v5.0 only) the MQTT v5.0 properties to be sent in the
+        MQTT connect packet.  Use the Properties class.
         """
         if host is None or len(host) == 0:
             raise ValueError('Invalid host.')
@@ -1188,6 +1207,8 @@ class Client(object):
         qos: The quality of service level to use.
         retain: If set to true, the message will be set as the "last known
         good"/retained message for the topic.
+        properties: (MQTT v5.0 only) the MQTT v5.0 properties to be included.
+        Use the Properties class.
 
         Returns a MQTTMessageInfo class, which can be used to determine whether
         the message has been delivered (using info.is_published()) or to block
@@ -1205,9 +1226,8 @@ class Client(object):
         is defined.
 
         A ValueError will be raised if topic is None, has zero length or is
-        invalid (contains a wildcard), except if the MQTT protocol version 
-        being used is 5.0.  For version 5.0, a zero length topic can be used
-        when a Topic Alias has been set.
+        invalid (contains a wildcard), except if the MQTT version used is v5.0.  
+        For v5.0, a zero length topic can be used when a Topic Alias has been set.
 
         A ValueError will be raised if qos is not one of 0, 1 or 2, or if
         the length of the payload is greater than 268435455 bytes."""
@@ -1323,7 +1343,13 @@ class Client(object):
         self._client_mode = MQTT_BRIDGE
 
     def disconnect(self, reasoncode=None, properties=None):
-        """Disconnect a connected client from the broker."""
+        """Disconnect a connected client from the broker.
+        reasoncode: (MQTT v5.0 only) a ReasonCodes instance setting the MQTT v5.0
+        reasoncode to be sent with the disconnect.  It is optional, the receiver 
+        then assuming that 0 (success) is the value.
+        properties: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
+        to be included. Optional - if not set, no properties are sent.
+        """
         self._state = mqtt_cs_disconnecting
 
         if self._sock is None:
@@ -1334,15 +1360,26 @@ class Client(object):
     def subscribe(self, topic, qos=0, options=None, properties=None):
         """Subscribe the client to one or more topics.
 
-        This function may be called in three different ways:
+        This function may be called in three different ways (and a further three for MQTT v5.0):
 
-        Simple string and integer
+        Simple string and integer 
         -------------------------
         e.g. subscribe("my/topic", 2)
 
         topic: A string specifying the subscription topic to subscribe to.
         qos: The desired quality of service level for the subscription.
              Defaults to 0.
+        options and properties: Not used.
+
+        Simple string and subscribe options (MQTT v5.0 only)
+        ----------------------------------------------------
+        e.g. subscribe("my/topic", options=SubscribeOptions(qos=2))
+
+        topic: A string specifying the subscription topic to subscribe to.
+        qos: Not used.
+        options: The MQTT v5.0 subscribe options.
+        properties: a Properties instance setting the MQTT v5.0 properties
+        to be included. Optional - if not set, no properties are sent.
 
         String and integer tuple
         ------------------------
@@ -1350,10 +1387,22 @@ class Client(object):
 
         topic: A tuple of (topic, qos). Both topic and qos must be present in
                the tuple.
-        qos: Not used.
+        qos and options: Not used.
+        properties: Only used for MQTT v5.0.  A Properties instance setting the
+        MQTT v5.0 properties. Optional - if not set, no properties are sent.
+
+        String and subscribe options tuple (MQTT v5.0 only)
+        ---------------------------------------------------
+        e.g. subscribe(("my/topic", SubscribeOptions(qos=1)))
+
+        topic: A tuple of (topic, SubscribeOptions). Both topic and subscribe
+                options must be present in the tuple.
+        qos and options: Not used.
+        properties: a Properties instance setting the MQTT v5.0 properties
+        to be included. Optional - if not set, no properties are sent.
 
         List of string and integer tuples
-        ------------------------
+        ---------------------------------
         e.g. subscribe([("my/topic", 0), ("another/topic", 2)])
 
         This allows multiple topic subscriptions in a single SUBSCRIPTION
@@ -1362,7 +1411,21 @@ class Client(object):
 
         topic: A list of tuple of format (topic, qos). Both topic and qos must
                be present in all of the tuples.
-        qos: Not used.
+        qos, options and properties: Not used.
+
+        List of string and subscribe option tuples (MQTT v5.0 only)
+        -----------------------------------------------------------
+        e.g. subscribe([("my/topic", SubscribeOptions(qos=0), ("another/topic", SubscribeOptions(qos=2)])
+
+        This allows multiple topic subscriptions in a single SUBSCRIPTION
+        command, which is more efficient than using multiple calls to
+        subscribe().
+
+        topic: A list of tuple of format (topic, SubscribeOptions). Both topic and subscribe
+                options must be present in all of the tuples.
+        qos and options: Not used.
+        properties: a Properties instance setting the MQTT v5.0 properties
+        to be included. Optional - if not set, no properties are sent.
 
         The function returns a tuple (result, mid), where result is
         MQTT_ERR_SUCCESS to indicate success or (MQTT_ERR_NO_CONN, None) if the
@@ -1437,6 +1500,8 @@ class Client(object):
 
         topic: A single string, or list of strings that are the subscription
                topics to unsubscribe from.
+        properties: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
+        to be included. Optional - if not set, no properties are sent.
 
         Returns a tuple (result, mid), where result is MQTT_ERR_SUCCESS
         to indicate success or (MQTT_ERR_NO_CONN, None) if the client is not
@@ -1616,6 +1681,8 @@ class Client(object):
         qos: The quality of service level to use for the will.
         retain: If set to true, the will message will be set as the "last known
         good"/retained message for the topic.
+        properties: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
+        to be included with the will message. Optional - if not set, no properties are sent.
 
         Raises a ValueError if qos is not 0, 1 or 2, or if topic is None or has
         zero string length.
@@ -1625,6 +1692,10 @@ class Client(object):
 
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
+
+        if not isinstance(properties, Properties):
+            raise ValueError(
+                "The properties argument must be an instance of the Properties class.")
 
         if isinstance(payload, unicode):
             self._will_payload = payload.encode('utf-8')
@@ -1787,13 +1858,19 @@ class Client(object):
     def on_connect(self, func):
         """ Define the connect callback implementation.
 
-        Expected signature is:
+        Expected signature for MQTT v3.1 and v3.1.1 is:
             connect_callback(client, userdata, flags, rc)
+
+        and for MQTT v5.0:
+            connect_callback(client, userdata, flags, reasonCode, properties)
 
         client:     the client instance for this callback
         userdata:   the private user data as set in Client() or userdata_set()
         flags:      response flags sent by the broker
         rc:         the connection result
+        reasonCode: the MQTT v5.0 reason code: an instance of the ReasonCode class
+        properties: the MQTT v5.0 properties returned from the broker.  An instance
+                    of the Properties class
 
         flags is a dict that contains response flags from the broker:
             flags['session present'] - this flag is useful for clients that are
@@ -1824,8 +1901,11 @@ class Client(object):
     def on_subscribe(self, func):
         """ Define the suscribe callback implementation.
 
-        Expected signature is:
+        Expected signature for MQTT v3.1.1 and v3.1 is:
             subscribe_callback(client, userdata, mid, granted_qos)
+
+        and for MQTT v5.0:
+            subscribe_callback(client, userdata, mid, properties, reasonCodes)
 
         client:         the client instance for this callback
         userdata:       the private user data as set in Client() or userdata_set()
@@ -1833,6 +1913,10 @@ class Client(object):
                         subscribe() call.
         granted_qos:    list of integers that give the QoS level the broker has
                         granted for each of the different subscription requests.
+        properties:     the MQTT v5.0 properties received from the broker.  A
+                        list of Properties class instances.
+        reasonCodes:    the MQTT v5.0 reason codes received from the broker for each
+                        subscription.  A list of ReasonCodes instances
         """
         with self._callback_mutex:
             self._on_subscribe = func
@@ -1899,13 +1983,20 @@ class Client(object):
     def on_unsubscribe(self, func):
         """ Define the unsubscribe callback implementation.
 
-        Expected signature is:
+        Expected signature for MQTT v3.1.1 and v3.1 is:
             unsubscribe_callback(client, userdata, mid)
 
-        client:     the client instance for this callback
-        userdata:   the private user data as set in Client() or userdata_set()
-        mid:        matches the mid variable returned from the corresponding
-                    unsubscribe() call.
+        and for MQTT v5.0:
+            unsubscribe_callback(client, userdata, mid, properties, reasonCodes)
+
+        client:         the client instance for this callback
+        userdata:       the private user data as set in Client() or userdata_set()
+        mid:            matches the mid variable returned from the corresponding
+                        unsubscribe() call.
+        properties:     the MQTT v5.0 properties received from the broker.  A
+                        list of Properties class instances.
+        reasonCodes:    the MQTT v5.0 reason codes received from the broker for each
+                        unsubscribe topic.  A list of ReasonCodes instances
         """
         with self._callback_mutex:
             self._on_unsubscribe = func
@@ -1920,8 +2011,11 @@ class Client(object):
     def on_disconnect(self, func):
         """ Define the disconnect callback implementation.
 
-        Expected signature is:
+        Expected signature for MQTT v3.1.1 and v3.1 is:
             disconnect_callback(client, userdata, rc)
+
+        and for MQTT v5.0:
+            disconnect_callback(client, userdata, reasonCode, properties)
 
         client:     the client instance for this callback
         userdata:   the private user data as set in Client() or userdata_set()

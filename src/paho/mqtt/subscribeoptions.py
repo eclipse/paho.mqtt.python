@@ -24,12 +24,32 @@ class MQTTException(Exception):
 
 
 class SubscribeOptions(object):
+    """The MQTT v5.0 subscribe options class.
+
+    The options are:
+        qos:                As in MQTT v3.1.1.
+        noLocal:            True or False. If set to True, the subscriber will not receive its own publications.
+        retainAsPublished:  True or False. If set to True, the retain flag on received publications will be as set
+                            by the publisher.
+        retainHandling:     RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB or RETAIN_DO_NOT_SEND
+                            Controls when the broker should send retained messages:
+                                - RETAIN_SEND_ON_SUBSCRIBE: on any successful subscribe request
+                                - RETAIN_SEND_IF_NEW_SUB: only if the subscribe request is new
+                                - RETAIN_DO_NOT_SEND: never send retained messages
+    """
 
     # retain handling options
     RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB, RETAIN_DO_NOT_SEND = range(
         0, 3)
 
-    def __init__(self, qos=0, noLocal=False, retainAsPublished=False, retainHandling=0):
+    def __init__(self, qos=0, noLocal=False, retainAsPublished=False, retainHandling=RETAIN_SEND_ON_SUBSCRIBE):
+        """
+        qos:                0, 1 or 2.  0 is the default.
+        noLocal:            True or False. False is the default and corresponds to MQTT v3.1.1 behavior.
+        retainAsPublished:  True or False. False is the default and corresponds to MQTT v3.1.1 behavior.
+        retainHandling:     RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB or RETAIN_DO_NOT_SEND
+                            RETAIN_SEND_ON_SUBSCRIBE is the default and corresponds to MQTT v3.1.1 behavior.
+        """
         object.__setattr__(self, "names",
                            ["QoS", "noLocal", "retainAsPublished", "retainHandling"])
         self.QoS = qos  # bits 0,1

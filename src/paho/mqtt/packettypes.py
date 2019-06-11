@@ -19,6 +19,14 @@
 
 class PacketTypes:
 
+    """
+    Packet types class.  Includes the AUTH packet for MQTT v5.0.
+
+    Holds constants for each packet type such as PacketTypes.PUBLISH
+    and packet name strings: PacketTypes.Names[PacketTypes.PUBLISH].
+
+    """
+
     indexes = range(1, 16)
 
     # Packet types

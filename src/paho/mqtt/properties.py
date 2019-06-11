@@ -30,18 +30,22 @@ class MalformedPacket(MQTTException):
 
 
 def writeInt16(length):
+    # serialize a 16 bit integer to network format
     return bytearray(struct.pack("!H", length))
 
 
 def readInt16(buf):
+    # deserialize a 16 bit integer from network format
     return struct.unpack("!H", buf[:2])[0]
 
 
 def writeInt32(length):
+    # serialize a 32 bit integer to network format
     return bytearray(struct.pack("!L", length))
 
 
 def readInt32(buf):
+    # deserialize a 32 bit integer from network format
     return struct.unpack("!L", buf[:4])[0]
 
 
@@ -85,6 +89,11 @@ def readBytes(buffer):
 
 
 class VariableByteIntegers:  # Variable Byte Integer
+    """
+    MQTT variable byte integer helper class.  Used
+    in several places in MQTT v5.0 properties.
+
+    """
 
     @staticmethod
     def encode(x):
@@ -130,6 +139,23 @@ class VariableByteIntegers:  # Variable Byte Integer
 
 
 class Properties(object):
+    """MQTT v5.0 properties class.
+
+    See Properties.names for a list of accepted property names along with their numeric values.
+
+    See Properties.properties for the data type of each property.
+
+    Example of use:
+
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.UserProperty = ("a", "2")
+        publish_properties.UserProperty = ("c", "3")
+
+    First the object is created with packet type as argument, no properties will be present at
+    this point.  Then properties are added as attributes, the name of which is the string property
+    name without the spaces.
+
+    """
 
     def __init__(self, packetType):
         self.packetType = packetType

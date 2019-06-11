@@ -21,59 +21,26 @@ from .packettypes import PacketTypes
 
 
 class ReasonCodes:
-    """
-      The reason code used in MQTT V5.0
+    """MQTT version 5.0 reason codes class.
+
+    See ReasonCodes.names for a list of possible numeric values along with their 
+    names and the packets to which they apply.
 
     """
-
-    def __getName__(self, packetType, identifier):
-        """
-        used when displaying the reason code
-        """
-        assert identifier in self.names.keys(), identifier
-        names = self.names[identifier]
-        namelist = [name for name in names.keys() if packetType in names[name]]
-        assert len(namelist) == 1
-        return namelist[0]
-
-    def getId(self, name):
-        """
-        used when setting the reason code for a packetType
-        check that only valid codes for the packet are set
-        """
-        identifier = None
-        for code in self.names.keys():
-            if name in self.names[code].keys():
-                if self.packetType in self.names[code][name]:
-                    identifier = code
-                break
-        assert identifier != None, name
-        return identifier
-
-    def set(self, name):
-        self.value = self.getId(name)
-
-    def unpack(self, buffer):
-        c = buffer[0]
-        if sys.version_info[0] < 3:
-            c = ord(c)
-        name = self.__getName__(self.packetType, c)
-        self.value = self.getId(name)
-        return 1
-
-    def getName(self):
-        return self.__getName__(self.packetType, self.value)
-
-    def __str__(self):
-        return self.getName()
-
-    def json(self):
-        return self.getName()
-
-    def pack(self):
-        return bytearray([self.value])
 
     def __init__(self, packetType, aName="Success", identifier=-1):
+        """
+        packetType: the type of the packet, such as PacketTypes.CONNECT that
+            this reason code will be used with.  Some reason codes have different
+            names for the same identifier when used a different packet type.
+
+        aName: the String name of the reason code to be created.  Ignored
+            if the identifier is set.
+
+        identifier: an integer value of the reason code to be created.  
+
+        """
+
         self.packetType = packetType
         self.names = {
             0: {"Success": [PacketTypes.CONNACK, PacketTypes.PUBACK,
@@ -158,3 +125,58 @@ class ReasonCodes:
         else:
             self.value = identifier
             self.getName()  # check it's good
+
+    def __getName__(self, packetType, identifier):
+        """
+        Get the reason code string name for a specific identifier.
+        The name can vary by packet type for the same identifier, which
+        is why the packet type is also required.
+
+        Used when displaying the reason code.
+        """
+        assert identifier in self.names.keys(), identifier
+        names = self.names[identifier]
+        namelist = [name for name in names.keys() if packetType in names[name]]
+        assert len(namelist) == 1
+        return namelist[0]
+
+    def getId(self, name):
+        """
+        Get the numeric id corresponding to a reason code name.
+
+        Used when setting the reason code for a packetType
+        check that only valid codes for the packet are set.
+        """
+        identifier = None
+        for code in self.names.keys():
+            if name in self.names[code].keys():
+                if self.packetType in self.names[code][name]:
+                    identifier = code
+                break
+        assert identifier != None, name
+        return identifier
+
+    def set(self, name):
+        self.value = self.getId(name)
+
+    def unpack(self, buffer):
+        c = buffer[0]
+        if sys.version_info[0] < 3:
+            c = ord(c)
+        name = self.__getName__(self.packetType, c)
+        self.value = self.getId(name)
+        return 1
+
+    def getName(self):
+        """Returns the reason code name corresponding to the numeric value which is set.
+        """
+        return self.__getName__(self.packetType, self.value)
+
+    def __str__(self):
+        return self.getName()
+
+    def json(self):
+        return self.getName()
+
+    def pack(self):
+        return bytearray([self.value])
