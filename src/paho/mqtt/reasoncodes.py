@@ -172,6 +172,15 @@ class ReasonCodes:
         """
         return self.__getName__(self.packetType, self.value)
 
+    def __eq__(self, other):
+        if isinstance(other, int):
+            return self.value == other
+        if isinstance(other, str):
+            return self.value == str(self)
+        if isinstance(other, ReasonCodes):
+            return self.value == other.value
+        return False
+
     def __str__(self):
         return self.getName()
 
