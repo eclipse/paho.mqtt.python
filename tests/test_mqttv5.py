@@ -195,7 +195,7 @@ class Test(unittest.TestCase):
 
         aclient.subscribe(topics[0], options=SubscribeOptions(qos=2))
         response = callback.wait_subscribed()
-        self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+        self.assertEqual(response["reasonCodes"][0].getName(), "Granted QoS 2")
 
         aclient.publish(topics[0], b"qos 0")
         aclient.publish(topics[0], b"qos 1", 1)
@@ -235,7 +235,7 @@ class Test(unittest.TestCase):
         time.sleep(1)
         aclient.subscribe(wildtopics[5], options=SubscribeOptions(qos=2))
         response = callback.wait_subscribed()
-        self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+        self.assertEqual(response["reasonCodes"][0].getName(), "Granted QoS 2")
 
         time.sleep(1)
         aclient.disconnect()
@@ -278,7 +278,7 @@ class Test(unittest.TestCase):
         response = callback2.wait_connected()
         bclient.subscribe(topics[2], qos=2)
         response = callback2.wait_subscribed()
-        self.assertEqual(response["reasonCodes"].getName(), "Granted QoS 2")
+        self.assertEqual(response["reasonCodes"][0].getName(), "Granted QoS 2")
 
         # keep alive timeout ought to be triggered so the will message is received
         aclient.loop_stop()  # so that pings aren't sent
@@ -426,8 +426,8 @@ class Test(unittest.TestCase):
         oclient.subscribe(nosubscribe_topics[0], qos=2)
         response = ocallback.wait_subscribed()
 
-        self.assertEqual(response["reasonCodes"].getName(), "Unspecified error",
-                         "return code should be 0x80 %s" % response["reasonCodes"].getName())
+        self.assertEqual(response["reasonCodes"][0].getName(), "Unspecified error",
+                         "return code should be 0x80 %s" % response["reasonCodes"][0].getName())
         oclient.disconnect()
         oclient.loop_stop()
 

@@ -3136,8 +3136,6 @@ class Client(object):
                 if sys.version_info[0] < 3:
                     c = ord(c)
                 reasoncodes.append(ReasonCodes(SUBACK >> 4, identifier=c))
-            if len(reasoncodes) == 1:
-                reasoncodes = reasoncodes[0]
         else:
             pack_format = "!" + "B" * len(packet)
             granted_qos = struct.unpack(pack_format, packet)
