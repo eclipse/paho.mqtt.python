@@ -424,7 +424,7 @@ class Client(object):
     broker. To use a callback, define a function and then assign it to the
     client:
 
-    def on_connect(client, userdata, flags, rc):
+    def on_connect(client, userdata, flags, rc, properties=None):
         print("Connection returned " + str(rc))
 
     client.on_connect = on_connect
@@ -436,7 +436,7 @@ class Client(object):
 
     The callbacks:
 
-    on_connect(client, userdata, flags, rc): called when the broker responds to our connection
+    on_connect(client, userdata, flags, rc, properties=None): called when the broker responds to our connection
       request.
       flags is a dict that contains response flags from the broker:
         flags['session present'] - this flag is useful for clients that are
@@ -477,7 +477,7 @@ class Client(object):
       This callback is important because even if the publish() call returns
       success, it does not always mean that the message has been sent.
 
-    on_subscribe(client, userdata, mid, granted_qos): called when the broker responds to a
+    on_subscribe(client, userdata, mid, granted_qos, properties=None): called when the broker responds to a
       subscribe request. The mid variable matches the mid variable returned
       from the corresponding subscribe() call. The granted_qos variable is a
       list of integers that give the QoS level the broker has granted for each
@@ -1859,7 +1859,7 @@ class Client(object):
         """ Define the connect callback implementation.
 
         Expected signature for MQTT v3.1 and v3.1.1 is:
-            connect_callback(client, userdata, flags, rc)
+            connect_callback(client, userdata, flags, rc, properties=None)
 
         and for MQTT v5.0:
             connect_callback(client, userdata, flags, reasonCode, properties)
@@ -1868,9 +1868,12 @@ class Client(object):
         userdata:   the private user data as set in Client() or userdata_set()
         flags:      response flags sent by the broker
         rc:         the connection result
-        reasonCode: the MQTT v5.0 reason code: an instance of the ReasonCode class
+        reasonCode: the MQTT v5.0 reason code: an instance of the ReasonCode class.
+                    ReasonCode may be compared to interger.
         properties: the MQTT v5.0 properties returned from the broker.  An instance
-                    of the Properties class
+                    of the Properties class.
+                    For MQTT v3.1 and v3.1.1 properties is not provided but for compatibility
+                    with MQTT v5.0, we recommand adding properties=None.
 
         flags is a dict that contains response flags from the broker:
             flags['session present'] - this flag is useful for clients that are
@@ -1902,10 +1905,10 @@ class Client(object):
         """ Define the suscribe callback implementation.
 
         Expected signature for MQTT v3.1.1 and v3.1 is:
-            subscribe_callback(client, userdata, mid, granted_qos)
+            subscribe_callback(client, userdata, mid, granted_qos, properties=None)
 
         and for MQTT v5.0:
-            subscribe_callback(client, userdata, mid, properties, reasonCodes)
+            subscribe_callback(client, userdata, mid, reasonCodes, properties)
 
         client:         the client instance for this callback
         userdata:       the private user data as set in Client() or userdata_set()
@@ -1913,10 +1916,10 @@ class Client(object):
                         subscribe() call.
         granted_qos:    list of integers that give the QoS level the broker has
                         granted for each of the different subscription requests.
+        reasonCodes:    the MQTT v5.0 reason codes received from the broker for each
+                        subscription.  A list of ReasonCodes instances.
         properties:     the MQTT v5.0 properties received from the broker.  A
                         list of Properties class instances.
-        reasonCodes:    the MQTT v5.0 reason codes received from the broker for each
-                        subscription.  A list of ReasonCodes instances
         """
         with self._callback_mutex:
             self._on_subscribe = func
@@ -3145,7 +3148,7 @@ class Client(object):
                     try:
                         if self._protocol == MQTTv5:
                             self.on_subscribe(
-                                self, self._userdata, mid, properties, reasoncodes)
+                                self, self._userdata, mid, reasoncodes, properties)
                         else:
                             self.on_subscribe(
                                 self, self._userdata, mid, granted_qos)

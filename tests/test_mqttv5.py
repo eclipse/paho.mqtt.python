@@ -80,7 +80,7 @@ class Callbacks:
     def wait_published(self):
         return self.wait(self.publisheds)
 
-    def on_subscribe(self, client, userdata, mid, properties, reasonCodes):
+    def on_subscribe(self, client, userdata, mid, reasonCodes, properties):
         self.subscribeds.append({"mid": mid, "userdata": userdata,
                                  "properties": properties, "reasonCodes": reasonCodes})
 
