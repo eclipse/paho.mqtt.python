@@ -630,6 +630,12 @@ class Client(object):
                 raise WouldBlockError()
             if err.errno == EAGAIN:
                 raise WouldBlockError()
+            if err.errno == errno.EPIPE:
+                try:
+                    self.reconnect()
+                    return self._sock.recv(bufsize)
+                except:
+                    raise
             raise
 
     def _sock_send(self, buf):
@@ -644,6 +650,12 @@ class Client(object):
             if err.errno == EAGAIN:
                 self._call_socket_register_write()
                 raise WouldBlockError()
+            if err.errno == errno.EPIPE:
+                try:
+                    self.reconnect()
+                    return self._sock.send(buf)
+                except:
+                    raise
             raise
 
     def _sock_close(self):
