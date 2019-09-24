@@ -212,6 +212,8 @@ def error_string(mqtt_errno):
         return "Unknown error."
     elif mqtt_errno == MQTT_ERR_ERRNO:
         return "Error defined by errno."
+    elif mqtt_errno == MQTT_ERR_QUEUE_SIZE:
+        return "Message queue full."
     else:
         return "Unknown error."
 
