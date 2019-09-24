@@ -562,6 +562,7 @@ class Client(object):
         self._protocol = protocol
         self._userdata = userdata
         self._sock = None
+        self._sockpairR, self._sockpairW = (None, None,)
         self._sockpairR, self._sockpairW = _socketpair_compat()
         self._keepalive = 60
         self._message_retry = 20
