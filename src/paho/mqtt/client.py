@@ -1345,6 +1345,14 @@ class Client(object):
         """
         self._client_mode = MQTT_BRIDGE
 
+    def isConnected(self):
+        """Returns the current status of the connection
+
+        True if connection exists
+        False if connection is closed
+        """
+        return self._state == mqtt_cs_connected
+
     def disconnect(self, reasoncode=None, properties=None):
         """Disconnect a connected client from the broker.
         reasoncode: (MQTT v5.0 only) a ReasonCodes instance setting the MQTT v5.0
