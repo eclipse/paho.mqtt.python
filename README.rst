@@ -69,6 +69,10 @@ Once you have the code, it can be installed from your repository as well:
     cd paho.mqtt.python
     python setup.py install
 
+To perform all test (including MQTT v5 test), you also need to clone paho.mqtt.testing in paho.mqtt.python folder::
+
+    git clone https://github.com/eclipse/paho.mqtt.testing.git
+
 Known limitations
 -----------------
 
