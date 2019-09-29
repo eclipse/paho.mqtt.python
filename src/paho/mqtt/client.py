@@ -1345,7 +1345,7 @@ class Client(object):
         """
         self._client_mode = MQTT_BRIDGE
 
-    def isConnected(self):
+    def is_connected(self):
         """Returns the current status of the connection
 
         True if connection exists
