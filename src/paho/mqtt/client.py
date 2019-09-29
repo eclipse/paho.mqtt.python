@@ -616,6 +616,7 @@ class Client(object):
         self._host = ""
         self._port = 1883
         self._bind_address = ""
+        self._bind_port = 0
         self._proxy = {}
         self._in_callback_mutex = threading.Lock()
         self._callback_mutex = threading.RLock()
@@ -904,7 +905,7 @@ class Client(object):
     def disable_logger(self):
         self._logger = None
 
-    def connect(self, host, port=1883, keepalive=60, bind_address="",
+    def connect(self, host, port=1883, keepalive=60, bind_address="", bind_port=0,
                 clean_start=MQTT_CLEAN_START_FIRST_ONLY, properties=None):
         """Connect to a remote broker.
 
@@ -932,7 +933,7 @@ class Client(object):
                 raise ValueError("Properties only apply to MQTT V5")
 
         self.connect_async(host, port, keepalive,
-                           bind_address, clean_start, properties)
+                           bind_address, bind_port, clean_start, properties)
         return self.reconnect()
 
     def connect_srv(self, domain=None, keepalive=60, bind_address="",
@@ -976,7 +977,7 @@ class Client(object):
 
         raise ValueError("No SRV hosts responded")
 
-    def connect_async(self, host, port=1883, keepalive=60, bind_address="",
+    def connect_async(self, host, port=1883, keepalive=60, bind_address="", bind_port=0,
                       clean_start=MQTT_CLEAN_START_FIRST_ONLY, properties=None):
         """Connect to a remote broker asynchronously. This is a non-blocking
         connect call that can be used with loop_start() to provide very quick
@@ -1005,14 +1006,18 @@ class Client(object):
         if bind_address != "" and bind_address is not None:
             if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
                 raise ValueError('bind_address requires Python 2.7 or 3.2.')
+        if bind_port < 0:
+            raise ValueError('Invalid bind port number.')
 
         self._host = host
         self._port = port
         self._keepalive = keepalive
         self._bind_address = bind_address
+        self._bind_port = bind_port
         self._clean_start = clean_start
         self._connect_properties = properties
         self._state = mqtt_cs_connect_async
+        
 
     def reconnect_delay_set(self, min_delay=1, max_delay=120):
         """ Configure the exponential reconnect delay
@@ -3506,7 +3511,8 @@ class Client(object):
     def _create_socket_connection(self):
         proxy = self._get_proxy()
         addr = (self._host, self._port)
-        source = (self._bind_address, 0)
+        source = (self._bind_address, self._bind_port)
+       
 
         if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
             # Have to short-circuit here because of unsupported source_address
