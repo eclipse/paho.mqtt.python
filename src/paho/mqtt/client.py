@@ -1809,7 +1809,7 @@ class Client(object):
                 else:
                     try:
                         self.reconnect()
-                    except (socket.error, WebsocketConnectionError):
+                    except (socket.error, OSError, WebsocketConnectionError):
                         pass
 
         return rc
