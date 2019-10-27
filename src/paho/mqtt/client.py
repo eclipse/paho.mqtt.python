@@ -1068,11 +1068,7 @@ class Client(object):
         # Put messages in progress in a valid state.
         self._messages_reconnect_reset()
 
-        try:
-            sock = self._create_socket_connection()
-        except socket.error as err:
-            if err.errno != errno.EINPROGRESS and err.errno != errno.EWOULDBLOCK and err.errno != EAGAIN:
-                raise
+        sock = self._create_socket_connection()
 
         if self._ssl:
             # SSL is only supported when SSLContext is available (implies Python >= 2.7.9 or >= 3.2)
