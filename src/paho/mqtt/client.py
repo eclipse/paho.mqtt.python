@@ -1810,7 +1810,8 @@ class Client(object):
                     try:
                         self.reconnect()
                     except (socket.error, OSError, WebsocketConnectionError):
-                        pass
+                        self._easy_log(
+                            MQTT_LOG_DEBUG, "Connection failed, retrying")
 
         return rc
 
