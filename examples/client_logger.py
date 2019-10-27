@@ -30,7 +30,7 @@ mqttc = mqtt.Client()
 logger = logging.getLogger(__name__)
 mqttc.enable_logger(logger)
 
-mqttc.connect("m2m.eclipse.org", 1883, 60)
+mqttc.connect("mqtt.eclipse.org", 1883, 60)
 mqttc.subscribe("$SYS/#", 0)
 
 mqttc.loop_forever()

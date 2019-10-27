@@ -36,7 +36,7 @@ class MyMQTTClass(mqtt.Client):
         print(string)
 
     def run(self):
-        self.connect("m2m.eclipse.org", 1883, 60)
+        self.connect("mqtt.eclipse.org", 1883, 60)
         self.subscribe("$SYS/#", 0)
 
         rc = 0
