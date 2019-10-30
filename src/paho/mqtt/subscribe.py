@@ -65,7 +65,7 @@ def _on_message_simple(client, userdata, message):
 def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
              port=1883, client_id="", keepalive=60, will=None, auth=None,
              tls=None, protocol=paho.MQTTv311, transport="tcp",
-             clean_session=True):
+             clean_session=True, proxy_args=None):
     """Subscribe to a list of topics and process them in a callback function.
 
     This function creates an MQTT client, connects to a broker and subscribes
@@ -125,6 +125,8 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
                     client and subscription information and queued messages
                     will be retained when the client disconnects.
                     Defaults to True.
+
+    proxy_args: a dictionary that will be given to the client.
     """
 
     if qos < 0 or qos > 2:
@@ -141,6 +143,9 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
                          clean_session=clean_session)
     client.on_message = _on_message_callback
     client.on_connect = _on_connect
+
+    if proxy_args is not None:
+        client.proxy_set(**proxy_args)
 
     if auth:
         username = auth.get('username')
@@ -173,7 +178,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
 def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
            tls=None, protocol=paho.MQTTv311, transport="tcp",
-           clean_session=True):
+           clean_session=True, proxy_args=None):
     """Subscribe to a list of topics and return msg_count messages.
 
     This function creates an MQTT client, connects to a broker and subscribes
@@ -238,6 +243,8 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
                     client and subscription information and queued messages
                     will be retained when the client disconnects.
                     Defaults to True.
+
+    proxy_args: a dictionary that will be given to the client.
     """
 
     if msg_count < 1:
@@ -254,6 +261,6 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
 
     callback(_on_message_simple, topics, qos, userdata, hostname, port,
              client_id, keepalive, will, auth, tls, protocol, transport,
-             clean_session)
+             clean_session, proxy_args)
 
     return userdata['messages']
