@@ -71,7 +71,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "dh:i:k:p:P:t:u:v",
                                    ["debug", "id", "keepalive", "port", "password", "topic", "username", "verbose"])
-    except getopt.GetoptError as s:
+    except getopt.GetoptError:
         print_usage()
         sys.exit(2)
     for opt, arg in opts:
