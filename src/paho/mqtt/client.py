@@ -1635,7 +1635,7 @@ class Client(object):
             if self._state == mqtt_cs_disconnecting:
                 rc = MQTT_ERR_SUCCESS
             else:
-                rc = 1
+                rc = MQTT_ERR_CONN_LOST
 
             with self._callback_mutex:
                 if self.on_disconnect:
