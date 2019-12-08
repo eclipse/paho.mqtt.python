@@ -3412,8 +3412,17 @@ class Client(object):
 
             if topic is not None:
                 for callback in self._on_message_filtered.iter_match(message.topic):
+                    self._easy_log(MQTT_LOG_INFO, f'running filtered callback: {callback}')
                     with self._in_callback_mutex:
-                        callback(self, self._userdata, message)
+                        try:
+                            callback(self, self._userdata, message)
+                        except Exception as err:
+                            self._easy_log(
+                                MQTT_LOG_ERR,
+                                'Caught exception in user defined callback function %s: %s',
+                                callback.__name__,
+                                err
+                            )
                     matched = True
 
             if matched == False and self.on_message:
