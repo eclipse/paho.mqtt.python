@@ -46,6 +46,11 @@ The latest stable version is available in the Python Package Index (PyPi) and ca
 ::
 
     pip install paho-mqtt
+    
+Or with ``conda``:
+::
+
+    conda install -c conda-forge paho-mqtt
 
 Or with ``virtualenv``:
 
