@@ -1,7 +1,7 @@
 Eclipse Paho™ MQTT Python Client
 ================================
 
-This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 3.1 and 3.1.1 of the MQTT protocol.
+This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 3.1, 3.1.1 and 5.0 of the MQTT protocol.
 
 This code provides a client class which enable applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
 
@@ -190,8 +190,8 @@ userdata
     ``user_data_set()`` function.
 
 protocol
-    the version of the MQTT protocol to use for this client. Can be either
-    ``MQTTv31`` or ``MQTTv311``
+    the version of the MQTT protocol to use for this client. Can be
+    ``MQTTv31``, ``MQTTv311`` or ``MQTTv5``
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
@@ -1245,7 +1245,7 @@ tls
     Defaults to None, which indicates that TLS should not be used.
 
 protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
+    choose the version of the MQTT protocol to use. Use ``MQTTv31``, ``MQTTv311`` or ``MQTTv5``.
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
