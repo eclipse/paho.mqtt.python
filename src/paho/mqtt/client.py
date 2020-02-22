@@ -925,7 +925,7 @@ class Client(object):
         """
 
         if self._protocol == MQTTv5:
-            self._mqttv5_first_connect == True
+            self._mqttv5_first_connect = True
         else:
             if clean_start != MQTT_CLEAN_START_FIRST_ONLY:
                 raise ValueError("Clean start only applies to MQTT V5")
@@ -3030,7 +3030,7 @@ class Client(object):
                 MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
 
         # it won't be the first successful connect any more
-        self._mqttv5_first_connect == False
+        self._mqttv5_first_connect = False
 
         with self._callback_mutex:
             if self.on_connect:
