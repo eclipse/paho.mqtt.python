@@ -3285,6 +3285,7 @@ class Client(object):
                         m.qos,
                         m.retain,
                         m.dup,
+                        properties=m.properties,
                     )
                     if rc != 0:
                         return rc
