@@ -21,6 +21,10 @@ broker, then disconnect and nothing else is required.
 from __future__ import absolute_import
 
 import collections
+try:
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Iterable
 
 from . import client as paho
 from .. import mqtt
@@ -124,7 +128,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     proxy_args: a dictionary that will be given to the client.
     """
 
-    if not isinstance(msgs, collections.Iterable):
+    if not isinstance(msgs, Iterable):
         raise TypeError('msgs must be an iterable')
 
     client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
