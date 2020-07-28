@@ -925,7 +925,7 @@ class Client(object):
         """
 
         if self._protocol == MQTTv5:
-            self._mqttv5_first_connect == True
+            self._mqttv5_first_connect = True
         else:
             if clean_start != MQTT_CLEAN_START_FIRST_ONLY:
                 raise ValueError("Clean start only applies to MQTT V5")
@@ -2614,7 +2614,7 @@ class Client(object):
         if self._protocol == MQTTv5:
             if self._clean_start == True:
                 connect_flags |= 0x02
-            elif self._clean_start == MQTT_CLEAN_START_FIRST_ONLY and self._mqttv5_first_connect == True:
+            elif self._clean_start == MQTT_CLEAN_START_FIRST_ONLY and self._mqttv5_first_connect:
                 connect_flags |= 0x02
         elif self._clean_session:
             connect_flags |= 0x02
@@ -3030,7 +3030,7 @@ class Client(object):
                 MQTT_LOG_DEBUG, "Received CONNACK (%s, %s)", flags, result)
 
         # it won't be the first successful connect any more
-        self._mqttv5_first_connect == False
+        self._mqttv5_first_connect = False
 
         with self._callback_mutex:
             if self.on_connect:
@@ -3509,7 +3509,7 @@ class Client(object):
         proxy = self._get_proxy()
         addr = (self._host, self._port)
         source = (self._bind_address, self._bind_port)
-       
+
 
         if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
             # Have to short-circuit here because of unsupported source_address
