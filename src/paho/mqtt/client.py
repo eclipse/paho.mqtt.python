@@ -2834,7 +2834,8 @@ class Client(object):
                             m.payload,
                             m.qos,
                             m.retain,
-                            m.dup
+                            m.dup,
+                            properties=m.properties,
                         )
                     elif m.state == mqtt_ms_wait_for_pubrel:
                         m.timestamp = now
@@ -3285,6 +3286,7 @@ class Client(object):
                         m.qos,
                         m.retain,
                         m.dup,
+                        properties=m.properties,
                     )
                     if rc != 0:
                         return rc
