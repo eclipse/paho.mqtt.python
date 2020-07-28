@@ -1,5 +1,6 @@
-pytest==3.0.7
-pytest-runner==2.11.1
-tox==2.7.0
 mock==3.0.5
 pylama==7.7.1
+pytest==4.6.6; python_version < '3.0'
+pytest==5.2.2; python_version >= '3.0'
+pytest-runner==5.2
+tox==3.14.0
