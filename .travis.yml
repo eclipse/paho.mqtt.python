@@ -10,8 +10,8 @@ matrix:
       env: TOXENV=py36
     - python: 3.5
       env: TOXENV=py35
-    - python: 2.7   # Legacy Python does not support asyncio and type hints
-      env: TOXENV=py27 EXCLUDE="--exclude=./.*,./examples/loop_asyncio.py,*/MQTTV5.py,*/MQTTV311.py"
+    - python: 2.7
+      env: TOXENV=py27
 
 install:
   - git clone https://github.com/eclipse/paho.mqtt.testing.git || true
