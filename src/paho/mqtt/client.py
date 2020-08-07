@@ -1637,14 +1637,7 @@ class Client(object):
             else:
                 rc = 1
 
-            with self._callback_mutex:
-                if self.on_disconnect:
-                    with self._in_callback_mutex:
-                        try:
-                            self.on_disconnect(self, self._userdata, rc)
-                        except Exception as err:
-                            self._easy_log(
-                                MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+            self._do_on_disconnect(rc)
 
             return MQTT_ERR_CONN_LOST
 
@@ -2219,18 +2212,8 @@ class Client(object):
             if self._state == mqtt_cs_disconnecting:
                 rc = MQTT_ERR_SUCCESS
 
-            with self._callback_mutex:
-                if self.on_disconnect:
-                    with self._in_callback_mutex:
-                        try:
-                            if properties:
-                                self.on_disconnect(
-                                    self, self._userdata, rc, properties)
-                            else:
-                                self.on_disconnect(self, self._userdata, rc)
-                        except Exception as err:
-                            self._easy_log(
-                                MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+            self._do_on_disconnect(rc, properties)
+
         return rc
 
     def _packet_read(self):
@@ -2374,15 +2357,7 @@ class Client(object):
                         with self._msgtime_mutex:
                             self._last_msg_out = time_func()
 
-                        with self._callback_mutex:
-                            if self.on_disconnect:
-                                with self._in_callback_mutex:
-                                    try:
-                                        self.on_disconnect(
-                                            self, self._userdata, 0)
-                                    except Exception as err:
-                                        self._easy_log(
-                                            MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+                        self._do_on_disconnect(0)
 
                         self._sock_close()
                         return MQTT_ERR_SUCCESS
@@ -2437,14 +2412,8 @@ class Client(object):
                     rc = MQTT_ERR_SUCCESS
                 else:
                     rc = 1
-                with self._callback_mutex:
-                    if self.on_disconnect:
-                        with self._in_callback_mutex:
-                            try:
-                                self.on_disconnect(self, self._userdata, rc)
-                            except Exception as err:
-                                self._easy_log(
-                                    MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+
+                self._do_on_disconnect(rc)
 
     def _mid_generate(self):
         with self._mid_generate_mutex:
@@ -3355,6 +3324,20 @@ class Client(object):
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_unsubscribe: %s', err)
         return MQTT_ERR_SUCCESS
+
+    def _do_on_disconnect(self, rc, properties=None):
+        with self._callback_mutex:
+            if self.on_disconnect:
+                with self._in_callback_mutex:
+                    try:
+                        if properties:
+                            self.on_disconnect(
+                                self, self._userdata, rc, properties)
+                        else:
+                            self.on_disconnect(self, self._userdata, rc)
+                    except Exception as err:
+                        self._easy_log(
+                            MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
 
     def _do_on_publish(self, mid):
         with self._callback_mutex:
