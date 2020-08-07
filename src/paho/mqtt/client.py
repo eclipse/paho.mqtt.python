@@ -436,6 +436,9 @@ class Client(object):
     "userdata" is user data of any type and can be set when creating a new client
     instance or with user_data_set(userdata).
 
+    If you wish to suppress exceptions within a callback, you should set
+    `client.suppress_exceptions = True`
+
     The callbacks:
 
     on_connect(client, userdata, flags, rc, properties=None): called when the broker responds to our connection
@@ -651,6 +654,7 @@ class Client(object):
         self._websocket_extra_headers = None
         # for clean_start == MQTT_CLEAN_START_FIRST_ONLY
         self._mqttv5_first_connect = True
+        self.suppress_exceptions = False # For callbacks
 
     def __del__(self):
         self._reset_sockets()
@@ -2068,6 +2072,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_socket_open: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
 
     @property
     def on_socket_close(self):
@@ -2100,6 +2106,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_socket_close: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
 
     @property
     def on_socket_register_write(self):
@@ -2135,6 +2143,8 @@ class Client(object):
                 except Exception as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'Caught exception in on_socket_register_write: %s', err)
+                    if not self.suppress_exceptions:
+                        raise
 
     @property
     def on_socket_unregister_write(self):
@@ -2171,6 +2181,8 @@ class Client(object):
                 except Exception as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'Caught exception in on_socket_unregister_write: %s', err)
+                    if not self.suppress_exceptions:
+                        raise
 
     def message_callback_add(self, sub, callback):
         """Register a message callback for a specific topic.
@@ -2348,6 +2360,8 @@ class Client(object):
                                     except Exception as err:
                                         self._easy_log(
                                             MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
+                                        if not self.suppress_exceptions:
+                                            raise
 
                         packet['info']._set_as_published()
 
@@ -3017,6 +3031,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_connect: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
 
         if result == 0:
             rc = 0
@@ -3136,6 +3152,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_subscribe: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
 
         return MQTT_ERR_SUCCESS
 
@@ -3323,6 +3341,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_unsubscribe: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
         return MQTT_ERR_SUCCESS
 
     def _do_on_disconnect(self, rc, properties=None):
@@ -3338,6 +3358,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
 
     def _do_on_publish(self, mid):
         with self._callback_mutex:
@@ -3348,6 +3370,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
 
         msg = self._out_messages.pop(mid)
         msg.info._set_as_published()
@@ -3407,6 +3431,8 @@ class Client(object):
                                 callback.__name__,
                                 err
                             )
+                            if not self.suppress_exceptions:
+                                raise
                     matched = True
 
             if matched == False and self.on_message:
@@ -3416,6 +3442,8 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_message: %s', err)
+                        if not self.suppress_exceptions:
+                            raise
 
     def _thread_main(self):
         self.loop_forever(retry_first_connection=True)
