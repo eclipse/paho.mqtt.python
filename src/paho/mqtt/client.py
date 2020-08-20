@@ -455,6 +455,8 @@ class Client(object):
         5: Connection refused - not authorised
         6-255: Currently unused.
 
+    on_connect_fail(client, userdata): called when the client failed to connect to the broker.
+
     on_disconnect(client, userdata, rc): called when the client disconnects from the broker.
       The rc parameter indicates the disconnection state. If MQTT_ERR_SUCCESS
       (0), the callback was called in response to a disconnect() call. If any
@@ -638,6 +640,7 @@ class Client(object):
         # No default callbacks
         self._on_log = None
         self._on_connect = None
+        self._on_connect_fail = None
         self._on_subscribe = None
         self._on_message = None
         self._on_publish = None
@@ -1768,6 +1771,7 @@ class Client(object):
                 try:
                     self.reconnect()
                 except (socket.error, OSError, WebsocketConnectionError):
+                    self._handle_on_connect_fail()
                     if not retry_first_connection:
                         raise
                     self._easy_log(
@@ -1806,6 +1810,7 @@ class Client(object):
                     try:
                         self.reconnect()
                     except (socket.error, OSError, WebsocketConnectionError):
+                        self._handle_on_connect_fail()
                         self._easy_log(
                             MQTT_LOG_DEBUG, "Connection failed, retrying")
 
@@ -1906,6 +1911,25 @@ class Client(object):
         """
         with self._callback_mutex:
             self._on_connect = func
+
+    @property
+    def on_connect_fail(self):
+        """If implemented, called when the client failed to connect
+        to the broker."""
+        return self._on_connect_fail
+
+    @on_connect_fail.setter
+    def on_connect_fail(self, func):
+        """ Define the connection failure callback implementation
+
+        Expected signature is:
+            on_connect_fail(client, userdata)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+        """
+        with self._callback_mutex:
+            self._on_connect_fail = func
 
     @property
     def on_subscribe(self):
@@ -3433,6 +3457,15 @@ class Client(object):
                     except Exception as err:
                         self._easy_log(
                             MQTT_LOG_ERR, 'Caught exception in on_message: %s', err)
+
+    def _handle_on_connect_fail(self):
+        if self.on_connect_fail:
+            with self._in_callback_mutex:
+                try:
+                    self.on_connect_fail(self, self._userdata)
+                except Exception as err:
+                    self._easy_log(
+                        MQTT_LOG_ERR, 'Caught exception in on_connect_fail: %s', err)
 
     def _thread_main(self):
         self.loop_forever(retry_first_connection=True)
