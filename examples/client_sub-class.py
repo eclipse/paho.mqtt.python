@@ -23,6 +23,9 @@ class MyMQTTClass(mqtt.Client):
     def on_connect(self, mqttc, obj, flags, rc):
         print("rc: "+str(rc))
 
+    def on_connect_fail(self, mqttc, obj):
+        print("Connect failed")
+
     def on_message(self, mqttc, obj, msg):
         print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
 

@@ -41,6 +41,7 @@ class Callbacks:
         self.unsubscribeds = []
         self.disconnecteds = []
         self.connecteds = []
+        self.conn_failures = []
 
     def __str__(self):
         return str(self.messages) + str(self.messagedicts) + str(self.publisheds) + \
@@ -54,6 +55,9 @@ class Callbacks:
         self.connecteds.append({"userdata": userdata, "flags": flags,
                                 "reasonCode": reasonCode, "properties": properties})
 
+    def on_connect_fail(self, client, userdata):
+        self.conn_failures.append({"userdata": userdata})
+
     def wait(self, alist, timeout=2):
         interval = 0.2
         total = 0
@@ -61,6 +65,9 @@ class Callbacks:
             time.sleep(interval)
             total += interval
         return alist.pop(0)  # if len(alist) > 0 else None
+
+    def wait_connect_fail(self):
+        return self.wait(self.conn_failures, timeout=10)
 
     def wait_connected(self):
         return self.wait(self.connecteds)
@@ -105,6 +112,7 @@ class Callbacks:
         client.on_unsubscribe = self.unsubscribed
         client.on_message = self.on_message
         client.on_disconnect = self.on_disconnect
+        client.on_connect_fail = self.on_connect_fail
         client.on_log = self.on_log
 
 
@@ -223,6 +231,17 @@ class Test(unittest.TestCase):
 
         callback.clear()
         aclient.loop_stop()
+
+    def test_connect_fail(self):
+        clientid = "connection failure"
+
+        fclient, fcallback = self.new_client(clientid)
+
+        fclient.user_data_set(1)
+        fclient.connect_async("localhost", 1)
+        response = fcallback.wait_connect_fail()
+        self.assertEqual(response["userdata"], 1)
+        fclient.loop_stop()
 
     def test_retained_message(self):
         qos0topic = "fromb/qos 0"
