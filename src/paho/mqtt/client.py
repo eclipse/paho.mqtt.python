@@ -3229,7 +3229,10 @@ class Client(object):
             return MQTT_ERR_PROTOCOL
 
     def _handle_pubrel(self):
-        if self._in_packet['remaining_length'] != 2:
+        if self._protocol == MQTTv5:
+            if self._in_packet['remaining_length'] < 2:
+                return MQTT_ERR_PROTOCOL
+        elif self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
         mid, = struct.unpack("!H", self._in_packet['packet'])

@@ -4,6 +4,8 @@ v1.x.x - 20xx-xx-xx
 - Exceptions that occur in callbacks are no longer suppressed by default. They
   can optionally be suppressed by setting `client.suppress_exceptions = True`.
   Closes #365.
+- Fix PUBREL remaining length of > 2 not being accepted for MQTT v5 message
+  flows. Closes #481.
 
 v1.5.0 - 2019-10-30
 ===================
