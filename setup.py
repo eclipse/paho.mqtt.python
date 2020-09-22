@@ -22,7 +22,7 @@ if sys.version_info < (3, 0):
 setup(
     name='paho-mqtt',
     version=__version__,
-    description='MQTT version 3.1.1 client class',
+    description='MQTT version 5.0/3.1.1 client class',
     long_description=readme,
     author='Roger Light',
     author_email='roger@atchoo.org',
