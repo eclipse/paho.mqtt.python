@@ -709,11 +709,11 @@ class Client(object):
         self._sock_close()
 
         if self._sockpairR:
-            self._sockpairR.shutdown()
+            self._sockpairR.shutdown(2)
             self._sockpairR.close()
             self._sockpairR = None
         if self._sockpairW:
-            self._sockpairW.shutdown()
+            self._sockpairW.shutdown(2)
             self._sockpairW.close()
             self._sockpairW = None
 
