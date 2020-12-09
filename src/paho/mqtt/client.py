@@ -669,7 +669,7 @@ class Client(object):
 
     def _sock_send(self, buf):
         try:
-            return self._sock.send(buf)
+            return self._sock.send(buffer(buf))
         except socket.error as err:
             if self._ssl and err.errno == ssl.SSL_ERROR_WANT_READ:
                 raise WouldBlockError()
