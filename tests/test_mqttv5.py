@@ -28,8 +28,8 @@ from paho.mqtt.packettypes import PacketTypes
 import paho.mqtt.client
 
 HOST = "192.168.56.1"
-PORT = 9001 # 9001-1884
-TRANSPORT = "websockets" # websockets-tcp
+PORT = 1884 # 9001-1884
+TRANSPORT = "tcp" # websockets-tcp
 
 # logging_format = '%(asctime)s:%(levelname)s:%(threadName)s:%(message)s'
 # formatter = logging.Formatter(logging_format)

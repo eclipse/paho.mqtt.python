@@ -102,7 +102,10 @@ All the tests passed except:
 test_server_topic_alias (not yet supported by Mosquitto), 
 test_subscribe_failure (Mosquitto ACL does not prevent subscription) and 
 test_subscription_identifiers (message received twice with different identifiers).
-The websocket functionality was tested by setting transport to "websocket".
+The websocket functionality was tested by setting transport to "websocket". 
+Following tests failed (appart of previously mentioned tests):
+test_message_expiry
+test_will_message (will message is sent, however test fails)
 
 Usage and API
 -------------
