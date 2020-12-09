@@ -280,6 +280,8 @@ def _socketpair_compat():
     sock2.setblocking(0)
     try:
         listensock.shutdown(2)
+    except:
+        pass
     finally:
         listensock.close()
     return (sock1, sock2)
@@ -698,6 +700,8 @@ class Client(object):
             # In case a callback fails, still close the socket to avoid leaking the file descriptor.
             try:
                 sock.shutdown(2)
+            except:
+                pass
             finally:
                 sock.close()
 
@@ -3849,6 +3853,8 @@ class WebsocketWrapper(object):
     def close(self):
         try:
             self._socket.shutdown(2)
+        except:
+            pass
         finally:
             self._socket.close()
 
