@@ -13,6 +13,8 @@ Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ proje
 
 This is a port of this project for Iron Python.
 
+Most of the changes are related to IronPython string and byte ancoding and it is discussed here: https://nedbatchelder.com/blog/201703/ironpython_is_weird.html 
+
 
 Contents
 --------
