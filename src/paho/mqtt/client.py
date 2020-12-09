@@ -278,6 +278,7 @@ def _socketpair_compat():
             raise
     sock2, address = listensock.accept()
     sock2.setblocking(0)
+    listensock.shutdown(2)
     listensock.close()
     return (sock1, sock2)
 
@@ -693,15 +694,18 @@ class Client(object):
             self._call_socket_close(sock)
         finally:
             # In case a callback fails, still close the socket to avoid leaking the file descriptor.
+            sock.shutdown(2)
             sock.close()
 
     def _reset_sockets(self):
         self._sock_close()
 
         if self._sockpairR:
+            self._sockpairR.shutdown()
             self._sockpairR.close()
             self._sockpairR = None
         if self._sockpairW:
+            self._sockpairW.shutdown()
             self._sockpairW.close()
             self._sockpairW = None
 
@@ -3831,9 +3835,15 @@ class WebsocketWrapper(object):
 
     def write(self, data):
         return self._send_impl(data)
+    
+    def shutdown(self):
+        self._socket.shutdown(2)
 
     def close(self):
-        self._socket.shutdown(2)
+        try:
+            self._socket.shutdown(2)
+        except:
+            pass
         self._socket.close()
 
     def fileno(self):
