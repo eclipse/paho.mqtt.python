@@ -1,15 +1,17 @@
 Eclipse Paho™ MQTT Python Client
 ================================
 
-This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 5.0, 3.1.1, and 3.1 of the MQTT protocol.
+This document describes the source code for an Iron Python port of the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 5.0, 3.1.1, and 3.1 of the MQTT protocol.
 
 This code provides a client class which enable applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
 
-It supports Python 2.7.9+ or 3.5+.
+It was tested with Iron Python 2.7.8 and it should support Iron Python 2.7.8+
 
 The MQTT protocol is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol. Designed as an extremely lightweight publish/subscribe messaging transport, it is useful for connections with remote locations where a small code footprint is required and/or network bandwidth is at a premium.
 
 Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ project.
+
+This is a port of this project for Iron Python.
 
 
 Contents
@@ -45,33 +47,22 @@ The latest stable version is available in the Python Package Index (PyPi) and ca
 
 ::
 
-    pip install paho-mqtt
+    ipy -m pip install git+https://github.com/kyjanond/paho.mqtt.ipy.git
 
-Or with ``virtualenv``:
-
-::
-
-    virtualenv paho-mqtt
-    source paho-mqtt/bin/activate
-    pip install paho-mqtt
 
 To obtain the full code, including examples and tests, you can clone the git repository:
 
 ::
 
-    git clone https://github.com/eclipse/paho.mqtt.python
+    git clone https://github.com/kyjanond/paho.mqtt.ipy
 
 
 Once you have the code, it can be installed from your repository as well:
 
 ::
 
-    cd paho.mqtt.python
-    python setup.py install
-
-To perform all test (including MQTT v5 test), you also need to clone paho.mqtt.testing in paho.mqtt.python folder::
-
-    git clone https://github.com/eclipse/paho.mqtt.testing.git
+    cd paho.mqtt.ipy
+    ipy setup.py install
 
 Known limitations
 -----------------
@@ -101,7 +92,15 @@ Also when clean_session is True, this library will republish QoS > 0 message acc
 reconnection. This means that QoS > 0 message won't be lost. But the standard say that
 if we should discard any message for which the publish packet was sent. Our choice means that
 we are not compliant with the standard and it's possible for QoS 2 to be received twice.
-You should you clean_session = False if you need the QoS 2 guarantee of only one delivery.
+You should set clean_session = False if you need the QoS 2 guarantee of only one delivery.
+
+The testing suite is not yet ported. That means that only tests/test_mqttv5.py was 
+tested using python unittest package against the Mosquitto broker. 
+All the tests passed except: 
+test_server_topic_alias (not yet supported by Mosquitto), 
+test_subscribe_failure (Mosquitto ACL does not prevent subscription) and 
+test_subscription_identifiers (message received twice with different identifiers).
+The websocket functionality was tested by setting transport to "websocket".
 
 Usage and API
 -------------

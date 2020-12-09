@@ -12,6 +12,7 @@
 # Contributors:
 #    Roger Light - initial API and implementation
 #    Ian Craggs - MQTT V5 support
+#    Ondrej Kyjanek - port to Iron Python
 
 from .subscribeoptions import SubscribeOptions
 from .reasoncodes import ReasonCodes
@@ -49,14 +50,8 @@ try:
 except ImportError:
     pass
 
-try:
-    # Python 3
-    from urllib import request as urllib_dot_request
-    from urllib import parse as urllib_dot_parse
-except ImportError:
-    # Python 2
-    import urllib as urllib_dot_request
-    import urlparse as urllib_dot_parse
+import urllib as urllib_dot_request
+import urlparse as urllib_dot_parse
 
 
 try:
@@ -580,7 +575,7 @@ class Client(object):
         else:
             self._client_id = client_id
         if isinstance(self._client_id, unicode):
-            self._client_id = self._client_id.encode('utf-8')
+            self._client_id = bytes(self._client_id, encoding='utf-8')
 
         self._username = None
         self._password = None
@@ -1243,7 +1238,7 @@ class Client(object):
             if topic is None or len(topic) == 0:
                 raise ValueError('Invalid topic.')
 
-        topic = topic.encode('utf-8')
+        topic = bytes(topic, encoding='utf-8')
 
         if self._topic_wildcard_len_check(topic) != MQTT_ERR_SUCCESS:
             raise ValueError('Publish topic cannot contain wildcards.')
@@ -1252,7 +1247,7 @@ class Client(object):
             raise ValueError('Invalid QoS level.')
 
         if isinstance(payload, unicode):
-            local_payload = payload.encode('utf-8')
+            local_payload = bytes(payload, encoding='utf-8')
         elif isinstance(payload, (bytes, bytearray)):
             local_payload = payload
         elif isinstance(payload, (int, float)):
@@ -1329,10 +1324,10 @@ class Client(object):
         """
 
         # [MQTT-3.1.3-11] User name must be UTF-8 encoded string
-        self._username = None if username is None else username.encode('utf-8')
+        self._username = None if username is None else bytes(username, encoding='utf-8')
         self._password = password
         if isinstance(self._password, unicode):
-            self._password = self._password.encode('utf-8')
+            self._password = bytes(self._password, encoding='utf-8')
 
     def enable_bridge_mode(self):
         """Sets the client in a bridge mode instead of client mode.
@@ -1477,11 +1472,11 @@ class Client(object):
                 if not isinstance(options, SubscribeOptions):
                     raise ValueError(
                         'Subscribe options must be instance of SubscribeOptions class.')
-                topic_qos_list = [(topic.encode('utf-8'), options)]
+                topic_qos_list = [(bytes(topic, encoding='utf-8'), options)]
             else:
                 if topic is None or len(topic) == 0:
                     raise ValueError('Invalid topic.')
-                topic_qos_list = [(topic.encode('utf-8'), qos)]
+                topic_qos_list = [(bytes(topic, encoding='utf-8'), qos)]
         elif isinstance(topic, list):
             topic_qos_list = []
             if self._protocol == MQTTv5:
@@ -1491,14 +1486,14 @@ class Client(object):
                         if o < 0 or o > 2:
                             raise ValueError('Invalid QoS level.')
                         o = SubscribeOptions(qos=o)
-                    topic_qos_list.append((t.encode('utf-8'), o))
+                    topic_qos_list.append((bytes(t, encoding='utf-8'), o))
             else:
                 for t, q in topic:
                     if q < 0 or q > 2:
                         raise ValueError('Invalid QoS level.')
                     if t is None or len(t) == 0 or not isinstance(t, basestring):
                         raise ValueError('Invalid topic.')
-                    topic_qos_list.append((t.encode('utf-8'), q))
+                    topic_qos_list.append((bytes(t, encoding='utf-8'), q))
 
         if topic_qos_list is None:
             raise ValueError("No topic specified, or incorrect topic type.")
@@ -1535,13 +1530,13 @@ class Client(object):
         if isinstance(topic, basestring):
             if len(topic) == 0:
                 raise ValueError('Invalid topic.')
-            topic_list = [topic.encode('utf-8')]
+            topic_list = [bytes(topic, encoding='utf-8')]
         elif isinstance(topic, list):
             topic_list = []
             for t in topic:
                 if len(t) == 0 or not isinstance(t, basestring):
                     raise ValueError('Invalid topic.')
-                topic_list.append(t.encode('utf-8'))
+                topic_list.append(bytes(t, encoding='utf-8'))
 
         if topic_list is None:
             raise ValueError("No topic specified, or incorrect topic type.")
@@ -1707,7 +1702,7 @@ class Client(object):
                 "The properties argument must be an instance of the Properties class.")
 
         if isinstance(payload, unicode):
-            self._will_payload = payload.encode('utf-8')
+            self._will_payload = bytes(payload, encoding='utf-8')
         elif isinstance(payload, (bytes, bytearray)):
             self._will_payload = payload
         elif isinstance(payload, (int, float)):
@@ -1719,7 +1714,7 @@ class Client(object):
                 'payload must be a string, bytearray, int, float or None.')
 
         self._will = True
-        self._will_topic = topic.encode('utf-8')
+        self._will_topic = bytes(topic, encoding='utf-8')
         self._will_qos = qos
         self._will_retain = retain
         self._will_properties = properties
@@ -2491,7 +2486,7 @@ class Client(object):
 
     def _pack_str16(self, packet, data):
         if isinstance(data, unicode):
-            data = data.encode('utf-8')
+            data = bytes(data, encoding='utf-8')
         packet.extend(struct.pack("!H", len(data)))
         packet.extend(data)
 
@@ -2642,13 +2637,13 @@ class Client(object):
                                   keepalive))
 
         if self._protocol == MQTTv5:
-            packet += packed_connect_properties
+            packet.extend(packed_connect_properties)
 
         self._pack_str16(packet, self._client_id)
 
         if self._will:
             if self._protocol == MQTTv5:
-                packet += packed_will_properties
+                packet.extend(packed_will_properties)
             self._pack_str16(packet, self._will_topic)
             self._pack_str16(packet, self._will_payload)
 
@@ -2718,7 +2713,7 @@ class Client(object):
             if reasoncode != None:
                 packet += reasoncode.pack()
                 if properties != None:
-                    packet += packed_props
+                    packet.extend(bytes(packed_props,encoding='utf-8'))
 
         return self._packet_queue(command, packet, 0, 0)
 
@@ -2741,7 +2736,7 @@ class Client(object):
         packet.extend(struct.pack("!H", local_mid))
 
         if self._protocol == MQTTv5:
-            packet += packed_subscribe_properties
+            packet.extend(packed_subscribe_properties)
 
         for t, q in topics:
             self._pack_str16(packet, t)
@@ -2778,7 +2773,7 @@ class Client(object):
         packet.extend(struct.pack("!H", local_mid))
 
         if self._protocol == MQTTv5:
-            packet += packed_unsubscribe_properties
+            packet.extend(packed_unsubscribe_properties)
 
         for t in topics:
             self._pack_str16(packet, t)
@@ -2813,7 +2808,7 @@ class Client(object):
                         m.dup = True
                         self._send_publish(
                             m.mid,
-                            m.topic.encode('utf-8'),
+                            bytes(m.topic, encoding='utf-8'),
                             m.payload,
                             m.qos,
                             m.retain,
@@ -3047,7 +3042,7 @@ class Client(object):
                         with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                             rc = self._send_publish(
                                 m.mid,
-                                m.topic.encode('utf-8'),
+                                bytes(m.topic, encoding='utf-8'),
                                 m.payload,
                                 m.qos,
                                 m.retain,
@@ -3063,7 +3058,7 @@ class Client(object):
                             with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_publish(
                                     m.mid,
-                                    m.topic.encode('utf-8'),
+                                    bytes(m.topic, encoding='utf-8'),
                                     m.payload,
                                     m.qos,
                                     m.retain,
@@ -3079,7 +3074,7 @@ class Client(object):
                             with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                                 rc = self._send_publish(
                                     m.mid,
-                                    m.topic.encode('utf-8'),
+                                    bytes(m.topic, encoding='utf-8'),
                                     m.payload,
                                     m.qos,
                                     m.retain,
@@ -3271,7 +3266,7 @@ class Client(object):
                         m.state = mqtt_ms_wait_for_pubrec
                     rc = self._send_publish(
                         m.mid,
-                        m.topic.encode('utf-8'),
+                        bytes(m.topic, encoding='utf-8'),
                         m.payload,
                         m.qos,
                         m.retain,
@@ -3606,12 +3601,12 @@ class WebsocketWrapper(object):
         elif callable(extra_headers):
             websocket_headers = extra_headers(websocket_headers)
 
-        header = "\r\n".join([
+        header = bytes("\r\n".join([
             "GET {self._path} HTTP/1.1".format(self=self),
             "\r\n".join("{}: {}".format(i, j)
                         for i, j in websocket_headers.items()),
             "\r\n",
-        ]).encode("utf8")
+        ]), encoding='utf-8')
 
         self._socket.send(header)
 
@@ -3628,23 +3623,23 @@ class WebsocketWrapper(object):
             if byte == b"\n":
                 if len(self._readbuffer) > 2:
                     # check upgrade
-                    if b"connection" in str(self._readbuffer).lower().encode('utf-8'):
-                        if b"upgrade" not in str(self._readbuffer).lower().encode('utf-8'):
+                    if b"connection" in bytes(str(self._readbuffer).lower(), encoding='utf-8'):
+                        if b"upgrade" not in bytes(str(self._readbuffer).lower(), encoding='utf-8'):
                             raise WebsocketConnectionError(
                                 "WebSocket handshake error, connection not upgraded")
                         else:
                             has_upgrade = True
 
                     # check key hash
-                    if b"sec-websocket-accept" in str(self._readbuffer).lower().encode('utf-8'):
+                    if b"sec-websocket-accept" in bytes(str(self._readbuffer).lower(), encoding='utf-8'):
                         GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
                         server_hash = self._readbuffer.decode(
                             'utf-8').split(": ", 1)[1]
-                        server_hash = server_hash.strip().encode('utf-8')
+                        server_hash = bytes(server_hash.strip(), encoding='utf-8')
 
                         client_hash = sec_websocket_key.decode('utf-8') + GUID
-                        client_hash = hashlib.sha1(client_hash.encode('utf-8'))
+                        client_hash = hashlib.sha1(bytes(client_hash, encoding='utf-8'))
                         client_hash = base64.b64encode(client_hash.digest())
 
                         if server_hash != client_hash:
@@ -3816,7 +3811,7 @@ class WebsocketWrapper(object):
             self._requested_size = len(data)
 
         # try to write out as much as possible
-        length = self._socket.send(self._sendbuffer)
+        length = self._socket.send(str(self._sendbuffer))
 
         self._sendbuffer = self._sendbuffer[length:]
 
@@ -3840,6 +3835,7 @@ class WebsocketWrapper(object):
         return self._send_impl(data)
 
     def close(self):
+        self._socket.shutdown(2)
         self._socket.close()
 
     def fileno(self):

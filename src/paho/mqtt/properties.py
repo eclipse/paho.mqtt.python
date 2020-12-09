@@ -13,6 +13,7 @@
 
   Contributors:
      Ian Craggs - initial implementation and/or documentation
+     Ondrej Kyjanek - port to Iron Python
 *******************************************************************
 """
 
@@ -332,7 +333,7 @@ class Properties(object):
             buffer += writeUTF(value)
         elif type == self.types.index("UTF-8 String Pair"):
             buffer += writeUTF(value[0]) + writeUTF(value[1])
-        return buffer
+        return str(buffer)
 
     def pack(self):
         # serialize properties into buffer for sending over network

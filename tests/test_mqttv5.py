@@ -13,23 +13,23 @@
 
   Contributors:
      Ian Craggs - initial implementation and/or documentation
+     Ondrej Kyjanek - port to Iron Python
 *******************************************************************
 """
 
 import unittest
 import time
-import threading
-import getopt
-import sys
 import logging
-import traceback
-
 import paho.mqtt
 from paho.mqtt.properties import Properties
 from paho.mqtt.reasoncodes import ReasonCodes
 from paho.mqtt.subscribeoptions import SubscribeOptions
 from paho.mqtt.packettypes import PacketTypes
 import paho.mqtt.client
+
+HOST = "localhost"
+PORT = 1883
+TRANSPORT = "websockets"
 
 
 class Callbacks:
@@ -54,13 +54,13 @@ class Callbacks:
         self.connecteds.append({"userdata": userdata, "flags": flags,
                                 "reasonCode": reasonCode, "properties": properties})
 
-    def wait(self, alist, timeout=2):
+    def wait(self, alist, timeout=5):
         interval = 0.2
         total = 0
         while len(alist) == 0 and total < timeout:
             time.sleep(interval)
             total += interval
-        return alist.pop(0)  # if len(alist) > 0 else None
+        return alist.pop(0) if len(alist) > 0 else None
 
     def wait_connected(self):
         return self.wait(self.connecteds)
@@ -114,11 +114,11 @@ def cleanRetained(port):
                                         protocol=paho.mqtt.client.MQTTv5)
     curclient.loop_start()
     callback.register(curclient)
-    curclient.connect(host="localhost", port=port)
+    curclient.connect(host=HOST, port=port)
     response = callback.wait_connected()
     curclient.subscribe("#", options=SubscribeOptions(qos=0))
     response = callback.wait_subscribed()  # wait for retained messages to arrive
-    time.sleep(1)
+    time.sleep(2)
     for message in callback.messages:
         logging.info("deleting retained message for topic", message["message"])
         curclient.publish(message["message"].topic, b"", 0, retain=True)
@@ -133,10 +133,12 @@ def cleanup(port):
     clientids = ("aclient", "bclient")
 
     for clientid in clientids:
-        curclient = paho.mqtt.client.Client(clientid.encode(
-            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
+        curclient = paho.mqtt.client.Client(
+            clientid.encode("utf-8"), 
+            protocol=paho.mqtt.client.MQTTv5,
+            transport=TRANSPORT)
         curclient.loop_start()
-        curclient.connect(host="localhost", port=port, clean_start=True)
+        curclient.connect(host=HOST, port=port, clean_start=True)
         time.sleep(.1)
         curclient.disconnect()
         time.sleep(.1)
@@ -153,24 +155,8 @@ class Test(unittest.TestCase):
     def setUpClass(cls):
         global callback, callback2, aclient, bclient
 
-        sys.path.append("paho.mqtt.testing/interoperability/")
-        try:
-            import mqtt.brokers
-        except ImportError:
-            raise unittest.SkipTest("paho.mqtt.testing not present.")
-
-        cls._test_broker = threading.Thread(
-            target=mqtt.brokers.run,
-            kwargs={
-                "config": ["listener 0"],
-            },
-        )
-        cls._test_broker.daemon = True
-        cls._test_broker.start()
         # Wait a bit for TCP server to bind to an address
-        time.sleep(0.5)
-        # Hack to find the port used by the test broker...
-        cls._test_broker_port = mqtt.brokers.listeners.TCPListeners.server.socket.getsockname()[1]
+        cls._test_broker_port = PORT
         setData()
         cleanup(cls._test_broker_port)
 
@@ -189,10 +175,7 @@ class Test(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # Another hack to stop the test broker... we rely on fact that it use a sockserver.TCPServer
-        import mqtt.brokers
-        mqtt.brokers.listeners.TCPListeners.server.shutdown()
-        cls._test_broker.join(5)
+        pass
 
     def waitfor(self, queue, depth, limit):
         total = 0
@@ -202,7 +185,7 @@ class Test(unittest.TestCase):
             time.sleep(interval)
 
     def test_basic(self):
-        aclient.connect(host="localhost", port=self._test_broker_port)
+        aclient.connect(host=HOST, port=self._test_broker_port)
         aclient.loop_start()
         response = callback.wait_connected()
         self.assertEqual(response["reasonCode"].getName(), "Success")
@@ -236,7 +219,7 @@ class Test(unittest.TestCase):
 
         # retained messages
         callback.clear()
-        aclient.connect(host="localhost", port=self._test_broker_port)
+        aclient.connect(host=HOST, port=self._test_broker_port)
         aclient.loop_start()
         response = callback.wait_connected()
         aclient.publish(topics[1], b"qos 0", 0,
@@ -246,12 +229,12 @@ class Test(unittest.TestCase):
         aclient.publish(topics[3], b"qos 2", 2,
                         retain=True, properties=publish_properties)
         # wait until those messages are published
-        time.sleep(1)
+        time.sleep(2)
         aclient.subscribe(wildtopics[5], options=SubscribeOptions(qos=2))
         response = callback.wait_subscribed()
         self.assertEqual(response["reasonCodes"][0].getName(), "Granted QoS 2")
 
-        time.sleep(1)
+        time.sleep(2)
         aclient.disconnect()
         aclient.loop_stop()
 
@@ -284,10 +267,10 @@ class Test(unittest.TestCase):
         aclient.will_set(topics[2], payload=b"will message",
                          properties=will_properties)
 
-        aclient.connect(host="localhost", port=self._test_broker_port, keepalive=2)
+        aclient.connect(host=HOST, port=self._test_broker_port, keepalive=2)
         aclient.loop_start()
         response = callback.wait_connected()
-        bclient.connect(host="localhost", port=self._test_broker_port)
+        bclient.connect(host=HOST, port=self._test_broker_port)
         bclient.loop_start()
         response = callback2.wait_connected()
         bclient.subscribe(topics[2], qos=2)
@@ -313,7 +296,7 @@ class Test(unittest.TestCase):
         callback0.register(client0)
         client0.loop_start()
         # should not be rejected
-        client0.connect(host="localhost", port=self._test_broker_port, clean_start=False)
+        client0.connect(host=HOST, port=self._test_broker_port, clean_start=False)
         response = callback0.wait_connected()
         self.assertEqual(response["reasonCode"].getName(), "Success")
         self.assertTrue(
@@ -324,7 +307,7 @@ class Test(unittest.TestCase):
         client0 = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5)
         callback0.register(client0)
         client0.loop_start()
-        client0.connect(host="localhost", port=self._test_broker_port)  # should work
+        client0.connect(host=HOST, port=self._test_broker_port)  # should work
         response = callback0.wait_connected()
         self.assertEqual(response["reasonCode"].getName(), "Success")
         self.assertTrue(
@@ -337,7 +320,7 @@ class Test(unittest.TestCase):
             "client0", protocol=paho.mqtt.client.MQTTv5)
         callback0.register(client0)
         client0.loop_start()
-        client0.connect(host="localhost", port=self._test_broker_port)  # should work
+        client0.connect(host=HOST, port=self._test_broker_port)  # should work
         response = callback0.wait_connected()
         self.assertEqual(response["reasonCode"].getName(), "Success")
         self.assertFalse(
@@ -357,7 +340,7 @@ class Test(unittest.TestCase):
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.SessionExpiryInterval = 99999
         oclient.loop_start()
-        oclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        oclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         response = ocallback.wait_connected()
         oclient.subscribe(wildtopics[5], qos=2)
         response = ocallback.wait_subscribed()
@@ -365,7 +348,7 @@ class Test(unittest.TestCase):
         oclient.loop_stop()
 
         bclient.loop_start()
-        bclient.connect(host="localhost", port=self._test_broker_port)
+        bclient.connect(host=HOST, port=self._test_broker_port)
         response = callback2.wait_connected()
         bclient.publish(topics[1], b"qos 0", 0)
         bclient.publish(topics[2], b"qos 1", 1)
@@ -378,7 +361,7 @@ class Test(unittest.TestCase):
             clientid, protocol=paho.mqtt.client.MQTTv5)
         ocallback.register(oclient)
         oclient.loop_start()
-        oclient.connect(host="localhost", port=self._test_broker_port, clean_start=False)
+        oclient.connect(host=HOST, port=self._test_broker_port, clean_start=False)
         response = ocallback.wait_connected()
         time.sleep(2)
         oclient.disconnect()
@@ -401,14 +384,14 @@ class Test(unittest.TestCase):
         ocallback.register(oclient)
 
         oclient.loop_start()
-        oclient.connect(host="localhost", port=self._test_broker_port)
+        oclient.connect(host=HOST, port=self._test_broker_port)
         ocallback.wait_connected()
         oclient.subscribe([(wildtopics[6], SubscribeOptions(qos=2)),
                            (wildtopics[0], SubscribeOptions(qos=1))])
         ocallback.wait_subscribed()
         oclient.publish(topics[3], b"overlapping topic filters", 2)
         ocallback.wait_published()
-        time.sleep(1)
+        time.sleep(2)
         self.assertTrue(len(ocallback.messages) in [1, 2], ocallback.messages)
         if len(ocallback.messages) == 1:
             logging.info(
@@ -435,7 +418,7 @@ class Test(unittest.TestCase):
             clientid, protocol=paho.mqtt.client.MQTTv5)
         ocallback.register(oclient)
         oclient.loop_start()
-        oclient.connect(host="localhost", port=self._test_broker_port)
+        oclient.connect(host=HOST, port=self._test_broker_port)
         ocallback.wait_connected()
         oclient.subscribe(nosubscribe_topics[0], qos=2)
         response = ocallback.wait_subscribed()
@@ -447,7 +430,7 @@ class Test(unittest.TestCase):
 
     def test_unsubscribe(self):
         callback2.clear()
-        bclient.connect(host="localhost", port=self._test_broker_port)
+        bclient.connect(host=HOST, port=self._test_broker_port)
         bclient.loop_start()
         callback2.wait_connected()
         bclient.subscribe(topics[0], qos=2)
@@ -456,13 +439,13 @@ class Test(unittest.TestCase):
         callback2.wait_subscribed()
         bclient.subscribe(topics[2], qos=2)
         callback2.wait_subscribed()
-        time.sleep(1)  # wait for any retained messages, hopefully
+        time.sleep(2)  # wait for any retained messages, hopefully
         # Unsubscribe from one topic
         bclient.unsubscribe(topics[0])
         callback2.wait_unsubscribed()
         callback2.clear()  # if there were any retained messsages
 
-        aclient.connect(host="localhost", port=self._test_broker_port)
+        aclient.connect(host=HOST, port=self._test_broker_port)
         aclient.loop_start()
         callback.wait_connected()
         aclient.publish(topics[0], b"topic 0 - unsubscribed", 1, retain=False)
@@ -494,7 +477,7 @@ class Test(unittest.TestCase):
 
         eclient, ecallback = self.new_client(clientid)
 
-        eclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        eclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = ecallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
@@ -507,7 +490,7 @@ class Test(unittest.TestCase):
         fclient, fcallback = self.new_client(clientid)
 
         # session should immediately expire
-        fclient.connect_async(host="localhost", port=self._test_broker_port, clean_start=False,
+        fclient.connect_async(host=HOST, port=self._test_broker_port, clean_start=False,
                               properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
@@ -519,7 +502,7 @@ class Test(unittest.TestCase):
 
         eclient, ecallback = self.new_client(clientid)
 
-        eclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        eclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = ecallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
@@ -532,7 +515,7 @@ class Test(unittest.TestCase):
         time.sleep(2)
         # session should still exist
         fclient, fcallback = self.new_client(clientid)
-        fclient.connect(host="localhost", port=self._test_broker_port, clean_start=False,
+        fclient.connect(host=HOST, port=self._test_broker_port, clean_start=False,
                         properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
@@ -544,7 +527,7 @@ class Test(unittest.TestCase):
         time.sleep(6)
         # session should not exist
         fclient, fcallback = self.new_client(clientid)
-        fclient.connect(host="localhost", port=self._test_broker_port, clean_start=False,
+        fclient.connect(host=HOST, port=self._test_broker_port, clean_start=False,
                         properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
@@ -556,7 +539,7 @@ class Test(unittest.TestCase):
         eclient, ecallback = self.new_client(clientid)
         connect_properties.SessionExpiryInterval = 1
         connack = eclient.connect(
-            host="localhost", port=self._test_broker_port, properties=connect_properties)
+            host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = ecallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
@@ -571,7 +554,7 @@ class Test(unittest.TestCase):
         time.sleep(3)
         # session should still exist as we changed the expiry interval on disconnect
         fclient, fcallback = self.new_client(clientid)
-        fclient.connect(host="localhost", port=self._test_broker_port, clean_start=False,
+        fclient.connect(host=HOST, port=self._test_broker_port, clean_start=False,
                         properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
@@ -583,7 +566,7 @@ class Test(unittest.TestCase):
 
         # session should immediately expire
         fclient, fcallback = self.new_client(clientid)
-        fclient.connect(host="localhost", port=self._test_broker_port, clean_start=False,
+        fclient.connect(host=HOST, port=self._test_broker_port, clean_start=False,
                         properties=connect_properties)
         connack = fcallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
@@ -599,7 +582,7 @@ class Test(unittest.TestCase):
         clientid = "user properties"
         uclient, ucallback = self.new_client(clientid)
         uclient.loop_start()
-        uclient.connect(host="localhost", port=self._test_broker_port)
+        uclient.connect(host=HOST, port=self._test_broker_port)
         ucallback.wait_connected()
 
         uclient.subscribe(topics[0], qos=2)
@@ -638,7 +621,7 @@ class Test(unittest.TestCase):
         clientid = "payload format"
         pclient, pcallback = self.new_client(clientid)
         pclient.loop_start()
-        pclient.connect_async(host="localhost", port=self._test_broker_port)
+        pclient.connect_async(host=HOST, port=self._test_broker_port)
         response = pcallback.wait_connected()
 
         pclient.subscribe(topics[0], qos=2)
@@ -688,7 +671,7 @@ class Test(unittest.TestCase):
 
         lbclient, lbcallback = self.new_client(clientid+" b")
         lbclient.loop_start()
-        lbclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        lbclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         response = lbcallback.wait_connected()
         lbclient.subscribe(topics[0], qos=2)
         response = lbcallback.wait_subscribed()
@@ -700,7 +683,7 @@ class Test(unittest.TestCase):
 
         laclient, lacallback = self.new_client(clientid+" a")
         laclient.loop_start()
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.MessageExpiryInterval = 1
         laclient.publish(topics[0], b"qos 1 - expire", 1,
@@ -718,10 +701,10 @@ class Test(unittest.TestCase):
         time.sleep(3)
         lbclient, lbcallback = self.new_client(clientid+" b")
         lbclient.loop_start()
-        lbclient.connect(host="localhost", port=self._test_broker_port, clean_start=False)
+        lbclient.connect(host=HOST, port=self._test_broker_port, clean_start=False)
         lbcallback.wait_connected()
         self.waitfor(lbcallback.messages, 1, 3)
-        time.sleep(1)
+        time.sleep(2)
         self.assertEqual(len(lbcallback.messages), 2, lbcallback.messages)
         self.assertTrue(lbcallback.messages[0]["message"].properties.MessageExpiryInterval < 6,
                         lbcallback.messages[0]["message"].properties.MessageExpiryInterval)
@@ -740,7 +723,7 @@ class Test(unittest.TestCase):
         clientid = 'subscribe options - noLocal'
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.loop_start()
         laclient.subscribe(
@@ -748,7 +731,7 @@ class Test(unittest.TestCase):
         lacallback.wait_subscribed()
 
         lbclient, lbcallback = self.new_client(clientid+" b")
-        lbclient.connect(host="localhost", port=self._test_broker_port)
+        lbclient.connect(host=HOST, port=self._test_broker_port)
         lbcallback.wait_connected()
         lbclient.loop_start()
         lbclient.subscribe(
@@ -757,7 +740,7 @@ class Test(unittest.TestCase):
 
         laclient.publish(topics[0], b"noLocal test", 1, retain=False)
         self.waitfor(lbcallback.messages, 1, 3)
-        time.sleep(1)
+        time.sleep(2)
 
         self.assertEqual(lacallback.messages, [], lacallback.messages)
         self.assertEqual(len(lbcallback.messages), 1, lbcallback.messages)
@@ -771,7 +754,7 @@ class Test(unittest.TestCase):
         # retainAsPublished
         clientid = 'subscribe options - retain as published'
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.subscribe(topics[0], options=SubscribeOptions(
             qos=2, retainAsPublished=True))
@@ -783,7 +766,7 @@ class Test(unittest.TestCase):
             topics[0], b"retain as published true", 1, retain=True)
 
         self.waitfor(lacallback.messages, 2, 3)
-        time.sleep(1)
+        time.sleep(2)
 
         self.assertEqual(len(lacallback.messages), 2, lacallback.messages)
         laclient.disconnect()
@@ -795,12 +778,12 @@ class Test(unittest.TestCase):
         # retainHandling
         clientid = 'subscribe options - retain handling'
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.publish(topics[1], b"qos 0", 0, retain=True)
         laclient.publish(topics[2], b"qos 1", 1, retain=True)
         laclient.publish(topics[3], b"qos 2", 2, retain=True)
-        time.sleep(1)
+        time.sleep(2)
 
         # retain handling 1 only gives us retained messages on a new subscription
         laclient.subscribe(
@@ -813,7 +796,7 @@ class Test(unittest.TestCase):
         laclient.subscribe(
             wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
         lacallback.wait_subscribed()
-        time.sleep(1)
+        time.sleep(2)
         self.assertEqual(len(lacallback.messages), 0)
 
         # remove that subscription
@@ -834,7 +817,7 @@ class Test(unittest.TestCase):
         laclient.subscribe(
             wildtopics[5], options=SubscribeOptions(2, retainHandling=1))
         lacallback.wait_subscribed()
-        time.sleep(1)
+        time.sleep(2)
         self.assertEqual(len(lacallback.messages), 0)
 
         # remove that subscription
@@ -867,7 +850,7 @@ class Test(unittest.TestCase):
         lacallback.clear()
         laclient.subscribe(
             wildtopics[5], options=SubscribeOptions(2, retainHandling=0))
-        time.sleep(1)
+        time.sleep(2)
         self.assertEqual(len(lacallback.messages), 3)
         qoss = [lacallback.messages[i]["message"].qos for i in range(3)]
         self.assertTrue(1 in qoss and 2 in qoss and 0 in qoss, qoss)
@@ -881,7 +864,7 @@ class Test(unittest.TestCase):
         clientid = 'subscription identifiers'
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.loop_start()
 
@@ -891,7 +874,7 @@ class Test(unittest.TestCase):
         lacallback.wait_subscribed()
 
         lbclient, lbcallback = self.new_client(clientid+" b")
-        lbclient.connect(host="localhost", port=self._test_broker_port)
+        lbclient.connect(host=HOST, port=self._test_broker_port)
         lbcallback.wait_connected()
         lbclient.loop_start()
         sub_properties = Properties(PacketTypes.SUBSCRIBE)
@@ -914,6 +897,8 @@ class Test(unittest.TestCase):
         laclient.loop_stop()
 
         self.waitfor(lbcallback.messages, 1, 3)
+        for msg in lbcallback.messages:
+            print("MSG",msg["message"].payload)
         self.assertEqual(len(lbcallback.messages), 1, lbcallback.messages)
         expected_subsids = set([2, 3])
         received_subsids = set(
@@ -927,12 +912,12 @@ class Test(unittest.TestCase):
         clientid = 'request response'
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.loop_start()
 
         lbclient, lbcallback = self.new_client(clientid+" b")
-        lbclient.connect(host="localhost", port=self._test_broker_port)
+        lbclient.connect(host=HOST, port=self._test_broker_port)
         lbcallback.wait_connected()
         lbclient.loop_start()
 
@@ -978,7 +963,7 @@ class Test(unittest.TestCase):
 
         # no server side topic aliases allowed
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         connack = lacallback.wait_connected()
         laclient.loop_start()
 
@@ -995,7 +980,7 @@ class Test(unittest.TestCase):
         connect_properties.TopicAliasMaximum = 0  # server topic aliases not allowed
         connect_properties.SessionExpiryInterval = 99999
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        laclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         clientTopicAliasMaximum = 0
         if hasattr(connack["properties"], "TopicAliasMaximum"):
@@ -1028,7 +1013,7 @@ class Test(unittest.TestCase):
 
         # check aliases have been deleted
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port, clean_start=False,
+        laclient.connect(host=HOST, port=self._test_broker_port, clean_start=False,
                          properties=connect_properties)
 
         laclient.publish(topics[0], b"topic alias 3", 1)
@@ -1052,7 +1037,7 @@ class Test(unittest.TestCase):
         connect_properties.TopicAliasMaximum = serverTopicAliasMaximum
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        laclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         laclient.loop_start()
         clientTopicAliasMaximum = 0
@@ -1091,7 +1076,7 @@ class Test(unittest.TestCase):
         # connect_properties.TopicAliasMaximum = serverTopicAliasMaximum # default is 0
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        laclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         laclient.loop_start()
 
@@ -1123,7 +1108,7 @@ class Test(unittest.TestCase):
         connect_properties.TopicAliasMaximum = serverTopicAliasMaximum  # default is 0
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        laclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         laclient.loop_start()
 
@@ -1155,7 +1140,7 @@ class Test(unittest.TestCase):
 
         # 1. server max packet size
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         connack = lacallback.wait_connected()
         laclient.loop_start()
 
@@ -1184,7 +1169,7 @@ class Test(unittest.TestCase):
         connect_properties.MaximumPacketSize = maximumPacketSize
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        laclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         laclient.loop_start()
 
@@ -1216,7 +1201,7 @@ class Test(unittest.TestCase):
         clientid = 'server keep alive'
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         connack = lacallback.wait_connected()
         laclient.loop_start()
 
@@ -1244,14 +1229,14 @@ class Test(unittest.TestCase):
         laclient, lacallback = self.new_client(clientid+" a")
         laclient.will_set(
             topics[0], payload=b"test_will_delay will message", properties=will_properties)
-        laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        laclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         self.assertEqual(connack["reasonCode"].getName(), "Success")
         self.assertEqual(connack["flags"]["session present"], False)
         laclient.loop_start()
 
         lbclient, lbcallback = self.new_client(clientid+" b")
-        lbclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
+        lbclient.connect(host=HOST, port=self._test_broker_port, properties=connect_properties)
         connack = lbcallback.wait_connected()
         lbclient.loop_start()
         # subscribe to will message topic
@@ -1260,6 +1245,7 @@ class Test(unittest.TestCase):
 
         # abort client a and wait for the will message
         laclient.loop_stop()
+        laclient.socket().shutdown(2)
         laclient.socket().close()
         start = time.time()
         while lbcallback.messages == []:
@@ -1281,7 +1267,7 @@ class Test(unittest.TestCase):
         shared_pub_topic = topic_prefix + 'x'
 
         laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
+        laclient.connect(host=HOST, port=self._test_broker_port)
         connack = lacallback.wait_connected()
         laclient.loop_start()
 
@@ -1293,7 +1279,7 @@ class Test(unittest.TestCase):
         response = lacallback.wait_subscribed()
 
         lbclient, lbcallback = self.new_client(clientid+" b")
-        lbclient.connect(host="localhost", port=self._test_broker_port)
+        lbclient.connect(host=HOST, port=self._test_broker_port)
         connack = lbcallback.wait_connected()
         lbclient.loop_start()
 
@@ -1314,7 +1300,7 @@ class Test(unittest.TestCase):
         while len(lacallback.messages) + len(lbcallback.messages) < 2*count and j < 20:
             time.sleep(.1)
             j += 1
-        time.sleep(1)
+        time.sleep(2)
         self.assertEqual(len(lacallback.messages), count)
         self.assertEqual(len(lbcallback.messages), count)
 
@@ -1327,7 +1313,7 @@ class Test(unittest.TestCase):
         while len(lacallback.messages) + len(lbcallback.messages) < count and j < 20:
             time.sleep(.1)
             j += 1
-        time.sleep(1)
+        time.sleep(2)
         # Each message should only be received once
         self.assertEqual(len(lacallback.messages) +
                          len(lbcallback.messages), count)
@@ -1345,5 +1331,7 @@ def setData():
     global topics, wildtopics, nosubscribe_topics, topic_prefix
     topics = ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
     wildtopics = ("TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#")
-    nosubscribe_topics = ("test/nosubscribe",)
+    nosubscribe_topics = ("test2/nosubscribe",)
     topic_prefix = "paho.mqtt.client.mqttv5/"
+
+
