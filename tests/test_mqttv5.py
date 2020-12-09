@@ -27,10 +27,16 @@ from paho.mqtt.subscribeoptions import SubscribeOptions
 from paho.mqtt.packettypes import PacketTypes
 import paho.mqtt.client
 
-HOST = "localhost"
-PORT = 1883
-TRANSPORT = "websockets"
+HOST = "192.168.56.1"
+PORT = 9001 # 9001-1884
+TRANSPORT = "websockets" # websockets-tcp
 
+# logging_format = '%(asctime)s:%(levelname)s:%(threadName)s:%(message)s'
+# formatter = logging.Formatter(logging_format)
+# logging.basicConfig(
+#     format=logging_format,
+#     level=logging.DEBUG
+#     )
 
 class Callbacks:
 
@@ -111,7 +117,8 @@ class Callbacks:
 def cleanRetained(port):
     callback = Callbacks()
     curclient = paho.mqtt.client.Client("clean retained".encode("utf-8"),
-                                        protocol=paho.mqtt.client.MQTTv5)
+                                        protocol=paho.mqtt.client.MQTTv5,
+                                        transport=TRANSPORT)
     curclient.loop_start()
     callback.register(curclient)
     curclient.connect(host=HOST, port=port)
@@ -165,12 +172,16 @@ class Test(unittest.TestCase):
 
         #aclient = mqtt_client.Client(b"\xEF\xBB\xBF" + "myclientid".encode("utf-8"))
         #aclient = mqtt_client.Client("myclientid".encode("utf-8"))
-        aclient = paho.mqtt.client.Client("aclient".encode(
-            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
+        aclient = paho.mqtt.client.Client(
+            client_id="aclient".encode("utf-8"),
+            protocol=paho.mqtt.client.MQTTv5,
+            transport=TRANSPORT)
         callback.register(aclient)
 
-        bclient = paho.mqtt.client.Client("bclient".encode(
-            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
+        bclient = paho.mqtt.client.Client(
+            client_id="bclient".encode("utf-8"), 
+            protocol=paho.mqtt.client.MQTTv5,
+            transport=TRANSPORT)
         callback2.register(bclient)
 
     @classmethod
@@ -292,7 +303,7 @@ class Test(unittest.TestCase):
 
         callback0 = Callbacks()
 
-        client0 = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5)
+        client0 = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         callback0.register(client0)
         client0.loop_start()
         # should not be rejected
@@ -304,7 +315,7 @@ class Test(unittest.TestCase):
         client0.disconnect()
         client0.loop_stop()
 
-        client0 = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5)
+        client0 = paho.mqtt.client.Client(protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         callback0.register(client0)
         client0.loop_start()
         client0.connect(host=HOST, port=self._test_broker_port)  # should work
@@ -317,7 +328,7 @@ class Test(unittest.TestCase):
 
         # when we supply a client id, we should not get one assigned
         client0 = paho.mqtt.client.Client(
-            "client0", protocol=paho.mqtt.client.MQTTv5)
+            "client0", protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         callback0.register(client0)
         client0.loop_start()
         client0.connect(host=HOST, port=self._test_broker_port)  # should work
@@ -335,7 +346,7 @@ class Test(unittest.TestCase):
         clientid = "offline message queueing".encode("utf-8")
 
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5)
+            clientid, protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         ocallback.register(oclient)
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.SessionExpiryInterval = 99999
@@ -358,7 +369,7 @@ class Test(unittest.TestCase):
         bclient.loop_stop()
 
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5)
+            clientid, protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         ocallback.register(oclient)
         oclient.loop_start()
         oclient.connect(host=HOST, port=self._test_broker_port, clean_start=False)
@@ -380,7 +391,7 @@ class Test(unittest.TestCase):
         clientid = "overlapping subscriptions".encode("utf-8")
 
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5)
+            clientid, protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         ocallback.register(oclient)
 
         oclient.loop_start()
@@ -415,7 +426,7 @@ class Test(unittest.TestCase):
         ocallback = Callbacks()
         clientid = "subscribe failure".encode("utf-8")
         oclient = paho.mqtt.client.Client(
-            clientid, protocol=paho.mqtt.client.MQTTv5)
+            clientid, protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         ocallback.register(oclient)
         oclient.loop_start()
         oclient.connect(host=HOST, port=self._test_broker_port)
@@ -462,7 +473,7 @@ class Test(unittest.TestCase):
     def new_client(self, clientid):
         callback = Callbacks()
         client = paho.mqtt.client.Client(clientid.encode(
-            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
+            "utf-8"), protocol=paho.mqtt.client.MQTTv5,transport=TRANSPORT)
         callback.register(client)
         client.loop_start()
         return client, callback
