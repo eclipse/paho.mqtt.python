@@ -391,10 +391,10 @@ class Properties(object):
         buffer = buffer[VBIlen:]  # strip the bytes used by the VBI
         propslenleft = propslen
         while propslenleft > 0:  # properties length is 0 if there are none
-            identifier, VBIlen = VariableByteIntegers.decode(
+            identifier, VBIlen2 = VariableByteIntegers.decode(
                 buffer)  # property identifier
-            buffer = buffer[VBIlen:]  # strip the bytes used by the VBI
-            propslenleft -= VBIlen
+            buffer = buffer[VBIlen2:]  # strip the bytes used by the VBI
+            propslenleft -= VBIlen2
             attr_type = self.properties[identifier][0]
             value, valuelen = self.readProperty(
                 buffer, attr_type, propslenleft)
