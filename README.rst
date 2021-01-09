@@ -135,7 +135,7 @@ Here is a very simple example that subscribes to the broker $SYS topic tree and 
     client.on_connect = on_connect
     client.on_message = on_message
 
-    client.connect("mqtt.eclipse.org", 1883, 60)
+    client.connect("mqtt.eclipseprojects.io", 1883, 60)
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
@@ -476,7 +476,7 @@ Connect Example
 
 .. code:: python
 
-    mqttc.connect("mqtt.eclipse.org")
+    mqttc.connect("mqtt.eclipseprojects.io")
 
 connect_async()
 '''''''''''''''
@@ -613,7 +613,7 @@ Loop Start/Stop Example
 
 .. code:: python
 
-    mqttc.connect("mqtt.eclipse.org")
+    mqttc.connect("mqtt.eclipseprojects.io")
     mqttc.loop_start()
 
     while True:
@@ -1258,7 +1258,7 @@ Publish Single Example
 
     import paho.mqtt.publish as publish
 
-    publish.single("paho/test/single", "payload", hostname="mqtt.eclipse.org")
+    publish.single("paho/test/single", "payload", hostname="mqtt.eclipseprojects.io")
 
 Multiple
 ````````
@@ -1299,7 +1299,7 @@ Publish Multiple Example
 
     msgs = [{'topic':"paho/test/multiple", 'payload':"multiple 1"},
         ("paho/test/multiple", "multiple 2", 0, False)]
-    publish.multiple(msgs, hostname="mqtt.eclipse.org")
+    publish.multiple(msgs, hostname="mqtt.eclipseprojects.io")
 
 
 Subscribe
@@ -1398,7 +1398,7 @@ Simple Example
 
     import paho.mqtt.subscribe as subscribe
 
-    msg = subscribe.simple("paho/test/simple", hostname="mqtt.eclipse.org")
+    msg = subscribe.simple("paho/test/simple", hostname="mqtt.eclipseprojects.io")
     print("%s %s" % (msg.topic, msg.payload))
 
 Using Callback
@@ -1447,7 +1447,7 @@ Callback Example
     def on_message_print(client, userdata, message):
         print("%s %s" % (message.topic, message.payload))
 
-    subscribe.callback(on_message_print, "paho/test/callback", hostname="mqtt.eclipse.org")
+    subscribe.callback(on_message_print, "paho/test/callback", hostname="mqtt.eclipseprojects.io")
 
 
 Reporting bugs

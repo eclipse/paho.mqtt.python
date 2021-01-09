@@ -77,7 +77,7 @@ class TrioAsyncMqttExample:
 
         trio_helper = TrioAsyncHelper(self.client)
 
-        self.client.connect('mqtt.eclipse.org', 1883, 60)
+        self.client.connect('mqtt.eclipseprojects.io', 1883, 60)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(trio_helper.read_loop)
