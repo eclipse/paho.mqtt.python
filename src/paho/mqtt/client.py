@@ -513,7 +513,7 @@ class Client(object):
     """
 
     def __init__(self, client_id="", clean_session=None, userdata=None,
-                 protocol=MQTTv311, transport="tcp"):
+                 protocol=MQTTv311, transport="tcp", auto_ack=True):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -545,6 +545,13 @@ class Client(object):
 
         Set transport to "websockets" to use WebSockets as the transport
         mechanism. Set to "tcp" to use raw TCP, which is the default.
+
+        Normally, when a message is received, the library automatically 
+        acknowledges immediately.  auto_ack=False allows the application to 
+        acknowledge receipt after it has completed processing of a message 
+        using a the ack() method. This addresses vulnerabilty to message loss 
+        if applications fails while processing a message, or while it pending 
+        locally.
         """
 
         if protocol == MQTTv5:
@@ -561,6 +568,7 @@ class Client(object):
         if transport.lower() not in ('websockets', 'tcp'):
             raise ValueError(
                 'transport must be "websockets" or "tcp", not %s' % transport)
+        self._auto_ack = auto_ack
         self._transport = transport.lower()
         self._protocol = protocol
         self._userdata = userdata
@@ -3216,7 +3224,10 @@ class Client(object):
             self._handle_on_message(message)
             return MQTT_ERR_SUCCESS
         elif message.qos == 1:
-            rc = self._send_puback(message.mid)
+            if self._auto_ack:
+                rc = self._send_puback(message.mid)
+            else:
+                rc = MQTT_ERR_SUCCESS
             self._handle_on_message(message)
             return rc
         elif message.qos == 2:
@@ -3227,6 +3238,23 @@ class Client(object):
             return rc
         else:
             return MQTT_ERR_PROTOCOL
+
+    def ack( self, mid ):
+        """
+           send an acknowledgement for a given message id. (stored in message.mid )
+           only useful in QoS=1 and auto_ack=False
+        """
+        if self._auto_ack : 
+            return MQTT_ERR_SUCCESS
+        return self._send_puback(mid)
+
+    def auto_ack( self, on=True ):
+        """
+           The paho library normally acknowledges messages as soon as they are delivered to the caller.
+           If auto_ack is turned off, then the caller can manually acknowledge messages once application
+           processing is complete.
+        """
+        self._auto_ack = on
 
     def _handle_pubrel(self):
         if self._protocol == MQTTv5:
