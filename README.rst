@@ -191,7 +191,7 @@ userdata
 
 protocol
     the version of the MQTT protocol to use for this client. Can be either
-    ``MQTTv31`` or ``MQTTv311``
+    ``MQTTv31``, ``MQTTv311`` or ``MQTTv5``
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
