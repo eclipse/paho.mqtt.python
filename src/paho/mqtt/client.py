@@ -2250,10 +2250,10 @@ class Client(object):
             except socket.error as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                return 1
+                return MQTT_ERR_UNKNOWN
             else:
                 if len(command) == 0:
-                    return 1
+                    return MQTT_ERR_UNKNOWN
                 command, = struct.unpack("!B", command)
                 self._in_packet['command'] = command
 
@@ -2269,10 +2269,10 @@ class Client(object):
                 except socket.error as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                    return 1
+                    return MQTT_ERR_UNKNOWN
                 else:
                     if len(byte) == 0:
-                        return 1
+                        return MQTT_ERR_UNKNOWN
                     byte, = struct.unpack("!B", byte)
                     self._in_packet['remaining_count'].append(byte)
                     # Max 4 bytes length for remaining length as defined by protocol.
@@ -2298,10 +2298,10 @@ class Client(object):
             except socket.error as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                return 1
+                return MQTT_ERR_UNKNOWN
             else:
                 if len(data) == 0:
-                    return 1
+                    return MQTT_ERR_UNKNOWN
                 self._in_packet['to_process'] -= len(data)
                 self._in_packet['packet'] += data
 
@@ -2343,7 +2343,7 @@ class Client(object):
                 self._current_out_packet_mutex.release()
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                return 1
+                return MQTT_ERR_UNKNOWN
 
             if write_length > 0:
                 packet['to_process'] -= write_length
