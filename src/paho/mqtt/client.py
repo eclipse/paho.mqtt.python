@@ -769,7 +769,7 @@ class Client(object):
         option given then the client will operate in a similar manner to a web
         browser. That is to say it will require the broker to have a
         certificate signed by the Certificate Authorities in ca_certs and will
-        communicate using TLS v1, but will not attempt any form of
+        communicate using TLS v1,2, but will not attempt any form of
         authentication. This provides basic network encryption but may not be
         sufficient depending on how the broker is configured.
         By default, on Python 2.7.9+ or 3.4+, the default certification
@@ -790,9 +790,8 @@ class Client(object):
         pydoc for more information on this parameter.
 
         tls_version allows the version of the SSL/TLS protocol used to be
-        specified. By default TLS v1 is used. Previous versions (all versions
-        beginning with SSL) are possible but not recommended due to possible
-        security problems.
+        specified. By default TLS v1.2 is used. Previous versions are allowed
+        but not recommended due to possible security problems.
 
         ciphers is a string specifying which encryption ciphers are allowable
         for this connection, or None to use the defaults. See the ssl pydoc for
@@ -812,7 +811,7 @@ class Client(object):
 
         # Create SSLContext object
         if tls_version is None:
-            tls_version = ssl.PROTOCOL_TLSv1
+            tls_version = ssl.PROTOCOL_TLSv1_2
             # If the python version supports it, use highest TLS version automatically
             if hasattr(ssl, "PROTOCOL_TLS"):
                 tls_version = ssl.PROTOCOL_TLS
