@@ -249,7 +249,7 @@ max_queued_messages_set()
 
 Set the maximum number of outgoing messages with QoS>0 that can be pending in the outgoing message queue.
 
-Defaults to 0. 0 means unlimited. When the queue is full, any further outgoing messages would be dropped.
+Defaults to 0. 0 means unlimited, but due to implementation currently limited to 65555. When the queue is full, any further outgoing messages would be dropped.
 
 message_retry_set()
 '''''''''''''''''''
