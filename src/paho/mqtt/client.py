@@ -540,7 +540,7 @@ class Client(object):
 
         The protocol argument allows explicit setting of the MQTT version to
         use for this client. Can be paho.mqtt.client.MQTTv311 (v3.1.1),
-        paho.mqtt.client.MQTTv31 (v3.1) or paho.mqtt.client.MQTTv5 (v5.0), 
+        paho.mqtt.client.MQTTv31 (v3.1) or paho.mqtt.client.MQTTv5 (v5.0),
         with the default being v3.1.1.
 
         Set transport to "websockets" to use WebSockets as the transport
@@ -919,7 +919,7 @@ class Client(object):
         keepalive: Maximum period in seconds between communications with the
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
-        clean_start: (MQTT v5.0 only) True, False or MQTT_CLEAN_START_FIRST_ONLY.  
+        clean_start: (MQTT v5.0 only) True, False or MQTT_CLEAN_START_FIRST_ONLY.
         Sets the MQTT v5.0 clean_start flag always, never or on the first successful connect only,
         respectively.  MQTT session data (such as outstanding messages and subscriptions)
         is cleared on successful connect when the clean_start flag is set.
@@ -993,7 +993,7 @@ class Client(object):
         keepalive: Maximum period in seconds between communications with the
         broker. If no other messages are being exchanged, this controls the
         rate at which the client will send ping messages to the broker.
-        clean_start: (MQTT v5.0 only) True, False or MQTT_CLEAN_START_FIRST_ONLY.  
+        clean_start: (MQTT v5.0 only) True, False or MQTT_CLEAN_START_FIRST_ONLY.
         Sets the MQTT v5.0 clean_start flag always, never or on the first successful connect only,
         respectively.  MQTT session data (such as outstanding messages and subscriptions)
         is cleared on successful connect when the clean_start flag is set.
@@ -1020,7 +1020,7 @@ class Client(object):
         self._clean_start = clean_start
         self._connect_properties = properties
         self._state = mqtt_cs_connect_async
-        
+
 
     def reconnect_delay_set(self, min_delay=1, max_delay=120):
         """ Configure the exponential reconnect delay
@@ -1233,7 +1233,7 @@ class Client(object):
         is defined.
 
         A ValueError will be raised if topic is None, has zero length or is
-        invalid (contains a wildcard), except if the MQTT version used is v5.0.  
+        invalid (contains a wildcard), except if the MQTT version used is v5.0.
         For v5.0, a zero length topic can be used when a Topic Alias has been set.
 
         A ValueError will be raised if qos is not one of 0, 1 or 2, or if
@@ -1320,10 +1320,10 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode    
+        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode
             [MQTT-3.1.3-11].
             Set to None to reset client back to not using username/password for broker authentication.
-        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it 
+        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it
             will be encoded as UTF-8.
         """
 
@@ -1360,7 +1360,7 @@ class Client(object):
     def disconnect(self, reasoncode=None, properties=None):
         """Disconnect a connected client from the broker.
         reasoncode: (MQTT v5.0 only) a ReasonCodes instance setting the MQTT v5.0
-        reasoncode to be sent with the disconnect.  It is optional, the receiver 
+        reasoncode to be sent with the disconnect.  It is optional, the receiver
         then assuming that 0 (success) is the value.
         properties: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
         to be included. Optional - if not set, no properties are sent.
@@ -1377,7 +1377,7 @@ class Client(object):
 
         This function may be called in three different ways (and a further three for MQTT v5.0):
 
-        Simple string and integer 
+        Simple string and integer
         -------------------------
         e.g. subscribe("my/topic", 2)
 
@@ -2414,10 +2414,15 @@ class Client(object):
 
         if self._sock is not None and (now - last_msg_out >= self._keepalive or now - last_msg_in >= self._keepalive):
             if self._state == mqtt_cs_connected and self._ping_t == 0:
-                self._send_pingreq()
-                with self._msgtime_mutex:
-                    self._last_msg_out = now
-                    self._last_msg_in = now
+                try:
+                    self._send_pingreq()
+                except Exception as e:
+                    self._sock_close()
+                    self._do_on_disconnect(MQTT_ERR_UNKNOWN)
+                else:
+                    with self._msgtime_mutex:
+                        self._last_msg_out = now
+                        self._last_msg_in = now
             else:
                 self._sock_close()
 
