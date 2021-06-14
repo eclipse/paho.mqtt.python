@@ -54,6 +54,7 @@ openssl ca -batch -config openssl.cnf -name CA_signing -days 1 -startdate 120820
 
 # Valid client key and certificate.
 openssl genrsa -out client.key 2048
+openssl rsa -aes256 -in client.key -out client-with-pw.key -passout pass:foobar
 openssl req -new -key client.key -out client.csr -config openssl.cnf -subj "${SBASESUBJ}/CN=test client/"
 openssl ca -batch -config openssl.cnf -name CA_signing -out client.crt -infiles client.csr 
 

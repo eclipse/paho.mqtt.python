@@ -30,4 +30,5 @@ test :
 	python ./04-retain-qos0.py python/04-retain-qos0.test
 	python ./08-ssl-connect-no-auth.py python/08-ssl-connect-no-auth.test
 	python ./08-ssl-connect-cert-auth.py python/08-ssl-connect-cert-auth.test
+	python ./08-ssl-connect-cert-auth-key-pw.py python/08-ssl-connect-cert-auth-key-pw.test
 	python ./08-ssl-bad-cacert.py python/08-ssl-bad-cacert.test
