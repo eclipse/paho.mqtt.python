@@ -132,6 +132,9 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
     if qos < 0 or qos > 2:
         raise ValueError('qos must be in the range 0-2')
 
+    if protocol == mqtt.client.MQTTv5:
+        raise NotImplementedError('protocol MQTTv5 not supported')
+
     callback_userdata = {
         'callback':callback,
         'topics':topics,
