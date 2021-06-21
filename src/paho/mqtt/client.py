@@ -568,6 +568,7 @@ class Client(object):
         self._sockpairR, self._sockpairW = (None, None,)
         self._sockpairR, self._sockpairW = _socketpair_compat()
         self._keepalive = 60
+        self._connect_timeout = 5.0
         self._message_retry = 20
         self._last_retry_check = 0
         self._client_mode = MQTT_CLIENT
@@ -3537,12 +3538,12 @@ class Client(object):
         if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
             # Have to short-circuit here because of unsupported source_address
             # param in earlier Python versions.
-            return socket.create_connection(addr, timeout=self._keepalive)
+            return socket.create_connection(addr, timeout=self._connect_timeout)
 
         if proxy:
-            return socks.create_connection(addr, source_address=source, timeout=self._keepalive, **proxy)
+            return socks.create_connection(addr, timeout=self._connect_timeout, source_address=source, **proxy)
         else:
-            return socket.create_connection(addr, source_address=source, timeout=self._keepalive)
+            return socket.create_connection(addr, timeout=self._connect_timeout, source_address=source)
 
 
 # Compatibility class for easy porting from mosquitto.py.
