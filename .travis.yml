@@ -10,8 +10,6 @@ jobs:
       env: TOXENV=py36
     - python: 3.5
       env: TOXENV=py35
-    - python: 2.7
-      env: TOXENV=py27
 
 install:
   - git clone https://github.com/eclipse/paho.mqtt.testing.git || true
