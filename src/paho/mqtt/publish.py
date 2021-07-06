@@ -131,6 +131,9 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     if not isinstance(msgs, Iterable):
         raise TypeError('msgs must be an iterable')
 
+    if protocol == mqtt.client.MQTTv5:
+        raise NotImplementedError('protocol MQTTv5 not supported')
+
     client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
                          protocol=protocol, transport=transport)
 
