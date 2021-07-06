@@ -23,7 +23,7 @@ import time
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-H', '--host', required=False, default="mqtt.eclipse.org")
+parser.add_argument('-H', '--host', required=False, default="mqtt.eclipseprojects.io")
 parser.add_argument('-t', '--topic', required=False, default="paho/test/opts")
 parser.add_argument('-q', '--qos', required=False, type=int,default=0)
 parser.add_argument('-c', '--clientid', required=False, default=None)
