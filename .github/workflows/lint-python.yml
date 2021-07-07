@@ -1,0 +1,21 @@
+name: lint_python
+on: [pull_request, push]
+jobs:
+  lint_python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: pip install bandit black codespell flake8 isort mypy pytest pyupgrade safety
+      - run: bandit --recursive --skip B101,B105,B106,B110,B303,B404,B603 .
+      - run: black --check . || true
+      - run: codespell || true  # --ignore-words-list="" --skip=""
+      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
+      - run: isort --check-only --profile black . || true
+      - run: pip install -e .
+      - run: mypy --ignore-missing-imports . || true
+      - run: mv setup.cfg setup.cfg.disabled
+      - run: pytest .
+      - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
+      - run: safety check
