@@ -6,6 +6,7 @@ PYTHON?=python3
 all :
 
 test :
+	$(PYTHON) ./01-asyncio.py python/01-asyncio.test
 	$(PYTHON) ./01-decorators.py python/01-decorators.test
 	$(PYTHON) ./01-keepalive-pingreq.py python/01-keepalive-pingreq.test
 	$(PYTHON) ./01-no-clean-session.py python/01-no-clean-session.test
