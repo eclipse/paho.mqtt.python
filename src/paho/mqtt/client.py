@@ -764,7 +764,7 @@ class Client(object):
         if hasattr(context, 'check_hostname'):
             self._tls_insecure = not context.check_hostname
 
-    def tls_set(self, ca_certs=None, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None):
+    def tls_set(self, ca_certs=None, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None, keyfile_password=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -784,8 +784,11 @@ class Client(object):
         None then they will be used as client information for TLS based
         authentication.  Support for this feature is broker dependent. Note
         that if either of these files in encrypted and needs a password to
-        decrypt it, Python will ask for the password at the command line. It is
-        not currently possible to define a callback to provide the password.
+        decrypt it, then this can be passed using the keyfile_password
+        argument - you should take precautions to ensure that your password is
+        not hard coded into your program by loading the password from a file
+        for example. If you do not provide keyfile_password, the password will
+        be requested to be typed in at a terminal window.
 
         cert_reqs allows the certificate requirements that the client imposes
         on the broker to be changed. By default this is ssl.CERT_REQUIRED,
@@ -822,7 +825,7 @@ class Client(object):
 
         # Configure context
         if certfile is not None:
-            context.load_cert_chain(certfile, keyfile)
+            context.load_cert_chain(certfile, keyfile, keyfile_password)
 
         if cert_reqs == ssl.CERT_NONE and hasattr(context, 'check_hostname'):
             context.check_hostname = False

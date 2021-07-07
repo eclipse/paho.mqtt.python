@@ -29,4 +29,5 @@ test :
 	$(PYTHON) ./04-retain-qos0.py python/04-retain-qos0.test
 	$(PYTHON) ./08-ssl-connect-no-auth.py python/08-ssl-connect-no-auth.test
 	$(PYTHON) ./08-ssl-connect-cert-auth.py python/08-ssl-connect-cert-auth.test
+	$(PYTHON) ./08-ssl-connect-cert-auth-pw.py python/08-ssl-connect-cert-auth-pw.test
 	$(PYTHON) ./08-ssl-bad-cacert.py python/08-ssl-bad-cacert.test
