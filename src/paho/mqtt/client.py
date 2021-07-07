@@ -517,7 +517,7 @@ class Client(object):
     """
 
     def __init__(self, client_id="", clean_session=None, userdata=None,
-                 protocol=MQTTv311, transport="tcp"):
+                 protocol=MQTTv311, transport="tcp", reconnect_on_failure=True):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -603,6 +603,7 @@ class Client(object):
         self._reconnect_min_delay = 1
         self._reconnect_max_delay = 120
         self._reconnect_delay = None
+        self._reconnect_on_failure = reconnect_on_failure
         self._ping_t = 0
         self._last_mid = 0
         self._state = mqtt_cs_new
@@ -1740,14 +1741,16 @@ class Client(object):
         is useful for the case where you only want to run the MQTT client loop
         in your program.
 
-        loop_forever() will handle reconnecting for you. If you call
-        disconnect() in a callback it will return.
+        loop_forever() will handle reconnecting for you if reconnect_on_failure is
+        true (this is the default behavior). If you call disconnect() in a callback
+        it will return.
 
 
         timeout: The time in seconds to wait for incoming/outgoing network
           traffic before timing out and returning.
         max_packets: Not currently used.
         retry_first_connection: Should the first connection attempt be retried on failure.
+          This is independent of the reconnect_on_failure setting.
 
         Raises socket.error on first connection failures unless retry_first_connection=True
         """
@@ -1789,7 +1792,7 @@ class Client(object):
             def should_exit():
                 return self._state == mqtt_cs_disconnecting or run is False or self._thread_terminate is True
 
-            if should_exit():
+            if should_exit() or not self._reconnect_on_failure:
                 run = False
             else:
                 self._reconnect_wait()
@@ -2956,6 +2959,8 @@ class Client(object):
             (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
         if self._protocol == MQTTv311:
             if result == CONNACK_REFUSED_PROTOCOL_VERSION:
+                if not self._reconnect_on_failure:
+                    return MQTT_ERR_PROTOCOL
                 self._easy_log(
                     MQTT_LOG_DEBUG,
                     "Received CONNACK (%s, %s), attempting downgrade to MQTT v3.1.",
@@ -2966,6 +2971,8 @@ class Client(object):
                 return self.reconnect()
             elif (result == CONNACK_REFUSED_IDENTIFIER_REJECTED
                     and self._client_id == b''):
+                if not self._reconnect_on_failure:
+                    return MQTT_ERR_PROTOCOL
                 self._easy_log(
                     MQTT_LOG_DEBUG,
                     "Received CONNACK (%s, %s), attempting to use non-empty CID",
