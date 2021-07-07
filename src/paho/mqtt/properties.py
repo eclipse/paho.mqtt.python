@@ -16,7 +16,8 @@
 *******************************************************************
 """
 
-import sys, struct
+import struct
+import sys
 
 from .packettypes import PacketTypes
 

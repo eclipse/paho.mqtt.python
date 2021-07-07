@@ -17,8 +17,10 @@
 
 # This shows an example of an MQTTv5 Remote Procedure Call (RPC) server.
 
-import context  # Ensures paho is in PYTHONPATH
 import json
+
+import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 from paho.mqtt.packettypes import PacketTypes
 
