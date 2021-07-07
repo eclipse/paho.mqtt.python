@@ -2411,7 +2411,7 @@ class Client(object):
             if self._state == mqtt_cs_connected and self._ping_t == 0:
                 try:
                     self._send_pingreq()
-                except Exception as e:
+                except Exception:
                     self._sock_close()
                     self._do_on_disconnect(MQTT_ERR_CONN_LOST)
                 else:
