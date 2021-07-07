@@ -1,7 +1,7 @@
 import pytest
 
-from paho.mqtt.subscribe import simple, callback
 from paho.mqtt.client import MQTTv5
+from paho.mqtt.subscribe import callback, simple
 
 
 class TestSimple(object):

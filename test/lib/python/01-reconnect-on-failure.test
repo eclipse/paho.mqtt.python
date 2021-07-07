@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import os
-import subprocess
 import socket
+import subprocess
 import sys
 import time
 from struct import *
 
 import paho.mqtt.client as mqtt
+
 
 def on_connect(mqttc, obj, flags, rc):
     mqttc.publish("reconnect/test", "message")

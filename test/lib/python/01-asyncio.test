@@ -5,6 +5,7 @@ import socket
 import uuid
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 client_id = 'asyncio-test'

@@ -9,7 +9,6 @@ from struct import *
 
 import paho.mqtt.client as mqtt
 
-
 run = -1
 mqttc = mqtt.Client("decorators-test", run)
 payload = b""

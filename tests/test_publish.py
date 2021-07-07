@@ -1,7 +1,7 @@
 import pytest
 
-from paho.mqtt.publish import single, multiple
 from paho.mqtt.client import MQTTv5
+from paho.mqtt.publish import multiple, single
 
 
 class TestSingle(object):
