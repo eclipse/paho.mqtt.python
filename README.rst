@@ -1245,7 +1245,8 @@ tls
     Defaults to None, which indicates that TLS should not be used.
 
 protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
+    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
+    ``MQTTv311``, or ``MQTTv5`.
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
@@ -1388,7 +1389,8 @@ tls
     Defaults to None, which indicates that TLS should not be used.
 
 protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
+    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
+    ``MQTTv311``, or ``MQTTv5``.
 
 
 Simple Example
