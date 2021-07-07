@@ -15,10 +15,12 @@
 
 # This shows a simple example of standard logging with an MQTT subscriber client.
 
+import logging
+
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # If you want to use a specific client id, use

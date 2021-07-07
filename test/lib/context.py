@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import os
 import subprocess
+import sys
 
 try:
     import ssl

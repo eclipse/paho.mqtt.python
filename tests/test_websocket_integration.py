@@ -1,14 +1,14 @@
 import base64
-import re
 import hashlib
+import re
 from collections import OrderedDict
 
-from six.moves import socketserver
 import pytest
-import paho.mqtt.client as client
-
-from paho.mqtt.client import WebsocketConnectionError
+from six.moves import socketserver
 from testsupport.broker import fake_websocket_broker
+
+import paho.mqtt.client as client
+from paho.mqtt.client import WebsocketConnectionError
 
 
 @pytest.fixture

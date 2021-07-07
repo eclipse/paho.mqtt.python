@@ -20,8 +20,9 @@ you to pass a callback for processing of messages.
 """
 from __future__ import absolute_import
 
-from . import client as paho
 from .. import mqtt
+from . import client as paho
+
 
 def _on_connect(client, userdata, flags, rc):
     """Internal callback"""

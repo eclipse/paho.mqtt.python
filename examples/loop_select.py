@@ -2,9 +2,10 @@
 
 import socket
 import uuid
-import paho.mqtt.client as mqtt
 from select import select
 from time import time
+
+import paho.mqtt.client as mqtt
 
 client_id = 'paho-mqtt-python/issue72/' + str(uuid.uuid4())
 topic = client_id

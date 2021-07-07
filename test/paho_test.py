@@ -1,6 +1,6 @@
 import binascii
-import struct
 import socket
+import struct
 import sys
 
 try:

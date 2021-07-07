@@ -16,6 +16,7 @@
 # This shows an example of using the publish.single helper function.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.publish as publish
 
 publish.single("paho/test/single", "boo", hostname="mqtt.eclipse.org")

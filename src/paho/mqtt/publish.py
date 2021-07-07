@@ -21,13 +21,15 @@ broker, then disconnect and nothing else is required.
 from __future__ import absolute_import
 
 import collections
+
 try:
     from collections.abc import Iterable
 except ImportError:
     from collections import Iterable
 
-from . import client as paho
 from .. import mqtt
+from . import client as paho
+
 
 def _do_publish(client):
     """Internal function"""

@@ -13,19 +13,21 @@
 #    Roger Light - initial API and implementation
 #    Ian Craggs - MQTT V5 support
 
-from .subscribeoptions import SubscribeOptions
-from .reasoncodes import ReasonCodes
-from .properties import Properties
-from .matcher import MQTTMatcher
-import logging
-import hashlib
-import string
 import base64
-import uuid
-import time
-import threading
-import sys
+import hashlib
+import logging
+import string
 import struct
+import sys
+import threading
+import time
+import uuid
+
+from .matcher import MQTTMatcher
+from .properties import Properties
+from .reasoncodes import ReasonCodes
+from .subscribeoptions import SubscribeOptions
+
 """
 This is an MQTT client module. MQTT is a lightweight pub/sub messaging
 protocol that is easy to implement and suitable for low powered devices.
@@ -51,11 +53,12 @@ except ImportError:
 
 try:
     # Python 3
-    from urllib import request as urllib_dot_request
     from urllib import parse as urllib_dot_parse
+    from urllib import request as urllib_dot_request
 except ImportError:
     # Python 2
     import urllib as urllib_dot_request
+
     import urlparse as urllib_dot_parse
 
 

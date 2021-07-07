@@ -16,7 +16,9 @@
 # This example shows how you can use the MQTT client in a class.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
+
 
 class MyMQTTClass(mqtt.Client):
 

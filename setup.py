@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 sys.path.insert(0, 'src')
 from paho.mqtt import __version__

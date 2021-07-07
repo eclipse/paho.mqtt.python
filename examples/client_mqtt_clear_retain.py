@@ -17,10 +17,11 @@
 
 # This shows an example of an MQTT client that clears all of the retained messages it receives.
 
-import sys
 import getopt
+import sys
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 final_mid = 0

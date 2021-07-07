@@ -16,20 +16,20 @@
 *******************************************************************
 """
 
-import unittest
-import time
-import threading
 import getopt
-import sys
 import logging
+import sys
+import threading
+import time
 import traceback
+import unittest
 
 import paho.mqtt
+import paho.mqtt.client
+from paho.mqtt.packettypes import PacketTypes
 from paho.mqtt.properties import Properties
 from paho.mqtt.reasoncodes import ReasonCodes
 from paho.mqtt.subscribeoptions import SubscribeOptions
-from paho.mqtt.packettypes import PacketTypes
-import paho.mqtt.client
 
 
 class Callbacks:
