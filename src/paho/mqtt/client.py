@@ -475,7 +475,10 @@ class Client(object):
       Decorator: @client.connect_callback() (```client``` is the name of the
         instance which this callback is being attached to)
 
-    on_connect_fail(client, userdata): called when the client failed to connect to the broker.
+    on_connect_fail(client, userdata): called when the connection to the broker fails.
+
+      Decorator: @client.connect_fail_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
 
     on_disconnect(client, userdata, rc): called when the client disconnects from the broker.
       The rc parameter indicates the disconnection state:
@@ -1983,6 +1986,12 @@ class Client(object):
         """
         with self._callback_mutex:
             self._on_connect_fail = func
+
+    def connect_fail_callback(self):
+        def decorator(func):
+            self.on_connect_fail = func
+            return func
+        return decorator
 
     @property
     def on_subscribe(self):
