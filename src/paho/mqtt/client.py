@@ -437,6 +437,14 @@ class Client(object):
 
     client.on_connect = on_connect
 
+    Callbacks can also be attached using decorators:
+
+    client = paho.mqtt.Client()
+
+    @client.connect_callback()
+    def on_connect(client, userdata, flags, rc, properties=None):
+        print("Connection returned " + str(rc))
+
     All of the callbacks as described below have a "client" and an "userdata"
     argument. "client" is the Client instance that is calling the callback.
     "userdata" is user data of any type and can be set when creating a new client
@@ -464,6 +472,9 @@ class Client(object):
         5: Connection refused - not authorised
         6-255: Currently unused.
 
+      Decorator: @client.connect_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
+
     on_disconnect(client, userdata, rc): called when the client disconnects from the broker.
       The rc parameter indicates the disconnection state:
         MQTT_ERR_SUCCESS: the callback was called in response to a disconnect() call.
@@ -476,9 +487,15 @@ class Client(object):
       message can contain a reason code and MQTT V5 properties.  The properties parameter could be
       None if they do not exist in the disconnect message.
 
+      Decorator: @client.disconnect_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
+
     on_message(client, userdata, message): called when a message has been received on a
       topic that the client subscribes to. The message variable is a
       MQTTMessage that describes all of the message parameters.
+
+      Decorator: @client.message_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
 
     on_publish(client, userdata, mid): called when a message that was to be sent using the
       publish() call has completed transmission to the broker. For messages
@@ -489,34 +506,58 @@ class Client(object):
       This callback is important because even if the publish() call returns
       success, it does not always mean that the message has been sent.
 
+      Decorator: @client.publish_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
+
     on_subscribe(client, userdata, mid, granted_qos, properties=None): called when the broker responds to a
       subscribe request. The mid variable matches the mid variable returned
       from the corresponding subscribe() call. The granted_qos variable is a
       list of integers that give the QoS level the broker has granted for each
       of the different subscription requests.
 
+      Decorator: @client.subscribe_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
+
     on_unsubscribe(client, userdata, mid): called when the broker responds to an unsubscribe
       request. The mid variable matches the mid variable returned from the
       corresponding unsubscribe() call.
+
+      Decorator: @client.unsubscribe_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
 
     on_log(client, userdata, level, buf): called when the client has log information. Define
       to allow debugging. The level variable gives the severity of the message
       and will be one of MQTT_LOG_INFO, MQTT_LOG_NOTICE, MQTT_LOG_WARNING,
       MQTT_LOG_ERR, and MQTT_LOG_DEBUG. The message itself is in buf.
 
+      Decorator: @client.log_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
+
     on_socket_open(client, userdata, sock): Called when the socket has been opened. Use this
       to register the socket with an external event loop for reading.
 
+      Decorator: @client.socket_open_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
+
     on_socket_close(client, userdata, sock): Called when the socket is about to be closed.
       Use this to unregister a socket from an external event loop for reading.
+
+      Decorator: @client.socket_close_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
 
     on_socket_register_write(client, userdata, sock): Called when a write operation to the
       socket failed because it would have blocked, e.g. output buffer full. Use this to
       register the socket with an external event loop for writing.
 
+      Decorator: @client.socket_register_write_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
+
     on_socket_unregister_write(client, userdata, sock): Called when a write operation to the
       socket succeeded after it had previously failed. Use this to unregister the socket
       from an external event loop for writing.
+
+      Decorator: @client.socket_unregister_write_callback() (```client``` is the name of the
+        instance which this callback is being attached to)
     """
 
     def __init__(self, client_id="", clean_session=None, userdata=None,

@@ -11,6 +11,7 @@ v1.6.0 - 2021-xx-xx
   the server. They will *not* be retried when the client is still connected.
 - The `rc` parameter in the `on_disconnect` callback now has meaningful values
   in the case of an error. Closes #441.
+- Callbacks can now be applied to client instances using decorators.
 
 
 v1.5.1 - 2020-09-22
