@@ -3313,9 +3313,8 @@ class Client(object):
             self._handle_on_message(message)
             return MQTT_ERR_SUCCESS
         elif message.qos == 1:
-            rc = self._send_puback(message.mid)
             self._handle_on_message(message)
-            return rc
+            return self._send_puback(message.mid)
         elif message.qos == 2:
             rc = self._send_pubrec(message.mid)
             message.state = mqtt_ms_wait_for_pubrel

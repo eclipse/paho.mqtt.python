@@ -12,6 +12,8 @@ v1.6.0 - 2021-xx-xx
 - The `rc` parameter in the `on_disconnect` callback now has meaningful values
   in the case of an error. Closes #441.
 - Callbacks can now be applied to client instances using decorators.
+- PUBACK messages are now sent to the broker only after the on_message
+  callback has returned.
 
 
 v1.5.1 - 2020-09-22
