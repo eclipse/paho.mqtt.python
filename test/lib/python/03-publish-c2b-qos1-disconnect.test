@@ -21,10 +21,10 @@ def on_connect(mqttc, obj, flags, rc):
             sent_mid = res[1]
 
 def on_disconnect(mqttc, obj, rc):
-    if rc == 1:
-        mqttc.reconnect()
-    else:
+    if rc == mqtt.MQTT_ERR_SUCCESS:
         run = 0
+    else:
+        mqttc.reconnect()
 
 def on_publish(mqttc, obj, mid):
     global sent_mid

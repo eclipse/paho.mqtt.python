@@ -162,6 +162,7 @@ MQTT_ERR_ACL_DENIED = 12
 MQTT_ERR_UNKNOWN = 13
 MQTT_ERR_ERRNO = 14
 MQTT_ERR_QUEUE_SIZE = 15
+MQTT_ERR_KEEPALIVE = 16
 
 MQTT_CLIENT = 0
 MQTT_BRIDGE = 1
@@ -214,6 +215,8 @@ def error_string(mqtt_errno):
         return "Error defined by errno."
     elif mqtt_errno == MQTT_ERR_QUEUE_SIZE:
         return "Message queue full."
+    elif mqtt_errno == MQTT_ERR_KEEPALIVE:
+        return "Client or broker did not communicate in the keepalive interval."
     else:
         return "Unknown error."
 
@@ -459,10 +462,11 @@ class Client(object):
         6-255: Currently unused.
 
     on_disconnect(client, userdata, rc): called when the client disconnects from the broker.
-      The rc parameter indicates the disconnection state. If MQTT_ERR_SUCCESS
-      (0), the callback was called in response to a disconnect() call. If any
-      other value the disconnection was unexpected, such as might be caused by
-      a network error.
+      The rc parameter indicates the disconnection state:
+        MQTT_ERR_SUCCESS: the callback was called in response to a disconnect() call.
+        MQTT_ERR_KEEPALIVE: the client/broker did not communicate within the keepalive interval.
+        MQTT_ERR_CONN_LOST: the connection was lost.
+        MQTT_ERR_PROTOCOL: a protocol error occurred when communicating with the broker.
 
     on_disconnect(client, userdata, rc, properties): called when the MQTT V5 client disconnects from the broker.
       When using MQTT V5, the broker can send a disconnect message to the client.  The
@@ -1633,7 +1637,7 @@ class Client(object):
             if self._state == mqtt_cs_disconnecting:
                 rc = MQTT_ERR_SUCCESS
             else:
-                rc = 1
+                rc = MQTT_ERR_KEEPALIVE
 
             self._do_on_disconnect(rc)
 
@@ -2240,10 +2244,10 @@ class Client(object):
             except socket.error as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                return 1
+                return MQTT_ERR_CONN_LOST
             else:
                 if len(command) == 0:
-                    return 1
+                    return MQTT_ERR_CONN_LOST
                 command, = struct.unpack("!B", command)
                 self._in_packet['command'] = command
 
@@ -2259,10 +2263,10 @@ class Client(object):
                 except socket.error as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                    return 1
+                    return MQTT_ERR_CONN_LOST
                 else:
                     if len(byte) == 0:
-                        return 1
+                        return MQTT_ERR_CONN_LOST
                     byte, = struct.unpack("!B", byte)
                     self._in_packet['remaining_count'].append(byte)
                     # Max 4 bytes length for remaining length as defined by protocol.
@@ -2288,10 +2292,10 @@ class Client(object):
             except socket.error as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                return 1
+                return MQTT_ERR_CONN_LOST
             else:
                 if len(data) == 0:
-                    return 1
+                    return MQTT_ERR_CONN_LOST
                 self._in_packet['to_process'] -= len(data)
                 self._in_packet['packet'] += data
 
@@ -2333,7 +2337,7 @@ class Client(object):
                 self._current_out_packet_mutex.release()
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                return 1
+                return MQTT_ERR_CONN_LOST
 
             if write_length > 0:
                 packet['to_process'] -= write_length
@@ -2361,7 +2365,7 @@ class Client(object):
                         with self._msgtime_mutex:
                             self._last_msg_out = time_func()
 
-                        self._do_on_disconnect(0)
+                        self._do_on_disconnect(MQTT_ERR_SUCCESS)
 
                         self._sock_close()
                         return MQTT_ERR_SUCCESS
@@ -2409,7 +2413,7 @@ class Client(object):
                     self._send_pingreq()
                 except Exception as e:
                     self._sock_close()
-                    self._do_on_disconnect(MQTT_ERR_UNKNOWN)
+                    self._do_on_disconnect(MQTT_ERR_CONN_LOST)
                 else:
                     with self._msgtime_mutex:
                         self._last_msg_out = now
@@ -2420,7 +2424,7 @@ class Client(object):
                 if self._state == mqtt_cs_disconnecting:
                     rc = MQTT_ERR_SUCCESS
                 else:
-                    rc = 1
+                    rc = MQTT_ERR_KEEPALIVE
 
                 self._do_on_disconnect(rc)
 

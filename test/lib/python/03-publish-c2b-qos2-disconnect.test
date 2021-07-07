@@ -21,10 +21,10 @@ def on_connect(mqttc, obj, flags, rc):
             first_connection = 0
 
 def on_disconnect(mqttc, obj, rc):
-    if rc == 1:
-        mqttc.reconnect()
-    else:
+    if rc == 0:
         run = 0
+    else:
+        mqttc.reconnect()
 
 def on_publish(mqttc, obj, mid):
     mqttc.disconnect()
