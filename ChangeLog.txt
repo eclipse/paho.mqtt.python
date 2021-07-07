@@ -16,6 +16,7 @@ v1.6.0 - 2021-xx-xx
   callback has returned.
 - Raise exceptions when attempting to set MQTT v5 properties to forbidden
   values. Closes #586.
+- Callbacks can now be updated from within a callback.
 
 
 v1.5.1 - 2020-09-22
