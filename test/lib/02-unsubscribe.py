@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client sends a correct UNSUBSCRIBE packet.
 

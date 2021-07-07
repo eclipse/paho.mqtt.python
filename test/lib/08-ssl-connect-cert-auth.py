@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client produces a correct connect and subsequent disconnect when using SSL.
 # Client must provide a certificate.

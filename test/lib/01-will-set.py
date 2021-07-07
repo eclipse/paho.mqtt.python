@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client produces a correct connect with a will.
 # Will QoS=1, will retain=1.
