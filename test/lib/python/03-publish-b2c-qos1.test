@@ -31,7 +31,6 @@ def on_message(mqttc, obj, msg):
     if msg.retain != False:
         print("Invalid retain: ("+str(msg.retain)+")")
         exit(1)
-    exit(0)
 
 def on_connect(mqttc, obj, flags, rc):
     if rc != 0:
@@ -46,5 +45,4 @@ mqttc.connect("localhost", 1888)
 rc = 0
 while rc == 0:
     rc = mqttc.loop()
-print("rc: "+str(rc))
-exit(1)
+exit(0)
