@@ -106,7 +106,7 @@ def to_string(packet):
         (slen, packet) = struct.unpack(pack_format, packet)
         pack_format = "!" + str(slen) + 'sBBH' + str(len(packet) - slen - 4) + 's'
         (protocol, proto_ver, flags, keepalive, packet) = struct.unpack(pack_format, packet)
-        s = "CONNECT, proto=" + protocol + str(proto_ver) + ", keepalive=" + str(keepalive)
+        s = "CONNECT, proto=" + str(protocol) + str(proto_ver) + ", keepalive=" + str(keepalive)
         if flags & 2:
             s = s + ", clean-session"
         else:
@@ -116,7 +116,7 @@ def to_string(packet):
         (slen, packet) = struct.unpack(pack_format, packet)
         pack_format = "!" + str(slen) + 's' + str(len(packet) - slen) + 's'
         (client_id, packet) = struct.unpack(pack_format, packet)
-        s = s + ", id=" + client_id
+        s = s + ", id=" + str(client_id)
 
         if flags & 4:
             pack_format = "!H" + str(len(packet) - 2) + 's'
