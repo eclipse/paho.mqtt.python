@@ -7,7 +7,8 @@ else:
     from unittest.mock import Mock
 
 import pytest
-from paho.mqtt.client import WebsocketWrapper, WebsocketConnectionError
+
+from paho.mqtt.client import WebsocketConnectionError, WebsocketWrapper
 
 
 class TestHeaders(object):

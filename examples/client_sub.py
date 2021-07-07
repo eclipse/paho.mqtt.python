@@ -18,6 +18,7 @@
 # This shows a simple example of an MQTT subscriber.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 

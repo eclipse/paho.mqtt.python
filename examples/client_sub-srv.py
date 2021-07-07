@@ -18,7 +18,9 @@
 # This shows a simple example of an MQTT subscriber using connect_srv method.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
+
 
 def on_connect(mqttc, obj, flags, rc):
     print("Connected to %s:%s" % (mqttc._host, mqttc._port))

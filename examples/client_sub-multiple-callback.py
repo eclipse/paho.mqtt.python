@@ -17,6 +17,7 @@
 # This shows a simple example of an MQTT subscriber using a per-subscription message handler.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 

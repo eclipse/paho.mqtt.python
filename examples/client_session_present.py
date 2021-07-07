@@ -18,6 +18,7 @@
 # This demonstrates the session present flag when connecting.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 
