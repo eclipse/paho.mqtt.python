@@ -569,8 +569,6 @@ class Client(object):
         self._sockpairR, self._sockpairW = _socketpair_compat()
         self._keepalive = 60
         self._connect_timeout = 5.0
-        self._message_retry = 20
-        self._last_retry_check = 0
         self._client_mode = MQTT_CLIENT
         # [MQTT-3.1.3-4] Client Id must be UTF-8 encoded string.
         if client_id == "" or client_id is None:
@@ -1626,10 +1624,6 @@ class Client(object):
 
         now = time_func()
         self._check_keepalive()
-        if self._last_retry_check + 1 < now:
-            # Only check once a second at most
-            self._message_retry_check()
-            self._last_retry_check = now
 
         if self._ping_t > 0 and now - self._ping_t >= self._keepalive:
             # client->ping_t != 0 means we are waiting for a pingresp.
@@ -1665,12 +1659,8 @@ class Client(object):
         return self
 
     def message_retry_set(self, retry):
-        """Set the timeout in seconds before a message with QoS>0 is retried.
-        20 seconds by default."""
-        if retry < 0:
-            raise ValueError('Invalid retry.')
-
-        self._message_retry = retry
+        """No longer used, remove in version 2.0"""
+        pass
 
     def user_data_set(self, userdata):
         """Set the user data variable passed to callbacks. May be any data type."""
@@ -2807,36 +2797,6 @@ class Client(object):
                 topics,
             )
         return (self._packet_queue(command, packet, local_mid, 1), local_mid)
-
-    def _message_retry_check_actual(self, messages, mutex):
-        with mutex:
-            now = time_func()
-            for m in messages.values():
-                if m.timestamp + self._message_retry < now:
-                    if m.state == mqtt_ms_wait_for_puback or m.state == mqtt_ms_wait_for_pubrec:
-                        m.timestamp = now
-                        m.dup = True
-                        self._send_publish(
-                            m.mid,
-                            m.topic.encode('utf-8'),
-                            m.payload,
-                            m.qos,
-                            m.retain,
-                            m.dup,
-                            properties=m.properties,
-                        )
-                    elif m.state == mqtt_ms_wait_for_pubrel:
-                        m.timestamp = now
-                        self._send_pubrec(m.mid)
-                    elif m.state == mqtt_ms_wait_for_pubcomp:
-                        m.timestamp = now
-                        self._send_pubrel(m.mid)
-
-    def _message_retry_check(self):
-        self._message_retry_check_actual(
-            self._out_messages, self._out_message_mutex)
-        self._message_retry_check_actual(
-            self._in_messages, self._in_message_mutex)
 
     def _check_clean_session(self):
         if self._protocol == MQTTv5:

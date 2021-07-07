@@ -19,12 +19,9 @@ test :
 	python ./02-unsubscribe.py python/02-unsubscribe.test
 	python ./03-publish-qos0.py python/03-publish-qos0.test
 	python ./03-publish-qos0-no-payload.py python/03-publish-qos0-no-payload.test
-	python ./03-publish-c2b-qos1-timeout.py python/03-publish-c2b-qos1-timeout.test
 	python ./03-publish-c2b-qos1-disconnect.py python/03-publish-c2b-qos1-disconnect.test
-	python ./03-publish-c2b-qos2-timeout.py python/03-publish-c2b-qos2-timeout.test
 	python ./03-publish-c2b-qos2-disconnect.py python/03-publish-c2b-qos2-disconnect.test
 	python ./03-publish-b2c-qos1.py python/03-publish-b2c-qos1.test
-	python ./03-publish-b2c-qos2.py python/03-publish-b2c-qos2.test
 	python ./03-publish-helper-qos0.py python/03-publish-helper-qos0.test
 	python ./03-publish-helper-qos1-disconnect.py python/03-publish-helper-qos1-disconnect.test
 	python ./04-retain-qos0.py python/04-retain-qos0.test
