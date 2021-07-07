@@ -1,4 +1,0 @@
-V	120821000000Z		01	unknown	/C=GB/ST=Nottinghamshire/L=Nottingham/O=Server/OU=Production/CN=localhost
-V	250727091210Z		02	unknown	/C=GB/ST=Nottinghamshire/L=Nottingham/O=Server/OU=Production/CN=test client
-V	120821000000Z		03	unknown	/C=GB/ST=Nottinghamshire/L=Nottingham/O=Server/OU=Production/CN=test client expired
-R	250727091211Z	200728091211Z	04	unknown	/C=GB/ST=Nottinghamshire/L=Nottingham/O=Server/OU=Production/CN=test client revoked
