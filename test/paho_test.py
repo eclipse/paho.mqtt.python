@@ -163,14 +163,14 @@ def to_string(packet):
         (tlen, packet) = struct.unpack(pack_format, packet)
         pack_format = "!" + str(tlen) + 's' + str(len(packet) - tlen) + 's'
         (topic, packet) = struct.unpack(pack_format, packet)
-        s = "PUBLISH, rl=" + str(rl) + ", topic=" + topic + ", qos=" + str(qos) + ", retain=" + str(
+        s = "PUBLISH, rl=" + str(rl) + ", topic=" + str(topic) + ", qos=" + str(qos) + ", retain=" + str(
             retain) + ", dup=" + str(dup)
         if qos > 0:
             pack_format = "!H" + str(len(packet) - 2) + 's'
             (mid, packet) = struct.unpack(pack_format, packet)
             s = s + ", mid=" + str(mid)
 
-        s = s + ", payload=" + packet
+        s = s + ", payload=" + str(packet)
         return s
     elif cmd == 0x40:
         # PUBACK
