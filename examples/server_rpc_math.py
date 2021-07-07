@@ -90,6 +90,6 @@ mqttc.on_connect = on_connect
 # Uncomment to enable debug messages
 #mqttc.on_log = on_log
 
-#mqttc.connect("mqtt.eclipse.org", 1883, 60)
+#mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.connect(host="localhost", clean_start=False)
 mqttc.loop_forever()

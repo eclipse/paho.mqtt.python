@@ -64,7 +64,7 @@ class SelectMqttExample:
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
 
-        self.client.connect('mqtt.eclipse.org', 1883, 60)
+        self.client.connect('mqtt.eclipseprojects.io', 1883, 60)
         print("Socket opened")
         self.client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 

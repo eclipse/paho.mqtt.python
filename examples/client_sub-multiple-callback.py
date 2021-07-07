@@ -46,7 +46,7 @@ mqttc = mqtt.Client()
 mqttc.message_callback_add("$SYS/broker/messages/#", on_message_msgs)
 mqttc.message_callback_add("$SYS/broker/bytes/#", on_message_bytes)
 mqttc.on_message = on_message
-mqttc.connect("mqtt.eclipse.org", 1883, 60)
+mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.subscribe("$SYS/#", 0)
 
 mqttc.loop_forever()

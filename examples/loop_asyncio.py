@@ -85,7 +85,7 @@ class AsyncMqttExample:
 
         aioh = AsyncioHelper(self.loop, self.client)
 
-        self.client.connect('mqtt.eclipse.org', 1883, 60)
+        self.client.connect('mqtt.eclipseprojects.io', 1883, 60)
         self.client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
         for c in range(3):
