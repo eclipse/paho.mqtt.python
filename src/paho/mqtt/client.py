@@ -1861,6 +1861,12 @@ class Client(object):
         """
         self._on_log = func
 
+    def log_callback(self):
+        def decorator(func):
+            self.on_log = func
+            return func
+        return decorator
+
     @property
     def on_connect(self):
         """If implemented, called when the broker responds to our connection
@@ -1907,6 +1913,12 @@ class Client(object):
         with self._callback_mutex:
             self._on_connect = func
 
+    def connect_callback(self):
+        def decorator(func):
+            self.on_connect = func
+            return func
+        return decorator
+
     @property
     def on_subscribe(self):
         """If implemented, called when the broker responds to a subscribe
@@ -1937,6 +1949,12 @@ class Client(object):
         with self._callback_mutex:
             self._on_subscribe = func
 
+    def subscribe_callback(self):
+        def decorator(func):
+            self.on_subscribe = func
+            return func
+        return decorator
+
     @property
     def on_message(self):
         """If implemented, called when a message has been received on a topic
@@ -1961,6 +1979,12 @@ class Client(object):
         """
         with self._callback_mutex:
             self._on_message = func
+
+    def message_callback(self):
+        def decorator(func):
+            self.on_message = func
+            return func
+        return decorator
 
     @property
     def on_publish(self):
@@ -1988,6 +2012,12 @@ class Client(object):
         """
         with self._callback_mutex:
             self._on_publish = func
+
+    def publish_callback(self):
+        def decorator(func):
+            self.on_publish = func
+            return func
+        return decorator
 
     @property
     def on_unsubscribe(self):
@@ -2017,6 +2047,12 @@ class Client(object):
         with self._callback_mutex:
             self._on_unsubscribe = func
 
+    def unsubscribe_callback(self):
+        def decorator(func):
+            self.on_unsubscribe = func
+            return func
+        return decorator
+
     @property
     def on_disconnect(self):
         """If implemented, called when the client disconnects from the broker.
@@ -2044,6 +2080,12 @@ class Client(object):
         with self._callback_mutex:
             self._on_disconnect = func
 
+    def disconnect_callback(self):
+        def decorator(func):
+            self.on_disconnect = func
+            return func
+        return decorator
+
     @property
     def on_socket_open(self):
         """If implemented, called just after the socket was opend."""
@@ -2064,6 +2106,12 @@ class Client(object):
         """
         with self._callback_mutex:
             self._on_socket_open = func
+
+    def socket_open_callback(self):
+        def decorator(func):
+            self.on_socket_open = func
+            return func
+        return decorator
 
     def _call_socket_open(self):
         """Call the socket_open callback with the just-opened socket"""
@@ -2099,6 +2147,12 @@ class Client(object):
         with self._callback_mutex:
             self._on_socket_close = func
 
+    def socket_close_callback(self):
+        def decorator(func):
+            self.on_socket_close = func
+            return func
+        return decorator
+
     def _call_socket_close(self, sock):
         """Call the socket_close callback with the about-to-be-closed socket"""
         with self._callback_mutex:
@@ -2132,6 +2186,12 @@ class Client(object):
         """
         with self._callback_mutex:
             self._on_socket_register_write = func
+
+    def socket_register_write_callback(self):
+        def decorator(func):
+            self._on_socket_register_write = func
+            return func
+        return decorator
 
     def _call_socket_register_write(self):
         """Call the socket_register_write callback with the unwritable socket"""
@@ -2170,6 +2230,12 @@ class Client(object):
         with self._callback_mutex:
             self._on_socket_unregister_write = func
 
+    def socket_unregister_write_callback(self):
+        def decorator(func):
+            self._on_socket_unregister_write = func
+            return func
+        return decorator
+
     def _call_socket_unregister_write(self, sock=None):
         """Call the socket_unregister_write callback with the writable socket"""
         sock = sock or self._sock
@@ -2203,6 +2269,12 @@ class Client(object):
 
         with self._callback_mutex:
             self._on_message_filtered[sub] = callback
+
+    def topic_callback(self, sub):
+        def decorator(func):
+            self.message_callback_add(sub, func)
+            return func
+        return decorator
 
     def message_callback_remove(self, sub):
         """Remove a message callback previously registered with
