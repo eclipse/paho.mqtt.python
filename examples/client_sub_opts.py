@@ -22,7 +22,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-H', '--host', required=False, default="mqtt.eclipse.org")
+parser.add_argument('-H', '--host', required=False, default="mqtt.eclipseprojects.io")
 parser.add_argument('-t', '--topic', required=False, default="$SYS/#")
 parser.add_argument('-q', '--qos', required=False, type=int, default=0)
 parser.add_argument('-c', '--clientid', required=False, default=None)

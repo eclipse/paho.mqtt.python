@@ -135,7 +135,7 @@ Here is a very simple example that subscribes to the broker $SYS topic tree and 
     client.on_connect = on_connect
     client.on_message = on_message
 
-    client.connect("mqtt.eclipse.org", 1883, 60)
+    client.connect("mqtt.eclipseprojects.io", 1883, 60)
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
@@ -191,7 +191,7 @@ userdata
 
 protocol
     the version of the MQTT protocol to use for this client. Can be either
-    ``MQTTv31`` or ``MQTTv311``
+    ``MQTTv31``, ``MQTTv311`` or ``MQTTv5``
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
@@ -294,7 +294,7 @@ tls_set()
 Configure network encryption and authentication options. Enables SSL/TLS support.
 
 ca_certs
-    a string path to the Certificate Authority certificate files that are to be treated as trusted by this client. If this is the only option given then the client will operate in a similar manner to a web browser. That is to say it will require the broker to have a certificate signed by the Certificate Authorities in ``ca_certs`` and will communicate using TLS v1, but will not attempt any form of authentication. This provides basic network encryption but may not be sufficient depending on how the broker is configured. By default, on Python 2.7.9+ or 3.4+, the default certification authority of the system is used. On older Python version this parameter is mandatory.
+    a string path to the Certificate Authority certificate files that are to be treated as trusted by this client. If this is the only option given then the client will operate in a similar manner to a web browser. That is to say it will require the broker to have a certificate signed by the Certificate Authorities in ``ca_certs`` and will communicate using TLS v1.2, but will not attempt any form of authentication. This provides basic network encryption but may not be sufficient depending on how the broker is configured. By default, on Python 2.7.9+ or 3.4+, the default certification authority of the system is used. On older Python version this parameter is mandatory.
 
 certfile, keyfile
     strings pointing to the PEM encoded client certificate and private keys respectively. If these arguments are not ``None`` then they will be used as client information for TLS based authentication. Support for this feature is broker dependent. Note that if either of these files in encrypted and needs a password to decrypt it, Python will ask for the password at the command line. It is not currently possible to define a callback to provide the password.
@@ -303,7 +303,7 @@ cert_reqs
     defines the certificate requirements that the client imposes on the broker. By default this is ``ssl.CERT_REQUIRED``, which means that the broker must provide a certificate. See the ssl pydoc for more information on this parameter.
 
 tls_version
-    specifies the version of the SSL/TLS protocol to be used. By default (if the python version supports it) the highest TLS version is detected. If unavailable, TLS v1 is used. Previous versions (all versions beginning with SSL) are possible but not recommended due to possible security problems.
+    specifies the version of the SSL/TLS protocol to be used. By default (if the python version supports it) the highest TLS version is detected. If unavailable, TLS v1.2 is used. Previous versions (all versions beginning with SSL) are possible but not recommended due to possible security problems.
 
 ciphers
     a string specifying which encryption ciphers are allowable for this connection, or ``None`` to use the defaults. See the ssl pydoc for more information.
@@ -479,7 +479,7 @@ Connect Example
 
 .. code:: python
 
-    mqttc.connect("mqtt.eclipse.org")
+    mqttc.connect("mqtt.eclipseprojects.io")
 
 connect_async()
 '''''''''''''''
@@ -616,7 +616,7 @@ Loop Start/Stop Example
 
 .. code:: python
 
-    mqttc.connect("mqtt.eclipse.org")
+    mqttc.connect("mqtt.eclipseprojects.io")
     mqttc.loop_start()
 
     while True:
@@ -1252,7 +1252,8 @@ tls
     Defaults to None, which indicates that TLS should not be used.
 
 protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
+    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
+    ``MQTTv311``, or ``MQTTv5`.
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
@@ -1265,7 +1266,7 @@ Publish Single Example
 
     import paho.mqtt.publish as publish
 
-    publish.single("paho/test/single", "payload", hostname="mqtt.eclipse.org")
+    publish.single("paho/test/single", "payload", hostname="mqtt.eclipseprojects.io")
 
 Multiple
 ````````
@@ -1306,7 +1307,7 @@ Publish Multiple Example
 
     msgs = [{'topic':"paho/test/multiple", 'payload':"multiple 1"},
         ("paho/test/multiple", "multiple 2", 0, False)]
-    publish.multiple(msgs, hostname="mqtt.eclipse.org")
+    publish.multiple(msgs, hostname="mqtt.eclipseprojects.io")
 
 
 Subscribe
@@ -1395,7 +1396,8 @@ tls
     Defaults to None, which indicates that TLS should not be used.
 
 protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31`` or ``MQTTv311``.
+    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
+    ``MQTTv311``, or ``MQTTv5``.
 
 
 Simple Example
@@ -1405,7 +1407,7 @@ Simple Example
 
     import paho.mqtt.subscribe as subscribe
 
-    msg = subscribe.simple("paho/test/simple", hostname="mqtt.eclipse.org")
+    msg = subscribe.simple("paho/test/simple", hostname="mqtt.eclipseprojects.io")
     print("%s %s" % (msg.topic, msg.payload))
 
 Using Callback
@@ -1454,7 +1456,7 @@ Callback Example
     def on_message_print(client, userdata, message):
         print("%s %s" % (message.topic, message.payload))
 
-    subscribe.callback(on_message_print, "paho/test/callback", hostname="mqtt.eclipse.org")
+    subscribe.callback(on_message_print, "paho/test/callback", hostname="mqtt.eclipseprojects.io")
 
 
 Reporting bugs

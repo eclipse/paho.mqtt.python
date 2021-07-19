@@ -59,7 +59,7 @@ def print_usage():
 
 def main(argv):
     debug = False
-    host = "mqtt.eclipse.org"
+    host = "mqtt.eclipseprojects.io"
     client_id = None
     keepalive = 60
     port = 1883

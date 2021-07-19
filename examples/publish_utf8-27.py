@@ -20,4 +20,4 @@ import paho.mqtt.publish as publish
 
 topic = u"paho/test/single/ô"
 payload = u"bôô"
-publish.single(topic, payload, hostname="mqtt.eclipse.org")
+publish.single(topic, payload, hostname="mqtt.eclipseprojects.io")

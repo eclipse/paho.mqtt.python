@@ -47,7 +47,7 @@ class TrioAsyncHelper:
         self._event_large_write.set()
 
     def on_socket_unregister_write(self, client, userdata, sock):
-        print(f"finished large write")
+        print("finished large write")
         self._event_large_write = trio.Event()
 
 
@@ -60,12 +60,12 @@ class TrioAsyncMqttExample:
         print("Got response with {} bytes".format(len(msg.payload)))
 
     def on_disconnect(self, client, userdata, rc):
-        print(f'Disconnect result {rc}')
+        print('Disconnect result {}'.format(rc))
 
     async def test_write(self, cancel_scope: trio.CancelScope):
         for c in range(3):
             await trio.sleep(5)
-            print(f"Publishing")
+            print("Publishing")
             self.client.publish(topic, b'Hello' * 40000, qos=1)
         cancel_scope.cancel()
 
@@ -77,7 +77,7 @@ class TrioAsyncMqttExample:
 
         trio_helper = TrioAsyncHelper(self.client)
 
-        self.client.connect('mqtt.eclipse.org', 1883, 60)
+        self.client.connect('mqtt.eclipseprojects.io', 1883, 60)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(trio_helper.read_loop)

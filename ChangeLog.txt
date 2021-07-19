@@ -1,7 +1,14 @@
-- Fix incoming MQTT v5 messages with overall property length > 127 bytes being
-incorrectly decoded. Closes #541.
+v1.6.0 - 2021-xx-xx
+===================
 
-v1.5.1 - 2020x-09-22
+- Changed default TLS version to 1.2 instead of 1.0.
+- Fix incoming MQTT v5 messages with overall property length > 127 bytes being
+  incorrectly decoded. Closes #541.
+- MQTTMessageInfo.wait_for_publish() will now raise exceptions if called when
+  the publish call produced an error. Closes #550.
+
+
+v1.5.1 - 2020-09-22
 ===================
 
 - Exceptions that occur in callbacks are no longer suppressed by default. They

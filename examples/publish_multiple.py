@@ -19,4 +19,4 @@ import context  # Ensures paho is in PYTHONPATH
 import paho.mqtt.publish as publish
 
 msgs = [{'topic': "paho/test/multiple", 'payload': "multiple 1"}, ("paho/test/multiple", "multiple 2", 0, False)]
-publish.multiple(msgs, hostname="mqtt.eclipse.org")
+publish.multiple(msgs, hostname="mqtt.eclipseprojects.io")
