@@ -14,6 +14,8 @@ v1.6.0 - 2021-xx-xx
 - Callbacks can now be applied to client instances using decorators.
 - PUBACK messages are now sent to the broker only after the on_message
   callback has returned.
+- Raise exceptions when attempting to set MQTT v5 properties to forbidden
+  values. Closes #586.
 
 
 v1.5.1 - 2020-09-22
