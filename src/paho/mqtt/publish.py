@@ -54,6 +54,9 @@ def _on_connect(client, userdata, flags, rc):
     else:
         raise mqtt.MQTTException(paho.connack_string(rc))
 
+def _on_connect_v5(client, userdata, flags, rc, properties):
+    """Internal v5 callback"""
+    _on_connect(client, userdata, flags, rc)
 
 def _on_publish(client, userdata, mid):
     """Internal callback"""
@@ -133,14 +136,15 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     if not isinstance(msgs, Iterable):
         raise TypeError('msgs must be an iterable')
 
-    if protocol == mqtt.client.MQTTv5:
-        raise NotImplementedError('protocol MQTTv5 not supported')
 
     client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
                          protocol=protocol, transport=transport)
 
     client.on_publish = _on_publish
-    client.on_connect = _on_connect
+    if protocol == mqtt.client.MQTTv5:
+        client.on_connect = _on_connect_v5
+    else:
+        client.on_connect = _on_connect
 
     if proxy_args is not None:
         client.proxy_set(**proxy_args)

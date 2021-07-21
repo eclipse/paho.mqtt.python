@@ -26,6 +26,7 @@ test :
 	$(PYTHON) ./03-publish-c2b-qos1-disconnect.py python/03-publish-c2b-qos1-disconnect.test
 	$(PYTHON) ./03-publish-c2b-qos2-disconnect.py python/03-publish-c2b-qos2-disconnect.test
 	$(PYTHON) ./03-publish-helper-qos0.py python/03-publish-helper-qos0.test
+	$(PYTHON) ./03-publish-helper-qos0-v5.py python/03-publish-helper-qos0-v5.test
 	$(PYTHON) ./03-publish-helper-qos1-disconnect.py python/03-publish-helper-qos1-disconnect.test
 	$(PYTHON) ./03-publish-qos0-no-payload.py python/03-publish-qos0-no-payload.test
 	$(PYTHON) ./03-publish-qos0.py python/03-publish-qos0.test

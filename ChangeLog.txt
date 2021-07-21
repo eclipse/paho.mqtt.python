@@ -19,6 +19,8 @@ v1.6.0 - 2021-xx-xx
 - Callbacks can now be updated from within a callback.
 - Remove _out_packet_mutex and _current_out_packet_mutex and convert the
   _out_packet queue use to thread safe.
+- Add basic MQTT v5 support to the subscribe and publish helper functions.
+  Closes #575.
 
 
 v1.5.1 - 2020-09-22

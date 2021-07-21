@@ -23,8 +23,7 @@ from __future__ import absolute_import
 from .. import mqtt
 from . import client as paho
 
-
-def _on_connect(client, userdata, flags, rc):
+def _on_connect_v5(client, userdata, flags, rc, properties):
     """Internal callback"""
     if rc != 0:
         raise mqtt.MQTTException(paho.connack_string(rc))
@@ -34,6 +33,10 @@ def _on_connect(client, userdata, flags, rc):
             client.subscribe(topic, userdata['qos'])
     else:
         client.subscribe(userdata['topics'], userdata['qos'])
+
+def _on_connect(client, userdata, flags, rc):
+    """Internal v5 callback"""
+    _on_connect_v5(client, userdata, flags, rc, None)
 
 
 def _on_message_callback(client, userdata, message):
@@ -133,9 +136,6 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
     if qos < 0 or qos > 2:
         raise ValueError('qos must be in the range 0-2')
 
-    if protocol == mqtt.client.MQTTv5:
-        raise NotImplementedError('protocol MQTTv5 not supported')
-
     callback_userdata = {
         'callback':callback,
         'topics':topics,
@@ -146,7 +146,10 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
                          protocol=protocol, transport=transport,
                          clean_session=clean_session)
     client.on_message = _on_message_callback
-    client.on_connect = _on_connect
+    if protocol == mqtt.client.MQTTv5:
+        client.on_connect = _on_connect_v5
+    else:
+        client.on_connect = _on_connect
 
     if proxy_args is not None:
         client.proxy_set(**proxy_args)
