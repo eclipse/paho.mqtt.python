@@ -17,6 +17,8 @@ v1.6.0 - 2021-xx-xx
 - Raise exceptions when attempting to set MQTT v5 properties to forbidden
   values. Closes #586.
 - Callbacks can now be updated from within a callback.
+- Remove _out_packet_mutex and _current_out_packet_mutex and convert the
+  _out_packet queue use to thread safe.
 
 
 v1.5.1 - 2020-09-22
