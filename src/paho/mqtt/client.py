@@ -3413,7 +3413,7 @@ class Client(object):
         if on_disconnect:
             with self._in_callback_mutex:
                 try:
-                    if properties:
+                    if self._protocol == MQTTv5:
                         on_disconnect(
                             self, self._userdata, rc, properties)
                     else:

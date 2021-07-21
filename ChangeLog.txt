@@ -21,6 +21,8 @@ v1.6.0 - 2021-xx-xx
   _out_packet queue use to thread safe.
 - Add basic MQTT v5 support to the subscribe and publish helper functions.
   Closes #575.
+- Fix on_disconnect() sometimes calling the MQTT v3.x callback when it should
+  call the MQTT v5 callback. Closes #570.
 
 
 v1.5.1 - 2020-09-22
