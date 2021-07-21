@@ -548,10 +548,10 @@ class Client(object):
         """
 
         if protocol == MQTTv5:
-            if clean_session != None:
+            if clean_session is not None:
                 raise ValueError('Clean session is not used for MQTT 5.0')
         else:
-            if clean_session == None:
+            if clean_session is None:
                 clean_session = True
             if not clean_session and (client_id == "" or client_id is None):
                 raise ValueError(
@@ -1467,7 +1467,7 @@ class Client(object):
             if qos < 0 or qos > 2:
                 raise ValueError('Invalid QoS level.')
             if self._protocol == MQTTv5:
-                if options == None:
+                if options is None:
                     # if no options are provided, use the QoS passed instead
                     options = SubscribeOptions(qos=qos)
                 elif qos != 0:
@@ -2541,7 +2541,7 @@ class Client(object):
             remaining_length += 2
 
         if self._protocol == MQTTv5:
-            if properties == None:
+            if properties is None:
                 packed_properties = b'\x00'
             else:
                 packed_properties = properties.pack()
@@ -2615,13 +2615,13 @@ class Client(object):
                 remaining_length += 2 + len(self._password)
 
         if self._protocol == MQTTv5:
-            if self._connect_properties == None:
+            if self._connect_properties is None:
                 packed_connect_properties = b'\x00'
             else:
                 packed_connect_properties = self._connect_properties.pack()
             remaining_length += len(packed_connect_properties)
             if self._will:
-                if self._will_properties == None:
+                if self._will_properties is None:
                     packed_will_properties = b'\x00'
                 else:
                     packed_will_properties = self._will_properties.pack()
@@ -2703,11 +2703,11 @@ class Client(object):
         packet.append(command)
 
         if self._protocol == MQTTv5:
-            if properties != None or reasoncode != None:
-                if reasoncode == None:
+            if properties is not None or reasoncode is not None:
+                if reasoncode is None:
                     reasoncode = ReasonCodes(DISCONNECT >> 4, identifier=0)
                 remaining_length += 1
-                if properties != None:
+                if properties is not None:
                     packed_props = properties.pack()
                     remaining_length += len(packed_props)
 
@@ -2724,7 +2724,7 @@ class Client(object):
     def _send_subscribe(self, dup, topics, properties=None):
         remaining_length = 2
         if self._protocol == MQTTv5:
-            if properties == None:
+            if properties is None:
                 packed_subscribe_properties = b'\x00'
             else:
                 packed_subscribe_properties = properties.pack()
@@ -2761,7 +2761,7 @@ class Client(object):
     def _send_unsubscribe(self, dup, topics, properties=None):
         remaining_length = 2
         if self._protocol == MQTTv5:
-            if properties == None:
+            if properties is None:
                 packed_unsubscribe_properties = b'\x00'
             else:
                 packed_unsubscribe_properties = properties.pack()
