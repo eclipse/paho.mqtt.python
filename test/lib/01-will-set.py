@@ -14,7 +14,7 @@ rc = 1
 keepalive = 60
 connect_packet = paho_test.gen_connect(
     "01-will-set", keepalive=keepalive, will_topic="topic/on/unexpected/disconnect",
-    will_qos=1, will_retain=True, will_payload="will message".encode('utf-8'))
+    will_qos=1, will_retain=True, will_payload="will message")
 
 sock = paho_test.create_server_socket()
 
@@ -24,8 +24,8 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        rc = 0
+    paho_test.expect_packet(conn, "connect", connect_packet):
+    rc = 0
 
     conn.close()
 finally:
