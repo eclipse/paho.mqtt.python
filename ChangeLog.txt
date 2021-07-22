@@ -23,6 +23,8 @@ v1.6.0 - 2021-xx-xx
   Closes #575.
 - Fix on_disconnect() sometimes calling the MQTT v3.x callback when it should
   call the MQTT v5 callback. Closes #570.
+- Big performance improvement when receiving large payloads, particularly for
+  SSL. Closes #571,
 
 
 v1.5.1 - 2020-09-22

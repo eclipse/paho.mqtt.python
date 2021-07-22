@@ -538,7 +538,7 @@ class Client(object):
             "remaining_count": [],
             "remaining_mult": 1,
             "remaining_length": 0,
-            "packet": b"",
+            "packet": bytearray(b""),
             "to_process": 0,
             "pos": 0}
         self._out_packet = collections.deque()
@@ -999,7 +999,7 @@ class Client(object):
             "remaining_count": [],
             "remaining_mult": 1,
             "remaining_length": 0,
-            "packet": b"",
+            "packet": bytearray(b""),
             "to_process": 0,
             "pos": 0}
 
@@ -2370,6 +2370,7 @@ class Client(object):
             self._in_packet['have_remaining'] = 1
             self._in_packet['to_process'] = self._in_packet['remaining_length']
 
+        count = 100 # Don't get stuck in this loop if we have a huge message.
         while self._in_packet['to_process'] > 0:
             try:
                 data = self._sock_recv(self._in_packet['to_process'])
@@ -2384,6 +2385,11 @@ class Client(object):
                     return MQTT_ERR_CONN_LOST
                 self._in_packet['to_process'] -= len(data)
                 self._in_packet['packet'] += data
+            count -= 1
+            if count == 0:
+                with self._msgtime_mutex:
+                    self._last_msg_in = time_func()
+                return MQTT_ERR_AGAIN
 
         # All data for this packet is read.
         self._in_packet['pos'] = 0
@@ -2396,7 +2402,7 @@ class Client(object):
             'remaining_count': [],
             'remaining_mult': 1,
             'remaining_length': 0,
-            'packet': b"",
+            'packet': bytearray(b""),
             'to_process': 0,
             'pos': 0}
 
