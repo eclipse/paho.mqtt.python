@@ -4,8 +4,9 @@ v1.6.0 - 2021-xx-xx
 - Changed default TLS version to 1.2 instead of 1.0.
 - Fix incoming MQTT v5 messages with overall property length > 127 bytes being
   incorrectly decoded. Closes #541.
-- MQTTMessageInfo.wait_for_publish() will now raise exceptions if called when
-  the publish call produced an error. Closes #550.
+- MQTTMessageInfo.wait_for_publish() and MQTTMessageInfo.is_published() will
+  now raise exceptions if called when the publish call produced an error.
+  Closes #550.
 - Remove periodic retry checks for outgoing messages with QoS>0. This means
   that outgoing messages will only be retried on the client reconnecting to
   the server. They will *not* be retried when the client is still connected.

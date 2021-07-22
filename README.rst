@@ -685,7 +685,9 @@ Returns a MQTTMessageInfo which expose the following attributes and methods:
   ``MQTT_ERR_QUEUE_SIZE``), or a RuntimeError if there was an error when
   publishing, most likely due to the client not being connected.
 * ``is_published`` returns True if the message has been published. It will
-  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
+  raise ValueError if the message is not queued (rc ==
+  ``MQTT_ERR_QUEUE_SIZE``), or a RuntimeError if there was an error when
+  publishing, most likely due to the client not being connected.
 
 A ``ValueError`` will be raised if topic is ``None``, has zero length or is
 invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the

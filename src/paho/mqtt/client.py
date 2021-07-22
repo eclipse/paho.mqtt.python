@@ -348,7 +348,7 @@ class MQTTMessageInfo(object):
         elif self.rc == MQTT_ERR_AGAIN:
             pass
         elif self.rc > 0:
-            raise RuntimeError('Message not published: %s' % (error_string(self.rc)))
+            raise RuntimeError('Message publish failed: %s' % (error_string(self.rc)))
 
         with self._condition:
             while not self._published:
@@ -359,6 +359,11 @@ class MQTTMessageInfo(object):
         published, else returns False."""
         if self.rc == MQTT_ERR_QUEUE_SIZE:
             raise ValueError('Message is not queued due to ERR_QUEUE_SIZE')
+        elif self.rc == MQTT_ERR_AGAIN:
+            pass
+        elif self.rc > 0:
+            raise RuntimeError('Message publish failed: %s' % (error_string(self.rc)))
+
         with self._condition:
             return self._published
 
