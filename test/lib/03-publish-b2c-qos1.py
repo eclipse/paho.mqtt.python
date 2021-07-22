@@ -36,11 +36,11 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    paho_test.expect_packet(conn, "connect", connect_packet):
+    paho_test.expect_packet(conn, "connect", connect_packet)
     conn.send(connack_packet)
     conn.send(publish_packet)
 
-    paho_test.expect_packet(conn, "puback", puback_packet):
+    paho_test.expect_packet(conn, "puback", puback_packet)
     rc = 0
 
     conn.close()

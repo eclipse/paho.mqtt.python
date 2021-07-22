@@ -25,7 +25,7 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    paho_test.expect_packet(conn, "connect", connect_packet):
+    paho_test.expect_packet(conn, "connect", connect_packet)
     rc = 0
 
     conn.close()

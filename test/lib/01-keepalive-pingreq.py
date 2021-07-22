@@ -28,14 +28,14 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(keepalive+10)
 
-    paho_test.expect_packet(conn, "connect", connect_packet):
+    paho_test.expect_packet(conn, "connect", connect_packet)
     conn.send(connack_packet)
 
-    paho_test.expect_packet(conn, "pingreq", pingreq_packet):
+    paho_test.expect_packet(conn, "pingreq", pingreq_packet)
     time.sleep(1.0)
     conn.send(pingresp_packet)
 
-    paho_test.expect_packet(conn, "pingreq", pingreq_packet):
+    paho_test.expect_packet(conn, "pingreq", pingreq_packet)
     rc = 0
 
     conn.close()

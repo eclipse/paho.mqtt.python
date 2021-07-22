@@ -22,11 +22,11 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    paho_test.expect_packet(conn, "connect", connect_packet):
+    paho_test.expect_packet(conn, "connect", connect_packet)
     conn.send(connack_packet_ok)
 
     # Connection is a success, so we expect a publish
-    paho_test.expect_packet(conn, "publish", publish_packet):
+    paho_test.expect_packet(conn, "publish", publish_packet)
     conn.close()
     # Expect the client to quit here due to socket being closed
     client.wait(1)
@@ -36,7 +36,7 @@ try:
         (conn, address) = sock.accept()
         conn.settimeout(10)
 
-        paho_test.expect_packet(conn, "connect", connect_packet):
+        paho_test.expect_packet(conn, "connect", connect_packet)
         conn.send(connack_packet_failure)
         # Expect the client to quit here due to socket being closed
         client.wait(1)

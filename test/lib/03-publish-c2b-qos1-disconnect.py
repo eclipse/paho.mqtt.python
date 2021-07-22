@@ -29,23 +29,23 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(15)
 
-    paho_test.expect_packet(conn, "connect", connect_packet):
+    paho_test.expect_packet(conn, "connect", connect_packet)
     conn.send(connack_packet)
 
-    paho_test.expect_packet(conn, "publish", publish_packet):
+    paho_test.expect_packet(conn, "publish", publish_packet)
     # Disconnect client. It should reconnect.
     conn.close()
 
     (conn, address) = sock.accept()
     conn.settimeout(15)
 
-    paho_test.expect_packet(conn, "connect", connect_packet):
+    paho_test.expect_packet(conn, "connect", connect_packet)
     conn.send(connack_packet)
 
-    paho_test.expect_packet(conn, "retried publish", publish_packet_dup):
+    paho_test.expect_packet(conn, "retried publish", publish_packet_dup)
     conn.send(puback_packet)
 
-    paho_test.expect_packet(conn, "disconnect", disconnect_packet):
+    paho_test.expect_packet(conn, "disconnect", disconnect_packet)
     rc = 0
 
     conn.close()
