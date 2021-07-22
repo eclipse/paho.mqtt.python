@@ -29,6 +29,8 @@ v1.6.0 - 2021-xx-xx
 - Fix connecting with MQTT v5 to a broker that doesn't support MQTT v5.
   Closes #566.
 - Removed ancient Mosquitto compatibility class.
+- Fix exception on calling Client(client_id="", clean_session=False).
+  Closes #520.
 
 
 v1.5.1 - 2020-09-22

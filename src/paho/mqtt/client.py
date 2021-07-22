@@ -506,17 +506,6 @@ class Client(object):
         mechanism. Set to "tcp" to use raw TCP, which is the default.
         """
 
-        if protocol == MQTTv5:
-            if clean_session is not None:
-                raise ValueError('Clean session is not used for MQTT 5.0')
-        else:
-            if clean_session is None:
-                clean_session = True
-            if not clean_session and (client_id == "" or client_id is None):
-                raise ValueError(
-                    'A client id must be provided if clean session is False.')
-            self._clean_session = clean_session
-
         if transport.lower() not in ('websockets', 'tcp'):
             raise ValueError(
                 'transport must be "websockets" or "tcp", not %s' % transport)
@@ -529,6 +518,18 @@ class Client(object):
         self._keepalive = 60
         self._connect_timeout = 5.0
         self._client_mode = MQTT_CLIENT
+
+        if protocol == MQTTv5:
+            if clean_session is not None:
+                raise ValueError('Clean session is not used for MQTT 5.0')
+        else:
+            if clean_session is None:
+                clean_session = True
+            if not clean_session and (client_id == "" or client_id is None):
+                raise ValueError(
+                    'A client id must be provided if clean session is False.')
+            self._clean_session = clean_session
+
         # [MQTT-3.1.3-4] Client Id must be UTF-8 encoded string.
         if client_id == "" or client_id is None:
             if protocol == MQTTv31:
