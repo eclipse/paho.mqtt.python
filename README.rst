@@ -681,7 +681,9 @@ Returns a MQTTMessageInfo which expose the following attributes and methods:
   ``on_publish()`` callback if it is defined. ``wait_for_publish`` may be easier
   depending on your use-case.
 * ``wait_for_publish()`` will block until the message is published. It will
-  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
+  raise ValueError if the message is not queued (rc ==
+  ``MQTT_ERR_QUEUE_SIZE``), or a RuntimeError if there was an error when
+  publishing, most likely due to the client not being connected.
 * ``is_published`` returns True if the message has been published. It will
   raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
 
@@ -1268,6 +1270,9 @@ Multiple
 ````````
 
 Publish multiple messages to a broker, then disconnect cleanly.
+
+This function includes support for MQTT v5.0, but does not currently let you
+set any properties on connection or when sending messages.
 
 .. code:: python
 
