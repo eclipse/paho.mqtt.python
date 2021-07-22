@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 
-import paho.mqtt.publish
 import paho.mqtt.client
+import paho.mqtt.publish
 
 paho.mqtt.publish.single(
     "pub/qos0/test",

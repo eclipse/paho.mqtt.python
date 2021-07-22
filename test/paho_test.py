@@ -2,8 +2,8 @@ import binascii
 import errno
 import os
 import socket
-import subprocess
 import struct
+import subprocess
 import sys
 import time
 
@@ -12,11 +12,11 @@ try:
 except ImportError:
     ssl = None
 
-import mqtt5_props
+import atexit
 
 import __main__
+import mqtt5_props
 
-import atexit
 vg_index = 1
 vg_logfiles = []
 

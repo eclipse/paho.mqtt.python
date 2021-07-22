@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from .. import mqtt
 from . import client as paho
 
+
 def _on_connect_v5(client, userdata, flags, rc, properties):
     """Internal callback"""
     if rc != 0:
