@@ -26,6 +26,8 @@ v1.6.0 - 2021-xx-xx
   call the MQTT v5 callback. Closes #570.
 - Big performance improvement when receiving large payloads, particularly for
   SSL. Closes #571,
+- Fix connecting with MQTT v5 to a broker that doesn't support MQTT v5.
+  Closes #566.
 
 
 v1.5.1 - 2020-09-22

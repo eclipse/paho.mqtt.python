@@ -3041,9 +3041,15 @@ class Client(object):
         if self._protocol == MQTTv5:
             (flags, result) = struct.unpack(
                 "!BB", self._in_packet['packet'][:2])
-            reason = ReasonCodes(CONNACK >> 4, identifier=result)
-            properties = Properties(CONNACK >> 4)
-            properties.unpack(self._in_packet['packet'][2:])
+            if result == 1:
+                # This is probably a failure from a broker that doesn't support
+                # MQTT v5.
+                reason = 132 # Unsupported protocol version
+                properties = None
+            else:
+                reason = ReasonCodes(CONNACK >> 4, identifier=result)
+                properties = Properties(CONNACK >> 4)
+                properties.unpack(self._in_packet['packet'][2:])
         else:
             (flags, result) = struct.unpack("!BB", self._in_packet['packet'])
         if self._protocol == MQTTv311:
