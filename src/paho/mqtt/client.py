@@ -3652,12 +3652,6 @@ class Client(object):
             return socket.create_connection(addr, timeout=self._connect_timeout, source_address=source)
 
 
-# Compatibility class for easy porting from mosquitto.py.
-class Mosquitto(Client):
-    def __init__(self, client_id="", clean_session=True, userdata=None):
-        super(Mosquitto, self).__init__(client_id, clean_session, userdata)
-
-
 class WebsocketWrapper(object):
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1

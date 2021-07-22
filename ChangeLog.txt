@@ -28,6 +28,7 @@ v1.6.0 - 2021-xx-xx
   SSL. Closes #571,
 - Fix connecting with MQTT v5 to a broker that doesn't support MQTT v5.
   Closes #566.
+- Removed ancient Mosquitto compatibility class.
 
 
 v1.5.1 - 2020-09-22
