@@ -506,7 +506,8 @@ def gen_connack(flags=0, rc=0, proto_ver=4, properties=b"", property_helper=True
     return packet
 
 def gen_publish(topic, qos, payload=None, retain=False, dup=False, mid=0, proto_ver=4, properties=b""):
-    topic = topic.encode("utf-8")
+    if isinstance(topic, str):
+        topic = topic.encode("utf-8")
     rl = 2+len(topic)
     pack_format = "H"+str(len(topic))+"s"
     if qos > 0:

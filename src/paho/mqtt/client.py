@@ -3494,7 +3494,7 @@ class Client(object):
         with self._callback_mutex:
             if topic is not None:
                 for callback in self._on_message_filtered.iter_match(message.topic):
-                    on_message_callbacks.push(callback)
+                    on_message_callbacks.append(callback)
 
             if len(on_message_callbacks) == 0:
                 on_message = self.on_message
