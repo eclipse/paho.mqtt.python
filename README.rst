@@ -1173,6 +1173,9 @@ broker, then disconnect with nothing else required.
 
 The two functions provided are ``single()`` and ``multiple()``.
 
+Both functions include support for MQTT v5.0, but do not currently let you
+set any properties on connection or when sending messages.
+
 Single
 ``````
 
@@ -1310,6 +1313,9 @@ This module provides some helper functions to allow straightforward subscribing
 and processing of messages.
 
 The two functions provided are ``simple()`` and ``callback()``.
+
+Both functions include support for MQTT v5.0, but do not currently let you
+set any properties on connection or when subscribing.
 
 Simple
 ``````
