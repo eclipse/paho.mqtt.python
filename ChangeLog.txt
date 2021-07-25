@@ -31,6 +31,8 @@ v1.6.0 - 2021-xx-xx
 - Removed ancient Mosquitto compatibility class.
 - Fix exception on calling Client(client_id="", clean_session=False).
   Closes #520.
+- Experimental support for Websockets continuation frames. Closes #500.
+  Closes #89.
 
 
 v1.5.1 - 2020-09-22

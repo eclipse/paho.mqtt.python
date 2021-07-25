@@ -3892,7 +3892,10 @@ class WebsocketWrapper(object):
                         WebsocketWrapper.OPCODE_PONG, payload, 0)
                     self._socket.send(frame)
 
-            if opcode == WebsocketWrapper.OPCODE_BINARY and payload_length > 0:
+            # This isn't *proper* handling of continuation frames, but given
+            # that we only support binary frames, it is *probably* good enough.
+            if (opcode == WebsocketWrapper.OPCODE_BINARY or opcode == WebsocketWrapper.OPCODE_CONTINUATION) \
+                    and payload_length > 0:
                 return result
             else:
                 raise socket.error(EAGAIN, 0)
