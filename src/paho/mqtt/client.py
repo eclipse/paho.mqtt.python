@@ -374,14 +374,12 @@ class MQTTMessage(object):
 
     Members:
 
-    topic : String/bytes. topic that the message was published on.
-    payload : String/bytes the message payload.
+    topic : String. topic that the message was published on.
+    payload : Bytes/Byte array. the message payload.
     qos : Integer. The message Quality of Service 0, 1 or 2.
     retain : Boolean. If true, the message is a retained message and not fresh.
     mid : Integer. The message id.
     properties: Properties class. In MQTT v5.0, the properties associated with the message.
-
-    On Python 3, topic must be bytes.
     """
 
     __slots__ = 'timestamp', 'state', 'dup', 'mid', '_topic', 'payload', 'qos', 'retain', 'info', 'properties'
