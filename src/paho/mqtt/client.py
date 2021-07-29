@@ -452,8 +452,13 @@ class Client(object):
     client = paho.mqtt.Client()
 
     @client.connect_callback()
-    def on_connect(client, userdata, flags, rc, properties=None):
+    def on_connect(client, userdata, flags, rc):
         print("Connection returned " + str(rc))
+
+
+    **IMPORTANT** the required function signature for a callback can differ
+    depending on whether you are using MQTT v5 or MQTT v3.1.1/v3.1. See the
+    documentation for each callback.
 
     All of the callbacks as described below have a "client" and an "userdata"
     argument. "client" is the Client instance that is calling the callback.
