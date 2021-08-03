@@ -1821,16 +1821,18 @@ class Client(object):
         self._thread.start()
 
     def loop_stop(self, force=False):
-        """This is part of the threaded client interface. Call this once to
-        stop the network thread previously created with loop_start(). This call
+        """This is part of the threaded client interface, or for loop_forever.
+        Call this once to stop the network thread previously created with loop_start(). This call
         will block until the network thread finishes.
+        On loop_forever case is set internal terminate flag to stop looping.
 
         The force parameter is currently ignored.
         """
+        self._thread_terminate = True
+
         if self._thread is None:
             return MQTT_ERR_INVAL
 
-        self._thread_terminate = True
         if threading.current_thread() != self._thread:
             self._thread.join()
             self._thread = None
