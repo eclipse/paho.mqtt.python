@@ -319,7 +319,11 @@ class Properties(object):
         for name in self.names.keys():
             compressedName = name.replace(' ', '')
             if hasattr(self, compressedName):
-                data[compressedName] = getattr(self, compressedName)
+                val = getattr(self, compressedName)
+                if compressedName == 'CorrelationData' and isinstance(val, bytes):
+                    data[compressedName] = val.hex()
+                else:
+                    data[compressedName] = val
         return data
 
     def isEmpty(self):

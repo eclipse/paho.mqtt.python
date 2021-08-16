@@ -33,6 +33,8 @@ v1.6.0 - 2021-xx-xx
   Closes #520.
 - Experimental support for Websockets continuation frames. Closes #500.
   Closes #89.
+- `Properties.json()` now converts Correlation Data bytes() objects to hex.
+  Closes #555.
 
 
 v1.5.1 - 2020-09-22
