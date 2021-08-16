@@ -121,7 +121,7 @@ class ReasonCodes:
         }
         if identifier == -1:
             if packetType == PacketTypes.DISCONNECT and aName == "Success":
-                  aName = "Normal disconnection"
+                aName = "Normal disconnection"
             self.set(aName)
         else:
             self.value = identifier
@@ -154,7 +154,7 @@ class ReasonCodes:
                 if self.packetType in self.names[code][name]:
                     identifier = code
                 break
-        assert identifier != None, name
+        assert identifier is not None, name
         return identifier
 
     def set(self, name):
