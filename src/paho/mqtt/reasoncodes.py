@@ -120,7 +120,7 @@ class ReasonCodes:
         }
         if identifier == -1:
             if packetType == PacketTypes.DISCONNECT and aName == "Success":
-                    aName = "Normal disconnection"
+                aName = "Normal disconnection"
             self.set(aName)
         else:
             self.value = identifier
