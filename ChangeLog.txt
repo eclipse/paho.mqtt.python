@@ -35,6 +35,10 @@ v1.6.0 - 2021-xx-xx
   Closes #89.
 - `Properties.json()` now converts Correlation Data bytes() objects to hex.
   Closes #555.
+- Only use the internal sockpair wakeup when running with loop_start() or
+  loop(). This removes problems when running with an external event loop.
+- Drain all of sockpairR bytes to avoid unnecessary wakeups and possible
+  timeouts. Closes #563.
 
 
 v1.5.1 - 2020-09-22

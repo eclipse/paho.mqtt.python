@@ -512,7 +512,6 @@ class Client(object):
         self._userdata = userdata
         self._sock = None
         self._sockpairR, self._sockpairW = (None, None,)
-        self._sockpairR, self._sockpairW = _socketpair_compat()
         self._keepalive = 60
         self._connect_timeout = 5.0
         self._client_mode = MQTT_CLIENT
@@ -650,8 +649,9 @@ class Client(object):
             # In case a callback fails, still close the socket to avoid leaking the file descriptor.
             sock.close()
 
-    def _reset_sockets(self):
-        self._sock_close()
+    def _reset_sockets(self, sockpair_only=False):
+        if sockpair_only == False:
+            self._sock_close()
 
         if self._sockpairR:
             self._sockpairR.close()
@@ -1069,6 +1069,11 @@ class Client(object):
     def loop(self, timeout=1.0, max_packets=1):
         """Process network events.
 
+        It is strongly recommended that you use loop_start(), or
+        loop_forever(), or if you are using an external event loop using
+        loop_read(), loop_write(), and loop_misc(). Using loop() on it's own is
+        no longer recommended.
+
         This function must be called regularly to ensure communication with the
         broker is carried out. It calls select() on the network socket to wait
         for network events. If incoming data is present it will then be
@@ -1086,6 +1091,14 @@ class Client(object):
         Returns >0 on error.
 
         A ValueError will be raised if timeout < 0"""
+
+        if self._sockpairR is None or self._sockpairW is None:
+            self._reset_sockets(sockpair_only=True)
+            self._sockpairR, self._sockpairW = _socketpair_compat()
+
+        return self._loop(timeout)
+
+    def _loop(self, timeout=1.0):
         if timeout < 0.0:
             raise ValueError('Invalid timeout.')
 
@@ -1107,7 +1120,11 @@ class Client(object):
 
         # sockpairR is used to break out of select() before the timeout, on a
         # call to publish() etc.
-        rlist = [self._sock, self._sockpairR]
+        if self._sockpairR is None:
+            rlist = [self._sock]
+        else:
+            rlist = [self._sock, self._sockpairR]
+
         try:
             socklist = select.select(rlist, wlist, [], timeout)
         except TypeError:
@@ -1123,22 +1140,24 @@ class Client(object):
             return MQTT_ERR_UNKNOWN
 
         if self._sock in socklist[0] or pending_bytes > 0:
-            rc = self.loop_read(max_packets)
+            rc = self.loop_read()
             if rc or self._sock is None:
                 return rc
 
-        if self._sockpairR in socklist[0]:
+        if self._sockpairR and self._sockpairR in socklist[0]:
             # Stimulate output write even though we didn't ask for it, because
             # at that point the publish or other command wasn't present.
             socklist[1].insert(0, self._sock)
             # Clear sockpairR - only ever a single byte written.
             try:
-                self._sockpairR.recv(1)
+                # Read many bytes at once - this allows up to 10000 calls to
+                # publish() inbetween calls to loop().
+                self._sockpairR.recv(10000)
             except BlockingIOError:
                 pass
 
         if self._sock in socklist[1]:
-            rc = self.loop_write(max_packets)
+            rc = self.loop_write()
             if rc or self._sock is None:
                 return rc
 
@@ -1673,9 +1692,9 @@ class Client(object):
         return self._sock
 
     def loop_forever(self, timeout=1.0, max_packets=1, retry_first_connection=False):
-        """This function call loop() for you in an infinite blocking loop. It
-        is useful for the case where you only want to run the MQTT client loop
-        in your program.
+        """This function calls the network loop functions for you in an
+        infinite blocking loop. It is useful for the case where you only want
+        to run the MQTT client loop in your program.
 
         loop_forever() will handle reconnecting for you if reconnect_on_failure is
         true (this is the default behavior). If you call disconnect() in a callback
@@ -1713,7 +1732,7 @@ class Client(object):
         while run:
             rc = MQTT_ERR_SUCCESS
             while rc == MQTT_ERR_SUCCESS:
-                rc = self.loop(timeout, max_packets)
+                rc = self._loop(timeout)
                 # We don't need to worry about locking here, because we've
                 # either called loop_forever() when in single threaded mode, or
                 # in multi threaded mode when loop_stop() has been called and
@@ -1752,6 +1771,7 @@ class Client(object):
         if self._thread is not None:
             return MQTT_ERR_INVAL
 
+        self._sockpairR, self._sockpairW = _socketpair_compat()
         self._thread_terminate = False
         self._thread = threading.Thread(target=self._thread_main)
         self._thread.daemon = True
@@ -2961,10 +2981,11 @@ class Client(object):
 
         # Write a single byte to sockpairW (connected to sockpairR) to break
         # out of select() if in threaded mode.
-        try:
-            self._sockpairW.send(sockpair_data)
-        except BlockingIOError:
-            pass
+        if self._sockpairW is not None:
+            try:
+                self._sockpairW.send(sockpair_data)
+            except BlockingIOError:
+                pass
 
         # If we have an external event loop registered, use that instead
         # of calling loop_write() directly.
