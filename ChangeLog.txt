@@ -39,6 +39,7 @@ v1.6.0 - 2021-xx-xx
   loop(). This removes problems when running with an external event loop.
 - Drain all of sockpairR bytes to avoid unnecessary wakeups and possible
   timeouts. Closes #563.
+- Add timeout to MQTTMessageInfo:wait_for_publish().
 
 
 v1.5.1 - 2020-09-22
