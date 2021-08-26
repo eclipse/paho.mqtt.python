@@ -337,7 +337,17 @@ class MQTTMessageInfo(object):
             self._condition.notify()
 
     def wait_for_publish(self, timeout=None):
-        """Block until the message associated with this object is published."""
+        """Block until the message associated with this object is published, or
+        until the timeout occurs. If timeout is None, this will never time out.
+        Set timeout to a positive number of seconds, e.g. 1.2, to enable the
+        timeout.
+
+        Raises ValueError if the message was not queued due to the outgoing
+        queue being full.
+
+        Raises RuntimeError if the message was not published for another
+        reason.
+        """
         if self.rc == MQTT_ERR_QUEUE_SIZE:
             raise ValueError('Message is not queued due to ERR_QUEUE_SIZE')
         elif self.rc == MQTT_ERR_AGAIN:
