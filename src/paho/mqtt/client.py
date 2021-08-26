@@ -345,10 +345,10 @@ class MQTTMessageInfo(object):
         elif self.rc > 0:
             raise RuntimeError('Message publish failed: %s' % (error_string(self.rc)))
 
-        timeout_time = None if not timeout else time.time() + timeout
-        timeout_tenth = None if not timeout else timeout / 10.
+        timeout_time = None if timeout is None else time.time() + timeout
+        timeout_tenth = None if timeout is None else timeout / 10.
         def timed_out():
-            return False if not timeout else time.time() > timeout_time
+            return False if timeout is None else time.time() > timeout_time
 
         with self._condition:
             while not self._published and not timed_out():
