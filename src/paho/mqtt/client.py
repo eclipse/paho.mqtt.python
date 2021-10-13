@@ -1859,11 +1859,11 @@ class Client(object):
         flags:      response flags sent by the broker
         rc:         the connection result
         reasonCode: the MQTT v5.0 reason code: an instance of the ReasonCode class.
-                    ReasonCode may be compared to interger.
+                    ReasonCode may be compared to integer.
         properties: the MQTT v5.0 properties returned from the broker.  An instance
                     of the Properties class.
                     For MQTT v3.1 and v3.1.1 properties is not provided but for compatibility
-                    with MQTT v5.0, we recommand adding properties=None.
+                    with MQTT v5.0, we recommend adding properties=None.
 
         flags is a dict that contains response flags from the broker:
             flags['session present'] - this flag is useful for clients that are
@@ -1931,7 +1931,7 @@ class Client(object):
 
     @on_subscribe.setter
     def on_subscribe(self, func):
-        """ Define the suscribe callback implementation.
+        """ Define the subscribe callback implementation.
 
         Expected signature for MQTT v3.1.1 and v3.1 is:
             subscribe_callback(client, userdata, mid, granted_qos)
