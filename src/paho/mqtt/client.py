@@ -1,7 +1,7 @@
 # Copyright (c) 2012-2019 Roger Light and others
 #
 # All rights reserved. This program and the accompanying materials
-# are made available under the terms of the Eclipse Public License v1.0
+# are made available under the terms of the Eclipse Public License v2.0
 # and Eclipse Distribution License v1.0 which accompany this distribution.
 #
 # The Eclipse Public License is available at

@@ -32,7 +32,7 @@ setup(
     package_dir={'': 'src'},
     include_package_data=True,
     install_requires=requirements,
-    license='Eclipse Public License v1.0 / Eclipse Distribution License v1.0',
+    license='Eclipse Public License v2.0 / Eclipse Distribution License v1.0',
     zip_safe=False,
     keywords='paho',
     classifiers=[

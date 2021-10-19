@@ -3,7 +3,7 @@
   Copyright (c) 2017, 2019 IBM Corp.
 
   All rights reserved. This program and the accompanying materials
-  are made available under the terms of the Eclipse Public License v1.0
+  are made available under the terms of the Eclipse Public License v2.0
   and Eclipse Distribution License v1.0 which accompany this distribution.
 
   The Eclipse Public License is available at
@@ -24,7 +24,7 @@ from .packettypes import PacketTypes
 class ReasonCodes:
     """MQTT version 5.0 reason codes class.
 
-    See ReasonCodes.names for a list of possible numeric values along with their 
+    See ReasonCodes.names for a list of possible numeric values along with their
     names and the packets to which they apply.
 
     """
@@ -38,7 +38,7 @@ class ReasonCodes:
         aName: the String name of the reason code to be created.  Ignored
             if the identifier is set.
 
-        identifier: an integer value of the reason code to be created.  
+        identifier: an integer value of the reason code to be created.
 
         """
 
