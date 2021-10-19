@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
-import subprocess
 import socket
+import subprocess
 import sys
 import time
 from struct import *
@@ -31,7 +31,6 @@ def on_message(mqttc, obj, msg):
     if msg.retain != False:
         print("Invalid retain: ("+str(msg.retain)+")")
         exit(1)
-    exit(0)
 
 def on_connect(mqttc, obj, flags, rc):
     if rc != 0:
@@ -39,7 +38,6 @@ def on_connect(mqttc, obj, flags, rc):
         exit(rc)
 
 mqttc = mqtt.Client("publish-qos1-test")
-mqttc.message_retry_set(3)
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 
@@ -47,5 +45,4 @@ mqttc.connect("localhost", 1888)
 rc = 0
 while rc == 0:
     rc = mqttc.loop()
-print("rc: "+str(rc))
-exit(1)
+exit(0)

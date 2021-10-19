@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014 Roger Light <roger@atchoo.org>
@@ -16,6 +16,7 @@
 # This shows an example of using the publish.single helper function.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.publish as publish
 
 publish.single("paho/test/single", "boo", hostname="mqtt.eclipseprojects.io")

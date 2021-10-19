@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+
+import os
+import socket
+import subprocess
+import sys
+import time
+from struct import *
+
+import paho.mqtt.client as mqtt
+
+if sys.version_info < (2, 7, 9):
+    print("WARNING: SSL/TLS not supported on Python 2.6")
+    exit(0)
+
+
+def on_connect(mqttc, obj, flags, rc):
+    if rc != 0:
+        exit(rc)
+    else:
+        mqttc.disconnect()
+
+def on_disconnect(mqttc, obj, rc):
+    obj = rc
+
+
+run = -1
+mqttc = mqtt.Client("08-ssl-connect-crt-auth-pw", run)
+mqttc.tls_set("../ssl/all-ca.crt", "../ssl/client-pw.crt", "../ssl/client-pw.key", keyfile_password="password")
+mqttc.on_connect = on_connect
+mqttc.on_disconnect = on_disconnect
+
+mqttc.connect("localhost", 1888)
+while run == -1:
+    mqttc.loop()
+
+exit(run)

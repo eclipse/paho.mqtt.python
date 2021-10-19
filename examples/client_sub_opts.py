@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2017 Jon Levell <levell@uk.ibm.com>
@@ -15,10 +15,11 @@
 # This shows a example of an MQTT subscriber with the ability to use
 # user name, password CA certificates based on command line arguments
 
-import paho.mqtt.client as mqtt
+import argparse
 import os
 import ssl
-import argparse
+
+import paho.mqtt.client as mqtt
 
 parser = argparse.ArgumentParser()
 

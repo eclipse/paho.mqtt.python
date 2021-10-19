@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2010-2013 Roger Light <roger@atchoo.org>
@@ -18,7 +18,9 @@
 # This shows a simple example of an MQTT subscriber.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
+
 
 def on_connect(mqttc, obj, flags, rc):
     print("rc: "+str(rc))

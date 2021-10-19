@@ -5,7 +5,7 @@ This document describes the source code for the `Eclipse Paho <http://eclipse.or
 
 This code provides a client class which enable applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
 
-It supports Python 2.7.9+ or 3.5+.
+It supports Python 2.7.9+ or 3.6+.
 
 The MQTT protocol is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol. Designed as an extremely lightweight publish/subscribe messaging transport, it is useful for connections with remote locations where a small code footprint is required and/or network bandwidth is at a premium.
 
@@ -249,7 +249,7 @@ max_queued_messages_set()
 
 Set the maximum number of outgoing messages with QoS>0 that can be pending in the outgoing message queue.
 
-Defaults to 0. 0 means unlimited. When the queue is full, any further outgoing messages would be dropped.
+Defaults to 0. 0 means unlimited, but due to implementation currently limited to 65555 (65535 messages in queue + 20 in flight). When the queue is full, any further outgoing messages would be dropped.
 
 message_retry_set()
 '''''''''''''''''''
@@ -681,9 +681,13 @@ Returns a MQTTMessageInfo which expose the following attributes and methods:
   ``on_publish()`` callback if it is defined. ``wait_for_publish`` may be easier
   depending on your use-case.
 * ``wait_for_publish()`` will block until the message is published. It will
-  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
+  raise ValueError if the message is not queued (rc ==
+  ``MQTT_ERR_QUEUE_SIZE``), or a RuntimeError if there was an error when
+  publishing, most likely due to the client not being connected.
 * ``is_published`` returns True if the message has been published. It will
-  raise ValueError if the message is not queued (rc == ``MQTT_ERR_QUEUE_SIZE``).
+  raise ValueError if the message is not queued (rc ==
+  ``MQTT_ERR_QUEUE_SIZE``), or a RuntimeError if there was an error when
+  publishing, most likely due to the client not being connected.
 
 A ``ValueError`` will be raised if topic is ``None``, has zero length or is
 invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the
@@ -1173,6 +1177,9 @@ broker, then disconnect with nothing else required.
 
 The two functions provided are ``single()`` and ``multiple()``.
 
+Both functions include support for MQTT v5.0, but do not currently let you
+set any properties on connection or when sending messages.
+
 Single
 ``````
 
@@ -1266,6 +1273,9 @@ Multiple
 
 Publish multiple messages to a broker, then disconnect cleanly.
 
+This function includes support for MQTT v5.0, but does not currently let you
+set any properties on connection or when sending messages.
+
 .. code:: python
 
     multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
@@ -1310,6 +1320,9 @@ This module provides some helper functions to allow straightforward subscribing
 and processing of messages.
 
 The two functions provided are ``simple()`` and ``callback()``.
+
+Both functions include support for MQTT v5.0, but do not currently let you
+set any properties on connection or when subscribing.
 
 Simple
 ``````

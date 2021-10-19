@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import asyncio
 import socket
 import uuid
+
+import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
-import asyncio
 
 client_id = 'paho-mqtt-python/issue72/' + str(uuid.uuid4())
 topic = client_id

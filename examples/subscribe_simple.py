@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2016 Roger Light <roger@atchoo.org>
@@ -16,6 +16,7 @@
 # This shows an example of using the subscribe.simple helper function.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.subscribe as subscribe
 
 topics = ['#']

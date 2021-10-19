@@ -1,13 +1,14 @@
 # Set DESTDIR if it isn't given
 DESTDIR?=/
+PYTHON?=python3
 
 .PHONY : all clean clean-build clean-pyc clean-test install test upload
 
 all :
-	python ./setup.py build
+	$(PYTHON) ./setup.py build
 
 install : all
-	python ./setup.py install --root=${DESTDIR}
+	$(PYTHON) ./setup.py install --root=${DESTDIR}
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
@@ -31,8 +32,8 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 
 test :
-	python setup.py test
+	$(PYTHON) setup.py test
 	$(MAKE) -C test test
 
 upload : test
-	python ./setup.py sdist upload
+	$(PYTHON) ./setup.py sdist upload

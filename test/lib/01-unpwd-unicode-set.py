@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client produces a correct connect with a unicode username and password.
 
@@ -25,8 +25,8 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        rc = 0
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    rc = 0
 
     conn.close()
 finally:

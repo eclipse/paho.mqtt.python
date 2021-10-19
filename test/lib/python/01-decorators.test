@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+import os
+import socket
+import subprocess
+import sys
+import time
+from struct import *
+
+import paho.mqtt.client as mqtt
+
+run = -1
+mqttc = mqtt.Client("decorators-test", run)
+payload = b""
+
+@mqttc.connect_callback()
+def on_connect(mqttc, obj, flags, rc):
+    mqttc.subscribe("sub-test", 1)
+
+@mqttc.subscribe_callback()
+def on_subscribe(mqttc, obj, mid, granted_qos):
+    mqttc.unsubscribe("unsub-test")
+
+@mqttc.unsubscribe_callback()
+def on_unsubscribe(mqttc, obj, mid):
+    global payload
+    payload = "message"
+
+@mqttc.message_callback()
+def on_message(mqttc, obj, msg):
+    global payload
+    mqttc.publish("decorators", qos=1, payload=payload)
+
+@mqttc.publish_callback()
+def on_publish(mqttc, obj, mid):
+    mqttc.disconnect()
+
+@mqttc.disconnect_callback()
+def on_disconnect(mqttc, obj, rc):
+    obj = rc
+
+mqttc.connect("localhost", 1888)
+while run == -1:
+    mqttc.loop()
+
+exit(run)

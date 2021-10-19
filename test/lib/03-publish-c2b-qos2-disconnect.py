@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client sends a correct PUBLISH to a topic with QoS 2 and responds to a disconnect.
 
@@ -16,9 +16,9 @@ disconnect_packet = paho_test.gen_disconnect()
 
 mid = 1
 publish_packet = paho_test.gen_publish(
-    u"pub/qos2/test", qos=2, mid=mid, payload="message".encode('utf-8'))
+    u"pub/qos2/test", qos=2, mid=mid, payload="message")
 publish_dup_packet = paho_test.gen_publish(
-    u"pub/qos2/test", qos=2, mid=mid, payload="message".encode('utf-8'), dup=True)
+    u"pub/qos2/test", qos=2, mid=mid, payload="message", dup=True)
 pubrec_packet = paho_test.gen_pubrec(mid)
 pubrel_packet = paho_test.gen_pubrel(mid)
 pubcomp_packet = paho_test.gen_pubcomp(mid)
@@ -31,38 +31,38 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(5)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        conn.send(connack_packet)
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    conn.send(connack_packet)
 
-        if paho_test.expect_packet(conn, "publish", publish_packet):
-            # Disconnect client. It should reconnect.
-            conn.close()
+    paho_test.expect_packet(conn, "publish", publish_packet)
+    # Disconnect client. It should reconnect.
+    conn.close()
 
-            (conn, address) = sock.accept()
-            conn.settimeout(15)
+    (conn, address) = sock.accept()
+    conn.settimeout(15)
 
-            if paho_test.expect_packet(conn, "connect", connect_packet):
-                conn.send(connack_packet)
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    conn.send(connack_packet)
 
-                if paho_test.expect_packet(conn, "retried publish", publish_dup_packet):
-                    conn.send(pubrec_packet)
+    paho_test.expect_packet(conn, "retried publish", publish_dup_packet)
+    conn.send(pubrec_packet)
 
-                    if paho_test.expect_packet(conn, "pubrel", pubrel_packet):
-                        # Disconnect client. It should reconnect.
-                        conn.close()
+    paho_test.expect_packet(conn, "pubrel", pubrel_packet)
+    # Disconnect client. It should reconnect.
+    conn.close()
 
-                        (conn, address) = sock.accept()
-                        conn.settimeout(15)
+    (conn, address) = sock.accept()
+    conn.settimeout(15)
 
-                        # Complete connection and message flow.
-                        if paho_test.expect_packet(conn, "connect", connect_packet):
-                            conn.send(connack_packet)
+    # Complete connection and message flow.
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    conn.send(connack_packet)
 
-                            if paho_test.expect_packet(conn, "retried pubrel", pubrel_packet):
-                                conn.send(pubcomp_packet)
+    paho_test.expect_packet(conn, "retried pubrel", pubrel_packet)
+    conn.send(pubcomp_packet)
 
-                                if paho_test.expect_packet(conn, "disconnect", disconnect_packet):
-                                    rc = 0
+    paho_test.expect_packet(conn, "disconnect", disconnect_packet)
+    rc = 0
 
     conn.close()
 finally:
