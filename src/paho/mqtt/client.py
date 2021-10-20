@@ -81,6 +81,12 @@ if platform.system() == 'Windows':
 else:
     EAGAIN = errno.EAGAIN
 
+# Python 2.7 does not have BlockingIOError.  Fall back to IOError
+try:
+    BlockingIOError
+except NameError:
+    BlockingIOError  = IOError
+
 MQTTv31 = 3
 MQTTv311 = 4
 MQTTv5 = 5
