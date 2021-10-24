@@ -197,9 +197,6 @@ transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
     "tcp" to use raw TCP.
 
-auto_ack
-    set to False to let application acknowledge messages using the ack(message.mid)
-    entry point, instead of letting the library take care of it on receipt.
 
 Constructor Example
 ...................
@@ -900,10 +897,6 @@ userdata
 
 message
     an instance of MQTTMessage. This is a class with members ``topic``, ``payload``, ``qos``, ``retain``.
-
-If the Client is set with auto_ack=False, then MQTT acknowledgements are under
-caller control. For each message received, call client.ack( *message.mid* ) when
-appropriate.
 
 On Message Example
 ..................
