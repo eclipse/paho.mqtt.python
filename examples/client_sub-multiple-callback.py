@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014 Roger Light <roger@atchoo.org>
@@ -17,6 +17,7 @@
 # This shows a simple example of an MQTT subscriber using a per-subscription message handler.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 

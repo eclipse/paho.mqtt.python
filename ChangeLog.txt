@@ -1,11 +1,51 @@
-v1.6.0 - 2021-xx-xx
+v1.6.1 - 2021-10-21
+===================
+
+- Fix Python 2.7 compatilibity.
+
+
+v1.6.0 - 2021-10-20
 ===================
 
 - Changed default TLS version to 1.2 instead of 1.0.
 - Fix incoming MQTT v5 messages with overall property length > 127 bytes being
   incorrectly decoded. Closes #541.
-- MQTTMessageInfo.wait_for_publish() will now raise exceptions if called when
-  the publish call produced an error. Closes #550.
+- MQTTMessageInfo.wait_for_publish() and MQTTMessageInfo.is_published() will
+  now raise exceptions if called when the publish call produced an error.
+  Closes #550.
+- Remove periodic retry checks for outgoing messages with QoS>0. This means
+  that outgoing messages will only be retried on the client reconnecting to
+  the server. They will *not* be retried when the client is still connected.
+- The `rc` parameter in the `on_disconnect` callback now has meaningful values
+  in the case of an error. Closes #441.
+- Callbacks can now be applied to client instances using decorators.
+- PUBACK messages are now sent to the broker only after the on_message
+  callback has returned.
+- Raise exceptions when attempting to set MQTT v5 properties to forbidden
+  values. Closes #586.
+- Callbacks can now be updated from within a callback.
+- Remove _out_packet_mutex and _current_out_packet_mutex and convert the
+  _out_packet queue use to thread safe.
+- Add basic MQTT v5 support to the subscribe and publish helper functions.
+  Closes #575.
+- Fix on_disconnect() sometimes calling the MQTT v3.x callback when it should
+  call the MQTT v5 callback. Closes #570.
+- Big performance improvement when receiving large payloads, particularly for
+  SSL. Closes #571,
+- Fix connecting with MQTT v5 to a broker that doesn't support MQTT v5.
+  Closes #566.
+- Removed ancient Mosquitto compatibility class.
+- Fix exception on calling Client(client_id="", clean_session=False).
+  Closes #520.
+- Experimental support for Websockets continuation frames. Closes #500.
+  Closes #89.
+- `Properties.json()` now converts Correlation Data bytes() objects to hex.
+  Closes #555.
+- Only use the internal sockpair wakeup when running with loop_start() or
+  loop(). This removes problems when running with an external event loop.
+- Drain all of sockpairR bytes to avoid unnecessary wakeups and possible
+  timeouts. Closes #563.
+- Add timeout to MQTTMessageInfo:wait_for_publish().
 
 
 v1.5.1 - 2020-09-22

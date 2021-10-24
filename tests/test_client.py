@@ -1,10 +1,11 @@
+import inspect
 import os
 import sys
 import time
-import inspect
 import unicodedata
 
 import pytest
+
 import paho.mqtt.client as client
 
 # From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder

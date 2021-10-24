@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2016 James Myatt <james@jamesmyatt.co.uk>
@@ -15,10 +15,12 @@
 
 # This shows a simple example of standard logging with an MQTT subscriber client.
 
+import logging
+
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # If you want to use a specific client id, use

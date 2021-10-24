@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client responds correctly to a PUBLISH with QoS 1.
 
@@ -25,7 +25,7 @@ disconnect_packet = paho_test.gen_disconnect()
 
 mid = 123
 publish_packet = paho_test.gen_publish(
-    u"pub/qos1/receive", qos=1, mid=mid, payload="message".encode('utf-8'))
+    u"pub/qos1/receive", qos=1, mid=mid, payload="message")
 puback_packet = paho_test.gen_puback(mid)
 
 sock = paho_test.create_server_socket()
@@ -36,12 +36,12 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        conn.send(connack_packet)
-        conn.send(publish_packet)
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    conn.send(connack_packet)
+    conn.send(publish_packet)
 
-        if paho_test.expect_packet(conn, "puback", puback_packet):
-            rc = 0
+    paho_test.expect_packet(conn, "puback", puback_packet)
+    rc = 0
 
     conn.close()
 finally:

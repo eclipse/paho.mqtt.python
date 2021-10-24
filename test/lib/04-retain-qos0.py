@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client sends a correct retained PUBLISH to a topic with QoS 0.
 
@@ -12,7 +12,7 @@ connect_packet = paho_test.gen_connect("retain-qos0-test", keepalive=keepalive)
 connack_packet = paho_test.gen_connack(rc=0)
 
 publish_packet = paho_test.gen_publish(
-    u"retain/qos0/test", qos=0, payload="retained message".encode('utf-8'), retain=True)
+    u"retain/qos0/test", qos=0, payload="retained message", retain=True)
 
 sock = paho_test.create_server_socket()
 
@@ -22,11 +22,11 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        conn.send(connack_packet)
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    conn.send(connack_packet)
 
-        if paho_test.expect_packet(conn, "publish", publish_packet):
-            rc = 0
+    paho_test.expect_packet(conn, "publish", publish_packet)
+    rc = 0
 
     conn.close()
 finally:

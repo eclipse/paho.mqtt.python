@@ -1,12 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
-import subprocess
 import socket
+import ssl
+import subprocess
 import sys
 import time
 from struct import *
-import ssl
 
 import paho.mqtt.client as mqtt
 

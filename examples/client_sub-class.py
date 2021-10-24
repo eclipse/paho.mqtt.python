@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2013 Roger Light <roger@atchoo.org>
@@ -16,12 +16,17 @@
 # This example shows how you can use the MQTT client in a class.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
+
 
 class MyMQTTClass(mqtt.Client):
 
     def on_connect(self, mqttc, obj, flags, rc):
         print("rc: "+str(rc))
+
+    def on_connect_fail(self, mqttc, obj):
+        print("Connect failed")
 
     def on_message(self, mqttc, obj, msg):
         print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))

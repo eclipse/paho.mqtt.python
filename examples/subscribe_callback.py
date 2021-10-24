@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2016 Roger Light <roger@atchoo.org>
@@ -16,7 +16,9 @@
 # This shows an example of using the subscribe.callback helper function.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.subscribe as subscribe
+
 
 def print_msg(client, userdata, message):
     print("%s : %s" % (message.topic, message.payload))

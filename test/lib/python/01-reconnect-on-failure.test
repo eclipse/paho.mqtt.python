@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+import os
+import socket
+import subprocess
+import sys
+import time
+from struct import *
+
+import paho.mqtt.client as mqtt
+
+
+def on_connect(mqttc, obj, flags, rc):
+    mqttc.publish("reconnect/test", "message")
+
+mqttc = mqtt.Client("01-reconnect-on-failure", reconnect_on_failure=False)
+mqttc.on_connect = on_connect
+
+mqttc.connect("localhost", 1888)
+mqttc.loop_forever()
+
+exit(42)

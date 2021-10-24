@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client sends a correct SUBSCRIBE to a topic with QoS 2.
 
@@ -34,14 +34,14 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        conn.send(connack_packet)
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    conn.send(connack_packet)
 
-        if paho_test.expect_packet(conn, "subscribe", subscribe_packet):
-            conn.send(suback_packet)
+    paho_test.expect_packet(conn, "subscribe", subscribe_packet)
+    conn.send(suback_packet)
 
-            if paho_test.expect_packet(conn, "disconnect", disconnect_packet):
-                rc = 0
+    paho_test.expect_packet(conn, "disconnect", disconnect_packet)
+    rc = 0
 
     conn.close()
 finally:

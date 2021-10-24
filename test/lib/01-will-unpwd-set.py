@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client produces a correct connect with a will, username and password.
 
@@ -14,7 +14,7 @@ rc = 1
 keepalive = 60
 connect_packet = paho_test.gen_connect("01-will-unpwd-set",
         keepalive=keepalive, username="oibvvwqw", password="#'^2hg9a&nm38*us",
-        will_topic="will-topic", will_qos=2, will_payload="will message".encode('utf-8'))
+        will_topic="will-topic", will_qos=2, will_payload="will message")
 
 sock = paho_test.create_server_socket()
 
@@ -24,8 +24,8 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(10)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        rc = 0
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    rc = 0
 
     conn.close()
 finally:
