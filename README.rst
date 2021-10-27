@@ -3,7 +3,7 @@ Eclipse Paho™ MQTT Python Client
 
 This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 5.0, 3.1.1, and 3.1 of the MQTT protocol.
 
-This code provides a client class which enable applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
+This code provides a client class which enables applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
 
 It supports Python 2.7.9+ or 3.6+.
 
@@ -69,39 +69,39 @@ Once you have the code, it can be installed from your repository as well:
     cd paho.mqtt.python
     python setup.py install
 
-To perform all test (including MQTT v5 test), you also need to clone paho.mqtt.testing in paho.mqtt.python folder::
+To perform all tests (including MQTT v5 tests), you also need to clone paho.mqtt.testing in paho.mqtt.python folder::
 
     git clone https://github.com/eclipse/paho.mqtt.testing.git
 
 Known limitations
 -----------------
 
-The following are the known unimplemented MQTT feature.
+The following are the known unimplemented MQTT features.
 
-When clean_session is False, the session is only stored in memory not persisted. This means that
-when client is restarted (not just reconnected, the object is recreated usually because the
-program was restarted) the session is lost. This result in possible message lost.
+When clean_session is False, the session is only stored in memory and not persisted. This means that
+when the client is restarted (not just reconnected, the object is recreated usually because the
+program was restarted) the session is lost. This results in a possible message loss.
 
-The following part of client session is lost:
+The following part of the client session is lost:
 
-* QoS 2 messages which have been received from the Server, but have not been completely acknowledged.
+* QoS 2 messages which have been received from the server, but have not been completely acknowledged.
 
   Since the client will blindly acknowledge any PUBCOMP (last message of a QoS 2 transaction), it
-  won't hang but will lost this QoS 2 message.
+  won't hang but will lose this QoS 2 message.
 
-* QoS 1 and QoS 2 messages which have been sent to the Server, but have not been completely acknowledged.
+* QoS 1 and QoS 2 messages which have been sent to the server, but have not been completely acknowledged.
 
-  This means that message passed to publish() may be lost. This could be mitigated by taking care
-  that all message passed to publish() has a corresponding on_publish() call.
+  This means that messages passed to publish() may be lost. This could be mitigated by taking care
+  that all messages passed to publish() have a corresponding on_publish() call.
 
-  It also means that the broker may have the Qos2 message in the session. Since the client start
-  with an empty session it don't know it and will re-use the mid. This is not yet fixed.
+  It also means that the broker may have the Qos 2 message in the session. Since the client starts
+  with an empty session, it doesn't know it and will re-use the mid. This is not yet fixed.
 
-Also when clean_session is True, this library will republish QoS > 0 message accross network
-reconnection. This means that QoS > 0 message won't be lost. But the standard say that
-if we should discard any message for which the publish packet was sent. Our choice means that
+Also, when clean_session is True, this library will republish QoS > 0 message accross network
+reconnection. This means that QoS > 0 message won't be lost. But the standard says that
+we should discard any message for which the publish packet was sent. Our choice means that
 we are not compliant with the standard and it's possible for QoS 2 to be received twice.
-You should you clean_session = False if you need the QoS 2 guarantee of only one delivery.
+You should set clean_session = False if you need the QoS 2 guarantee of only one delivery.
 
 Usage and API
 -------------
