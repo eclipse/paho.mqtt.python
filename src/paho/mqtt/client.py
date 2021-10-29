@@ -884,7 +884,8 @@ class Client(object):
 
     def connect(self, host, port=1883, keepalive=60, bind_address="", bind_port=0,
                 clean_start=MQTT_CLEAN_START_FIRST_ONLY, properties=None):
-        """Connect to a remote broker.
+        """Connect to a remote broker. This is a blocking call that establishes
+        the underlying connection and transmits a CONNECT packet.
 
         host is the hostname or IP address of the remote broker.
         port is the network port of the server host to connect to. Defaults to

@@ -445,8 +445,10 @@ connect()
 
     connect(host, port=1883, keepalive=60, bind_address="")
 
-The ``connect()`` function connects the client to a broker. This is a blocking
-function. It takes the following arguments:
+The ``connect()`` function connects the client to a broker. ``connect()`` blocks until
+the underlying connection is established and a CONNECT packet transmitted.
+Note that the connection status will not be updated until a CONNACK is received and
+processed (this requires a ``loop*()`` function).
 
 host
     the hostname or IP address of the remote broker
@@ -465,11 +467,17 @@ bind_address
     the IP address of a local network interface to bind this client to,
     assuming multiple interfaces exist
 
+Returns MQTT_ERR_SUCCESS if the underlying connection was successfully established
+and an MQTT CONNECT packet sent.
+
 Callback
 ........
 
-When the client receives a CONNACK message from the broker in response to the
-connect it generates an ``on_connect()`` callback.
+When the client ``loop*()`` function receives a CONNACK packet from the broker in
+response to the CONNECT packet it generates an ``on_connect()`` callback.
+
+In most cases the connection should not be used prior to the ``on_connect()`` call
+because the broker may reject the CONNECT packet.
 
 Connect Example
 ...............
