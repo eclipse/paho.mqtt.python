@@ -162,8 +162,6 @@ class ReasonCodes:
 
     def unpack(self, buffer):
         c = buffer[0]
-        if sys.version_info[0] < 3:
-            c = ord(c)
         name = self.__getName__(self.packetType, c)
         self.value = self.getId(name)
         return 1
