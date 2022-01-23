@@ -2435,7 +2435,7 @@ class Client(object):
                 if len(data) == 0:
                     return MQTT_ERR_CONN_LOST
                 self._in_packet['to_process'] -= len(data)
-                self._in_packet['packet'] += data
+                self._in_packet['packet'] += bytes(data, encoding='utf-8')
             count -= 1
             if count == 0:
                 with self._msgtime_mutex:

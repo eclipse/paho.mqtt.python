@@ -32,8 +32,8 @@ from paho.mqtt.properties import Properties
 from paho.mqtt.reasoncodes import ReasonCodes
 from paho.mqtt.subscribeoptions import SubscribeOptions
 
-HOST = "192.168.56.1"
-PORT = 1884 # 9001-1884
+HOST = "localhost"
+PORT = 1883 # 9001-1884
 TRANSPORT = "tcp" # websockets-tcp
 
 # logging_format = '%(asctime)s:%(levelname)s:%(threadName)s:%(message)s'
@@ -66,14 +66,10 @@ class Callbacks:
         self.connecteds.append({"userdata": userdata, "flags": flags,
                                 "reasonCode": reasonCode, "properties": properties})
 
-<<<<<<< HEAD
-    def wait(self, alist, timeout=5):
-=======
     def on_connect_fail(self, client, userdata):
         self.conn_failures.append({"userdata": userdata})
 
     def wait(self, alist, timeout=2):
->>>>>>> upstream/master
         interval = 0.2
         total = 0
         while len(alist) == 0 and total < timeout:
