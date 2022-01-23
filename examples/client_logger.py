@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2016 James Myatt <james@jamesmyatt.co.uk>
@@ -15,10 +15,12 @@
 
 # This shows a simple example of standard logging with an MQTT subscriber client.
 
+import logging
+
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # If you want to use a specific client id, use
@@ -30,7 +32,7 @@ mqttc = mqtt.Client()
 logger = logging.getLogger(__name__)
 mqttc.enable_logger(logger)
 
-mqttc.connect("mqtt.eclipse.org", 1883, 60)
+mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.subscribe("$SYS/#", 0)
 
 mqttc.loop_forever()

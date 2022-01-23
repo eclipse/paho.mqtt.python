@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014 Roger Light <roger@atchoo.org>
@@ -18,6 +18,7 @@
 # This demonstrates the session present flag when connecting.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 
@@ -49,7 +50,7 @@ mqttc.on_disconnect = on_disconnect
 # Uncomment to enable debug messages
 # mqttc.on_log = on_log
 mqttc.user_data_set(0)
-mqttc.connect("mqtt.eclipse.org", 1883, 60)
+mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 
 mqttc.loop_forever()
 
@@ -57,5 +58,5 @@ mqttc.loop_forever()
 mqttc = mqtt.Client(client_id="asdfj", clean_session=True)
 mqttc.on_connect = on_connect
 mqttc.user_data_set(2)
-mqttc.connect("mqtt.eclipse.org", 1883, 60)
+mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.loop_forever()

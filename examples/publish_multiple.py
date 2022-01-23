@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014 Roger Light <roger@atchoo.org>
@@ -16,7 +16,8 @@
 # This shows an example of using the publish.multiple helper function.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.publish as publish
 
 msgs = [{'topic': "paho/test/multiple", 'payload': "multiple 1"}, ("paho/test/multiple", "multiple 2", 0, False)]
-publish.multiple(msgs, hostname="mqtt.eclipse.org")
+publish.multiple(msgs, hostname="mqtt.eclipseprojects.io")

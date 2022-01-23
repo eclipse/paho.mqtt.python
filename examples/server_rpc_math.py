@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2020 Frank Pagliughi <fpagliughi@mindspring.com>
@@ -17,8 +17,10 @@
 
 # This shows an example of an MQTTv5 Remote Procedure Call (RPC) server.
 
-import context  # Ensures paho is in PYTHONPATH
 import json
+
+import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 from paho.mqtt.packettypes import PacketTypes
 
@@ -90,6 +92,6 @@ mqttc.on_connect = on_connect
 # Uncomment to enable debug messages
 #mqttc.on_log = on_log
 
-#mqttc.connect("mqtt.eclipse.org", 1883, 60)
+#mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.connect(host="localhost", clean_start=False)
 mqttc.loop_forever()

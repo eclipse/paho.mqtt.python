@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Test whether a client sends a pingreq after the keepalive time
 
@@ -28,15 +28,15 @@ try:
     (conn, address) = sock.accept()
     conn.settimeout(keepalive+10)
 
-    if paho_test.expect_packet(conn, "connect", connect_packet):
-        conn.send(connack_packet)
+    paho_test.expect_packet(conn, "connect", connect_packet)
+    conn.send(connack_packet)
 
-        if paho_test.expect_packet(conn, "pingreq", pingreq_packet):
-            time.sleep(1.0)
-            conn.send(pingresp_packet)
+    paho_test.expect_packet(conn, "pingreq", pingreq_packet)
+    time.sleep(1.0)
+    conn.send(pingresp_packet)
 
-            if paho_test.expect_packet(conn, "pingreq", pingreq_packet):
-                rc = 0
+    paho_test.expect_packet(conn, "pingreq", pingreq_packet)
+    rc = 0
 
     conn.close()
 finally:

@@ -7,9 +7,9 @@ try:
 except ImportError:
     # This part is only required to run the examples from within the examples
     # directory when the module itself is not installed.
-    import sys
-    import os
     import inspect
+    import os
+    import sys
 
     cmd_subfolder = os.path.realpath(
         os.path.abspath(

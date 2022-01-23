@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2010-2013 Roger Light <roger@atchoo.org>
@@ -18,6 +18,7 @@
 # This shows a simple example of an MQTT subscriber.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 
@@ -52,7 +53,7 @@ mqttc.on_publish = on_publish
 mqttc.on_subscribe = on_subscribe
 # Uncomment to enable debug messages
 # mqttc.on_log = on_log
-mqttc.connect("mqtt.eclipse.org", 1883, 60)
+mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.subscribe("$SYS/#", 0)
 
 mqttc.loop_forever()

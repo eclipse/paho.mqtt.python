@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014 Roger Light <roger@atchoo.org>
@@ -17,6 +17,7 @@
 # This shows a simple example of an MQTT subscriber using a per-subscription message handler.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.client as mqtt
 
 
@@ -46,7 +47,7 @@ mqttc = mqtt.Client()
 mqttc.message_callback_add("$SYS/broker/messages/#", on_message_msgs)
 mqttc.message_callback_add("$SYS/broker/bytes/#", on_message_bytes)
 mqttc.on_message = on_message
-mqttc.connect("mqtt.eclipse.org", 1883, 60)
+mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.subscribe("$SYS/#", 0)
 
 mqttc.loop_forever()

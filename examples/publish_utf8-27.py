@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014 Roger Light <roger@atchoo.org>
@@ -16,8 +16,9 @@
 # This shows an example of using the publish.single helper function with unicode topic and payload.
 
 import context  # Ensures paho is in PYTHONPATH
+
 import paho.mqtt.publish as publish
 
 topic = u"paho/test/single/ô"
 payload = u"bôô"
-publish.single(topic, payload, hostname="mqtt.eclipse.org")
+publish.single(topic, payload, hostname="mqtt.eclipseprojects.io")

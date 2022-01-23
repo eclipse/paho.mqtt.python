@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 sys.path.insert(0, 'src')
 from paho.mqtt import __version__
@@ -31,7 +32,7 @@ setup(
     package_dir={'': 'src'},
     include_package_data=True,
     install_requires=requirements,
-    license='Eclipse Public License v1.0 / Eclipse Distribution License v1.0',
+    license='Eclipse Public License v2.0 / Eclipse Distribution License v1.0',
     zip_safe=False,
     keywords='paho',
     classifiers=[

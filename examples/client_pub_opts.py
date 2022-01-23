@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2017 Jon Levell <levell@uk.ibm.com>
@@ -15,15 +15,16 @@
 # This shows a example of an MQTT publisher with the ability to use
 # user name, password CA certificates based on command line arguments
 
-import paho.mqtt.client as mqtt
+import argparse
 import os
 import ssl
-import argparse
 import time
+
+import paho.mqtt.client as mqtt
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-H', '--host', required=False, default="mqtt.eclipse.org")
+parser.add_argument('-H', '--host', required=False, default="mqtt.eclipseprojects.io")
 parser.add_argument('-t', '--topic', required=False, default="paho/test/opts")
 parser.add_argument('-q', '--qos', required=False, type=int,default=0)
 parser.add_argument('-c', '--clientid', required=False, default=None)

@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+
+import asyncio
+import socket
+import uuid
+
+import context  # Ensures paho is in PYTHONPATH
+
+import paho.mqtt.client as mqtt
+
+client_id = 'asyncio-test'
+
+class AsyncioHelper:
+    def __init__(self, loop, client):
+        self.loop = loop
+        self.client = client
+        self.client.on_socket_open = self.on_socket_open
+        self.client.on_socket_close = self.on_socket_close
+        self.client.on_socket_register_write = self.on_socket_register_write
+        self.client.on_socket_unregister_write = self.on_socket_unregister_write
+
+    def on_socket_open(self, client, userdata, sock):
+        def cb():
+            client.loop_read()
+
+        self.loop.add_reader(sock, cb)
+        self.misc = self.loop.create_task(self.misc_loop())
+
+    def on_socket_close(self, client, userdata, sock):
+        self.loop.remove_reader(sock)
+        self.misc.cancel()
+
+    def on_socket_register_write(self, client, userdata, sock):
+        def cb():
+            client.loop_write()
+
+        self.loop.add_writer(sock, cb)
+
+    def on_socket_unregister_write(self, client, userdata, sock):
+        self.loop.remove_writer(sock)
+
+    async def misc_loop(self):
+        while self.client.loop_misc() == mqtt.MQTT_ERR_SUCCESS:
+            try:
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+
+
+class AsyncMqttExample:
+    def __init__(self, loop):
+        self.loop = loop
+        self.payload = ""
+        self.complete = False
+
+    def on_connect(self, client, obj, flags, rc):
+        client.subscribe("sub-test", 1)
+
+    def on_subscribe(self, client, obj, mid, granted_qos):
+        client.unsubscribe("unsub-test")
+
+    def on_unsubscribe(self, client, obj, mid):
+        self.payload = "message"
+
+    def on_message(self, client, obj, msg):
+        client.publish("asyncio", qos=1, payload=self.payload)
+
+    def on_publish(self, client, obj, mid):
+        client.disconnect()
+
+    def on_disconnect(self, client, userdata, rc):
+        self.disconnected.set_result(rc)
+
+    async def main(self):
+        global rc
+        self.disconnected = self.loop.create_future()
+
+        self.client = mqtt.Client(client_id=client_id)
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+        self.client.on_publish = self.on_publish
+        self.client.on_subscribe = self.on_subscribe
+        self.client.on_unsubscribe = self.on_unsubscribe
+        self.client.on_disconnect = self.on_disconnect
+
+        aioh = AsyncioHelper(self.loop, self.client)
+
+        self.client.connect('localhost', 1888, 60)
+        self.client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
+
+        await self.disconnected
+        rc = 0
+
+rc = 1
+loop = asyncio.get_event_loop()
+loop.run_until_complete(AsyncMqttExample(loop).main())
+loop.close()
+exit(rc)
