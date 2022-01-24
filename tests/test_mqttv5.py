@@ -32,16 +32,16 @@ from paho.mqtt.properties import Properties
 from paho.mqtt.reasoncodes import ReasonCodes
 from paho.mqtt.subscribeoptions import SubscribeOptions
 
-HOST = "broker.hivemq.com"
+HOST = "localhost"
 PORT = 1883 # 9001-1884
 TRANSPORT = "tcp" # websockets-tcp
 
-# logging_format = '%(asctime)s:%(levelname)s:%(threadName)s:%(message)s'
-# formatter = logging.Formatter(logging_format)
-# logging.basicConfig(
-#     format=logging_format,
-#     level=logging.DEBUG
-#     )
+logging_format = '%(asctime)s:%(levelname)s:%(threadName)s:%(message)s'
+formatter = logging.Formatter(logging_format)
+logging.basicConfig(
+    format=logging_format,
+    level=logging.DEBUG
+)
 
 class Callbacks:
 
@@ -1086,8 +1086,10 @@ class Test(unittest.TestCase):
         laclient.subscribe(topics[0], qos=2)
         lacallback.wait_subscribed()
 
+        publish_properties = Properties(PacketTypes.PUBLISH)
+        publish_properties.TopicAlias=1
         for qos in range(3):
-            laclient.publish(topics[0], b"topic alias 1", qos)
+            laclient.publish(topics[0], b"topic alias 1", qos, properties=publish_properties)
         self.waitfor(lacallback.messages, 3, 3)
         self.assertEqual(len(lacallback.messages), 3, lacallback.messages)
         laclient.disconnect()

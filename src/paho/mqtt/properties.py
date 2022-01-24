@@ -287,7 +287,7 @@ class Properties(object):
                         and (value < 1 or value > 268435455):
 
                     raise MQTTException(
-                        "%s property value must be in the range 1-268435455" % (name))
+                        "%s property value must be in the range 1-268435455 and it is " % (name) + str(value))
                 elif name in ["RequestResponseInformation", "RequestProblemInformation", "PayloadFormatIndicator"] \
                         and (value != 0 and value != 1):
 
