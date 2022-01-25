@@ -490,8 +490,8 @@ class Client(object):
     on_socket_register_write, on_socket_unregister_write
     """
 
-    def __init__(self, client_id="", clean_session=None, userdata=None,
-                 protocol=MQTTv311, transport="tcp", reconnect_on_failure=True):
+    def __init__(self, client_id="", clean_session=None, userdata=None, protocol=MQTTv311,
+                 transport="tcp", reconnect_on_failure=True, connect_timeout=5.0):
         """client_id is the unique client id string used when connecting to the
         broker. If client_id is zero length or None, then the behaviour is
         defined by which protocol version is in use. If using MQTT v3.1.1, then
@@ -534,7 +534,7 @@ class Client(object):
         self._sock = None
         self._sockpairR, self._sockpairW = (None, None,)
         self._keepalive = 60
-        self._connect_timeout = 5.0
+        self._connect_timeout = connect_timeout
         self._client_mode = MQTT_CLIENT
 
         if protocol == MQTTv5:
