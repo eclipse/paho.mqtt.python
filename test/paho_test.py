@@ -34,7 +34,7 @@ def create_server_socket():
     return sock
 
 
-def create_server_socket_ssl(*args, **kwargs):
+def create_server_socket_ssl(cert_reqs=None, alpn_protocols=None):
     if ssl is None:
         raise RuntimeError
 
@@ -44,10 +44,18 @@ def create_server_socket_ssl(*args, **kwargs):
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    ssock = ssl.wrap_socket(
-        sock, ca_certs="../ssl/all-ca.crt",
-        keyfile="../ssl/server.key", certfile="../ssl/server.crt",
-        server_side=True, ssl_version=ssl_version, **kwargs)
+
+    context = ssl.SSLContext(ssl_version)
+    if cert_reqs is not None:
+        context.options |= cert_reqs
+
+    if alpn_protocols is not None:
+        context.set_alpn_protocols(alpn_protocols)
+
+    context.load_verify_locations(cafile="../ssl/all-ca.crt")
+    context.load_cert_chain(certfile="../ssl/server.crt", keyfile="../ssl/server.key")
+
+    ssock = context.wrap_socket(sock, server_side=True)
     ssock.settimeout(10)
     ssock.bind(('', 1888))
     ssock.listen(5)
@@ -63,7 +71,7 @@ def expect_packet(sock, name, expected):
     packet_recvd = b""
     try:
         while len(packet_recvd) < rlen:
-            data = sock.recv(rlen-len(packet_recvd))
+            data = sock.recv(rlen - len(packet_recvd))
             if len(data) == 0:
                 break
             packet_recvd += data

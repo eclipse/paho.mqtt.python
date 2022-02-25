@@ -732,7 +732,7 @@ class Client(object):
         if hasattr(context, 'check_hostname'):
             self._tls_insecure = not context.check_hostname
 
-    def tls_set(self, ca_certs=None, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None, keyfile_password=None):
+    def tls_set(self, ca_certs=None, certfile=None, keyfile=None, cert_reqs=None, tls_version=None, ciphers=None, keyfile_password=None, alpn_protocols=None):
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
         ca_certs : a string path to the Certificate Authority certificate files
@@ -807,6 +807,11 @@ class Client(object):
 
         if ciphers is not None:
             context.set_ciphers(ciphers)
+
+        if alpn_protocols is not None:
+            if not getattr(ssl, "HAS_ALPN", None):
+                raise ValueError("SSL library has no support for ALPN")
+            context.set_alpn_protocols(alpn_protocols)
 
         self.tls_set_context(context)
 
