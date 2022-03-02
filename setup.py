@@ -28,6 +28,9 @@ setup(
     author='Roger Light',
     author_email='roger@atchoo.org',
     url='http://eclipse.org/paho',
+    project_urls={
+        'Source': 'https://github.com/eclipse/paho.mqtt.python',
+    },
     packages=find_packages('src'),
     package_dir={'': 'src'},
     include_package_data=True,
