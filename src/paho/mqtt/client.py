@@ -2022,10 +2022,17 @@ class Client(object):
         Expected signature is:
             on_publish_callback(client, userdata, mid)
 
-        client:     the client instance for this callback
-        userdata:   the private user data as set in Client() or userdata_set()
-        mid:        matches the mid variable returned from the corresponding
-                    publish() call, to allow outgoing messages to be tracked.
+        and for MQTT v5.0:
+            on_publish_callback(client, userdata, mid, reasonCodes, properties)
+
+        client:         the client instance for this callback
+        userdata:       the private user data as set in Client() or userdata_set()
+        mid:            matches the mid variable returned from the corresponding
+                        publish() call, to allow outgoing messages to be tracked.
+        reasonCodes:    the MQTT v5.0 reason codes received from the broker for each
+                        subscription. A optional ReasonCodes instances. May ne None.
+        properties:     the MQTT v5.0 properties received from the broker. A optional
+                        Properties class instance. May be None
 
         Decorator: @client.publish_callback() (```client``` is the name of the
             instance which this callback is being attached to)
@@ -2487,8 +2494,10 @@ class Client(object):
                         if on_publish:
                             with self._in_callback_mutex:
                                 try:
-                                    on_publish(
-                                        self, self._userdata, packet['mid'])
+                                    if self._protocol == MQTTv5:
+                                        on_publish(self, self._userdata, packet['mid'], None, None)
+                                    else:
+                                        on_publish( self, self._userdata, packet['mid'])
                                 except Exception as err:
                                     self._easy_log(
                                         MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
@@ -3479,14 +3488,17 @@ class Client(object):
                     if not self.suppress_exceptions:
                         raise
 
-    def _do_on_publish(self, mid):
+    def _do_on_publish(self, mid, reasoncodes=None, properties=None):
         with self._callback_mutex:
             on_publish = self.on_publish
 
         if on_publish:
             with self._in_callback_mutex:
                 try:
-                    on_publish(self, self._userdata, mid)
+                    if self._protocol == MQTTv5:
+                        on_publish(self, self._userdata, mid, reasoncodes, properties)
+                    else:
+                        on_publish(self, self._userdata, mid)
                 except Exception as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'Caught exception in on_publish: %s', err)
@@ -3513,6 +3525,7 @@ class Client(object):
         packet_type = PUBACK if cmd == "PUBACK" else PUBCOMP
         packet_type = packet_type >> 4
         mid, = struct.unpack("!H", self._in_packet['packet'][:2])
+        reasonCode, properties = None, None
         if self._protocol == MQTTv5:
             if self._in_packet['remaining_length'] > 2:
                 reasonCode = ReasonCodes(packet_type)
@@ -3526,7 +3539,7 @@ class Client(object):
         with self._out_message_mutex:
             if mid in self._out_messages:
                 # Only inform the client the message has been sent once.
-                rc = self._do_on_publish(mid)
+                rc = self._do_on_publish(mid, reasonCode, properties)
                 return rc
 
         return MQTT_ERR_SUCCESS
