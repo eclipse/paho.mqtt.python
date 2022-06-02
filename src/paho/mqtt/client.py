@@ -3354,7 +3354,7 @@ class Client(object):
         elif self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
-        mid, = struct.unpack("!H", self._in_packet['packet'])
+        mid, = struct.unpack("!H", self._in_packet['packet'][:2])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREL (Mid: %d)", mid)
 
         with self._in_message_mutex:
