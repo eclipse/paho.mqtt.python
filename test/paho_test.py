@@ -39,7 +39,9 @@ def create_server_socket_ssl(*args, **kwargs):
         raise RuntimeError
 
     ssl_version = ssl.PROTOCOL_TLSv1
-    if hasattr(ssl, "PROTOCOL_TLS"):
+    if hasattr(ssl, "PROTOCOL_TLS_SERVER"):
+        ssl_version = ssl.PROTOCOL_TLS_SERVER
+    elif hasattr(ssl, "PROTOCOL_TLS"):
         ssl_version = ssl.PROTOCOL_TLS
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
