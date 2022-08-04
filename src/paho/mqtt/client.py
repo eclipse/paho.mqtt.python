@@ -2370,7 +2370,7 @@ class Client(object):
                 command = self._sock_recv(1)
             except BlockingIOError:
                 return MQTT_ERR_AGAIN
-            except ConnectionError as err:
+            except OSError as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return MQTT_ERR_CONN_LOST
@@ -2389,7 +2389,7 @@ class Client(object):
                     byte = self._sock_recv(1)
                 except BlockingIOError:
                     return MQTT_ERR_AGAIN
-                except ConnectionError as err:
+                except OSError as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                     return MQTT_ERR_CONN_LOST
@@ -2419,7 +2419,7 @@ class Client(object):
                 data = self._sock_recv(self._in_packet['to_process'])
             except BlockingIOError:
                 return MQTT_ERR_AGAIN
-            except ConnectionError as err:
+            except OSError as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return MQTT_ERR_CONN_LOST
@@ -2469,10 +2469,10 @@ class Client(object):
             except BlockingIOError:
                 self._out_packet.appendleft(packet)
                 return MQTT_ERR_AGAIN
-            except ConnectionError as err:
+            except OSError as err:
                 self._out_packet.appendleft(packet)
                 self._easy_log(
-                    MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
+                    MQTT_LOG_ERR, 'failed to send on socket: %s', err)
                 return MQTT_ERR_CONN_LOST
 
             if write_length > 0:
@@ -3932,7 +3932,9 @@ class WebsocketWrapper(object):
             else:
                 raise BlockingIOError
 
-        except ConnectionError:
+        except OSError as err:
+            self._easy_log(
+                MQTT_LOG_ERR, 'Caught exception in websocket recv: %s', err)
             self.connected = False
             return b''
 
