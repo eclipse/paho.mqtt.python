@@ -68,6 +68,12 @@ def _on_publish(client, userdata, mid):
         _do_publish(client)
 
 
+def _on_publish_v5(client, userdata, mid, reasoncodes, properties):
+    """Internal V5 callback"""
+    #pylint: disable=unused-argument
+    _on_publish(client, userdata, mid)
+
+
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
              will=None, auth=None, tls=None, protocol=paho.MQTTv311,
              transport="tcp", proxy_args=None):
@@ -140,11 +146,12 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
                          protocol=protocol, transport=transport)
 
-    client.on_publish = _on_publish
     if protocol == mqtt.client.MQTTv5:
         client.on_connect = _on_connect_v5
+        client.on_publish = _on_publish_v5
     else:
         client.on_connect = _on_connect
+        client.on_publish = _on_publish
 
     if proxy_args is not None:
         client.proxy_set(**proxy_args)
