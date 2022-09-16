@@ -24,13 +24,13 @@ class TrioAsyncHelper:
 
     async def read_loop(self):
         while True:
-            await trio.hazmat.wait_readable(self.sock)
+            await trio.lowlevel.wait_readable(self.sock)
             self.client.loop_read()
 
     async def write_loop(self):
         while True:
             await self._event_large_write.wait()
-            await trio.hazmat.wait_writable(self.sock)
+            await trio.lowlevel.wait_writable(self.sock)
             self.client.loop_write()
 
     async def misc_loop(self):
