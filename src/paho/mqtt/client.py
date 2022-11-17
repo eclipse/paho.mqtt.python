@@ -643,6 +643,10 @@ class Client(object):
         except ssl.SSLWantWriteError:
             self._call_socket_register_write()
             raise BlockingIOError
+        except AttributeError as err:
+            self._easy_log(
+                MQTT_LOG_DEBUG, "socket was None: %s", err)
+            raise ConnectionError
 
     def _sock_send(self, buf):
         try:
