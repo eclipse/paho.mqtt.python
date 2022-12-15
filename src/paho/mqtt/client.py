@@ -1649,6 +1649,10 @@ class Client(object):
     def user_data_set(self, userdata):
         """Set the user data variable passed to callbacks. May be any data type."""
         self._userdata = userdata
+        
+    def user_data_get(self):
+        """Get the user data variable passed to callbacks. May be any data type."""
+        return self._userdata
 
     def will_set(self, topic, payload=None, qos=0, retain=False, properties=None):
         """Set a Will to be sent by the broker in case the client disconnects unexpectedly.
