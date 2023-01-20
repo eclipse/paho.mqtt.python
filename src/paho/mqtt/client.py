@@ -3345,7 +3345,15 @@ class Client(object):
         elif self._in_packet['remaining_length'] != 2:
             return MQTT_ERR_PROTOCOL
 
-        mid, = struct.unpack("!H", self._in_packet['packet'])
+        mid, = struct.unpack("!H", self._in_packet['packet'][:2])
+        if self._protocol == MQTTv5:
+            if self._in_packet['remaining_length'] > 2:
+                reasonCode = ReasonCodes(PUBREL >> 4)
+                reasonCode.unpack(self._in_packet['packet'][2:])
+                if self._in_packet['remaining_length'] > 3:
+                    properties = Properties(PUBREL >> 4)
+                    props, props_len = properties.unpack(
+                        self._in_packet['packet'][3:])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREL (Mid: %d)", mid)
 
         with self._in_message_mutex:
