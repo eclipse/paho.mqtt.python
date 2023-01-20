@@ -3733,7 +3733,7 @@ class WebsocketWrapper(object):
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
         websocket_headers = {
-            "Host": "{self._host:s}:{self._port:d}".format(self=self),
+            "Host": "{self._host:s}".format(self=self),
             "Upgrade": "websocket",
             "Connection": "Upgrade",
             "Origin": "https://{self._host:s}:{self._port:d}".format(self=self),

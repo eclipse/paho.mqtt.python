@@ -48,7 +48,7 @@ mqttc.on_publish = on_publish
 mqttc.on_subscribe = on_subscribe
 # Uncomment to enable debug messages
 mqttc.on_log = on_log
-mqttc.connect("test.mosquitto.org", 8080, 60)
+mqttc.connect("test.mosquitto.org", 443, 60)
 mqttc.subscribe("$SYS/broker/version", 0)
 
 mqttc.loop_forever()
