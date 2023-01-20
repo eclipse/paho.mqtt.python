@@ -4,6 +4,7 @@ v1.6.2 - 2021-xx-xx
 - Fix handling of MQTT v5.0 PUBREL messages with remaining length not equal to
   2. Closes #696.
 - Raise error on `subscribe()` when `topic` is an empty list. Closes #690.
+- Raise error on `publish.multiple()` when `msgs` is an empty list. Closes #684.
 
 
 v1.6.1 - 2021-10-21
