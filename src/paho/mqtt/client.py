@@ -1467,6 +1467,8 @@ class Client(object):
                     raise ValueError('Invalid topic.')
                 topic_qos_list = [(topic.encode('utf-8'), qos)]
         elif isinstance(topic, list):
+            if len(topic) == 0:
+                raise ValueError('Empty topic list')
             topic_qos_list = []
             if self._protocol == MQTTv5:
                 for t, o in topic:
