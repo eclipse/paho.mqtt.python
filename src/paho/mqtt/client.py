@@ -1041,6 +1041,18 @@ class Client(object):
         # Put messages in progress in a valid state.
         self._messages_reconnect_reset()
 
+        with self._callback_mutex:
+            on_pre_connect = self.on_pre_connect
+
+        if on_pre_connect:
+            try:
+                on_pre_connect(self, self._userdata)
+            except Exception as err:
+                self._easy_log(
+                    MQTT_LOG_ERR, 'Caught exception in on_pre_connect: %s', err)
+                if not self.suppress_exceptions:
+                    raise
+
         sock = self._create_socket_connection()
 
         if self._ssl:
@@ -1841,6 +1853,35 @@ class Client(object):
     def log_callback(self):
         def decorator(func):
             self.on_log = func
+            return func
+        return decorator
+
+    @property
+    def on_pre_connect(self):
+        """If implemented, called immediately prior to the connection is made
+        request."""
+        return self._on_pre_connect
+
+    @on_pre_connect.setter
+    def on_pre_connect(self, func):
+        """ Define the pre_connect callback implementation.
+
+        Expected signature:
+            connect_callback(client, userdata)
+
+        client:     the client instance for this callback
+        userdata:   the private user data as set in Client() or userdata_set()
+
+        Decorator: @client.pre_connect_callback() (```client``` is the name of the
+            instance which this callback is being attached to)
+
+        """
+        with self._callback_mutex:
+            self._on_pre_connect = func
+
+    def pre_connect_callback(self):
+        def decorator(func):
+            self.on_pre_connect = func
             return func
         return decorator
 

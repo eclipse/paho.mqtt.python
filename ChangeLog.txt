@@ -1,3 +1,10 @@
+v1.7.0 - 2023-xx-xx
+===================
+
+- Add on_pre_connect() callback, which is called immediately before a
+  connection attempt is made.
+
+
 v1.6.1 - 2021-10-21
 ===================
 

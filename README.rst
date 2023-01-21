@@ -468,6 +468,10 @@ bind_address
 Callback
 ........
 
+Immediately prior to the connection attempt, the `on_pre_connect()` callback
+will be called. This is a useful callback to set information that must be done
+before the connection starts, e.g., calling `will_set()`.
+
 When the client receives a CONNACK message from the broker in response to the
 connect it generates an ``on_connect()`` callback.
 
