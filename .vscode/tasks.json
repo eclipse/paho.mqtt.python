@@ -1,0 +1,139 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    // Use the Update Toolchain task to install the Python toolchain.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Update Toolchain",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "setuptools",
+                "build",
+                "wheel",
+                "pylint",
+                "pyflakes",
+                "pylama",
+                "pytest",
+                "pytest-cov",
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rfvd",
+                "build",
+                "dist",
+                "htmlcov",
+                "docs/_build",
+                "src/${config:modulename}.egg-info",
+            ],
+            "windows": {
+                "command": "Get-ChildItem",
+                "args": [
+                    "-Path",
+                    "build\\,",
+                    "dist\\,",
+                    "htmlcov\\,",
+                    "docs\\_build,",
+                    "src\\${config:modulename}.egg-info",
+                    "-Recurse",
+                    "|",
+                    "Remove-Item",
+                    "-Recurse",
+                    "-Confirm:$false",
+                    "-Force",
+                ],
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pylint",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pylint",
+                "--reports=y",
+                "src"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Pyflakes",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pyflakes",
+                "src"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Pylama",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pylama",
+                "src"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "build",
+                ".",
+                "--wheel",
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Test",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pytest"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Locally",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "${workspaceFolder}/dist/${config:modulename}-${config:moduleversion}-py3-none-any.whl",
+                "--user",
+                "--force-reinstall"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Clean",
+                "PyLint",
+                //"Test",
+                "Build",
+            ],
+            "problemMatcher": []
+        },
+    ]
+}
