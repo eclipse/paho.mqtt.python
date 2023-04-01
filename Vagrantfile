@@ -1,6 +1,6 @@
 Vagrant.configure("2") do |config|
   # The base OS 
-  config.vm.box = "ubuntu/trusty64"
+  config.vm.box = "ubuntu/bionic64"
   config.vm.provision :shell, :inline => "sudo apt-get update"
   
   # Install make
