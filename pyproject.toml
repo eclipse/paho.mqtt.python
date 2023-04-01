@@ -35,6 +35,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "PySocks>=1.7",
 ]
 
 [project.urls]
@@ -48,6 +49,7 @@ test = [
     'mock>=5.0',
     'pytest>=7.0',
     'pytest-runner>=6.0',
+    'ptr>=22.0',
     'pylama>=8.4',
     'six>=1.16',
     'tox>=4.4',
