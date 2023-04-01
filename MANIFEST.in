@@ -1,4 +1,5 @@
-include edl-v10 epl-v10
+include edl-v10
+include epl-v20
 include README.rst
 include CONTRIBUTING.md
 include setup.py
