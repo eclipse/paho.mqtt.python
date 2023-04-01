@@ -12,13 +12,12 @@ maintainers = [
 ]
 description = "MQTT version 5.0/3.1.1 client class"
 version = "1.6.1"
-license = {file = "LICENSE.txt"}
 readme = "README.rst"
 requires-python = ">=3.7"
 classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
-    'License :: OSI Approved',
+    'License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)',
     'Operating System :: MacOS :: MacOS X',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: POSIX',
