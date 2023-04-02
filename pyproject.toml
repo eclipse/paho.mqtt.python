@@ -13,6 +13,7 @@ maintainers = [
 description = "MQTT version 5.0/3.1.1 client class"
 version = "1.6.1"
 readme = "README.rst"
+license = {file = "LICENSE.txt"}
 requires-python = ">=3.7"
 classifiers = [
     'Development Status :: 4 - Beta',
@@ -34,7 +35,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "PySocks>=1.7",
 ]
 
 [project.urls]
@@ -44,6 +44,9 @@ repository = "https://github.com/eclipse/paho.mqtt.python"
 changelog = "https://github.com/eclipse/paho.mqtt.python/blob/master/ChangeLog.txt"
 
 [project.optional-dependencies]
+proxy = [
+    "PySocks>=1.7",
+]
 test = [
     'mock>=5.0',
     'pytest>=7.0',

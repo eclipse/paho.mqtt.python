@@ -123,8 +123,7 @@
                 "-m",
                 "pip",
                 "install",
-                "${workspaceFolder}/dist/${config:modulename}-${config:moduleversion}-py3-none-any.whl",
-                "--user",
+                "${workspaceFolder}/dist/paho-mqtt-${config:moduleversion}.tar.gz",
                 "--force-reinstall"
             ],
             "dependsOrder": "sequence",
