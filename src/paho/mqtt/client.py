@@ -87,6 +87,13 @@ try:
 except NameError:
     BlockingIOError  = IOError
 
+# Python 2.7 does not have ConnectionError. Fall back to socket.error
+# (ref. commit 4910b785a49b9)
+try:
+    ConnectionError
+except NameError:
+    ConnectionError = socket.error
+
 MQTTv31 = 3
 MQTTv311 = 4
 MQTTv5 = 5
