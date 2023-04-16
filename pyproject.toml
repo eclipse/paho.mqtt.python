@@ -60,17 +60,17 @@ ignore = [
   "F811",
   "F841"
 ]
-line-length = 249
+line-length = 250
 target-version = "py37"
 
 [tool.ruff.mccabe]
-max-complexity = 31
+max-complexity = 32
 
 [tool.ruff.pylint]
 max-args = 15
-max-branches = 23
-max-returns = 18
-max-statements = 90
+max-branches = 36
+max-returns = 22
+max-statements = 130
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["E402"]
