@@ -18,4 +18,5 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: pip install tox
+      - run: mv setup.cfg setup.cfg.disabled
       - run: tox -e py
