@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2020 Frank Pagliughi <fpagliughi@mindspring.com>
-# All rights reserved. 
-# 
-# This program and the accompanying materials are made available 
+# All rights reserved.
+#
+# This program and the accompanying materials are made available
 # under the terms of the Eclipse Distribution License v1.0
 # which accompanies this distribution.
 #
@@ -45,7 +45,7 @@ def on_connect(mqttc, userdata, flags, rc, props):
         print("Subscribing to math requests")
         mqttc.subscribe("requests/math/#")
 
-# Each incoming message should be an RPC request on the 
+# Each incoming message should be an RPC request on the
 # 'requests/math/#' topic.
 def on_message(mqttc, userdata, msg):
     print(msg.topic + "  " + str(msg.payload))
@@ -83,7 +83,7 @@ def on_log(mqttc, obj, level, string):
 
 
 # Typically with an RPC service, you want to make sure that you're the only
-# client answering requests for specific topics. Using a known client ID 
+# client answering requests for specific topics. Using a known client ID
 # might help.
 mqttc = mqtt.Client(client_id="paho_rpc_math_srvr", protocol=mqtt.MQTTv5)
 mqttc.on_message = on_message

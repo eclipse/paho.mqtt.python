@@ -32,8 +32,8 @@ parser.add_argument('-u', '--username', required=False, default=None)
 parser.add_argument('-d', '--disable-clean-session', action='store_true', help="disable 'clean session' (sub + msgs not cleared when client disconnects)")
 parser.add_argument('-p', '--password', required=False, default=None)
 parser.add_argument('-P', '--port', required=False, type=int, default=None, help='Defaults to 8883 for TLS or 1883 for non-TLS')
-parser.add_argument('-N', '--nummsgs', required=False, type=int, default=1, help='send this many messages before disconnecting') 
-parser.add_argument('-S', '--delay', required=False, type=float, default=1, help='number of seconds to sleep between msgs') 
+parser.add_argument('-N', '--nummsgs', required=False, type=int, default=1, help='send this many messages before disconnecting')
+parser.add_argument('-S', '--delay', required=False, type=float, default=1, help='number of seconds to sleep between msgs')
 parser.add_argument('-k', '--keepalive', required=False, type=int, default=60)
 parser.add_argument('-s', '--use-tls', action='store_true')
 parser.add_argument('--insecure', action='store_true')
@@ -68,7 +68,7 @@ usetls = args.use_tls
 if args.cacerts:
     usetls = True
 
-port = args.port    
+port = args.port
 if port is None:
     if usetls:
         port = 8883
@@ -94,7 +94,7 @@ if usetls:
         cert_required = ssl.CERT_REQUIRED
     else:
         cert_required = ssl.CERT_NONE
-        
+
     mqttc.tls_set(ca_certs=args.cacerts, certfile=None, keyfile=None, cert_reqs=cert_required, tls_version=tlsVersion)
 
     if args.insecure:
@@ -125,4 +125,4 @@ for x in range (0, args.nummsgs):
     time.sleep(args.delay)
 
 mqttc.disconnect()
-    
+

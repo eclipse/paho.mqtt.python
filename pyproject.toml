@@ -1,0 +1,81 @@
+[tool.ruff]
+select = [
+  "C4",      # flake8-comprehensions
+  "C90",     # McCabe cyclomatic complexity
+  "E",       # pycodestyle errors
+  "F",       # Pyflakes
+  "ISC",     # flake8-implicit-str-concat
+  "PLC",     # Pylint Conventions
+  "PLE",     # Pylint Errors
+  "PLR091",  # Pylint Refactor just for max-args, max-branches, etc.
+  "W",       # pycodestyle warnings
+  # "A",     # flake8-builtins
+  # "ANN",   # flake8-annotations
+  # "ARG",   # flake8-unused-arguments
+  # "B",     # flake8-bugbear
+  # "BLE",   # flake8-blind-except
+  # "COM",   # flake8-commas
+  # "D",     # pydocstyle
+  # "DJ",    # flake8-django
+  # "DTZ",   # flake8-datetimez
+  # "EM",    # flake8-errmsg
+  # "ERA",   # eradicate
+  # "EXE",   # flake8-executable
+  # "FBT",   # flake8-boolean-trap
+  # "G",     # flake8-logging-format
+  # "I",     # isort
+  # "ICN",   # flake8-import-conventions
+  # "INP",   # flake8-no-pep420
+  # "INT",   # flake8-gettext
+  # "N",     # pep8-naming
+  # "NPY",   # NumPy-specific rules
+  # "PD",    # pandas-vet
+  # "PGH",   # pygrep-hooks
+  # "PIE",   # flake8-pie
+  # "PL",    # Pylint
+  # "PT",    # flake8-pytest-style
+  # "PTH",   # flake8-use-pathlib
+  # "PYI",   # flake8-pyi
+  # "Q",     # flake8-quotes
+  # "RET",   # flake8-return
+  # "RSE",   # flake8-raise
+  # "RUF",   # Ruff-specific rules
+  # "S",     # flake8-bandit
+  # "SIM",   # flake8-simplify
+  # "SLF",   # flake8-self
+  # "T10",   # flake8-debugger
+  # "T20",   # flake8-print
+  # "TCH",   # flake8-type-checking
+  # "TID",   # flake8-tidy-imports
+  # "TRY",   # tryceratops
+  # "UP",    # pyupgrade
+  # "YTT",   # flake8-2020
+]
+ignore = [
+  "E402",
+  "E703",
+  "E711",
+  "E712",
+  "E721",
+  "E741",
+  "F401",
+  "F811",
+  "F841",
+  "PLC1901",
+  "PLE1205",
+]
+line-length = 250
+target-version = "py37"
+
+[tool.ruff.mccabe]
+max-complexity = 32
+
+[tool.ruff.pylint]
+max-args = 15
+max-branches = 36
+max-returns = 22
+max-statements = 130
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402"]
+"test/*" = ["S101"]

@@ -3658,7 +3658,7 @@ class Client(object):
     def _proxy_is_valid(p):
         def check(t, a):
             return (socks is not None and
-                    t in set([socks.HTTP, socks.SOCKS4, socks.SOCKS5]) and a)
+                    t in {socks.HTTP, socks.SOCKS4, socks.SOCKS5} and a)
 
         if isinstance(p, dict):
             return check(p.get("proxy_type"), p.get("proxy_addr"))

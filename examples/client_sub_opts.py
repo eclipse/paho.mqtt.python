@@ -65,7 +65,7 @@ usetls = args.use_tls
 if args.cacerts:
     usetls = True
 
-port = args.port    
+port = args.port
 if port is None:
     if usetls:
         port = 8883
@@ -91,7 +91,7 @@ if usetls:
         cert_required = ssl.CERT_REQUIRED
     else:
         cert_required = ssl.CERT_NONE
-        
+
     mqttc.tls_set(ca_certs=args.cacerts, certfile=None, keyfile=None, cert_reqs=cert_required, tls_version=tlsVersion)
 
     if args.insecure:
