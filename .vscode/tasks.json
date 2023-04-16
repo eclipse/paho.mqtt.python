@@ -129,7 +129,7 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Clean",
-                "PyLint",
+                "Pylint",
                 //"Test",
                 "Build",
             ],
