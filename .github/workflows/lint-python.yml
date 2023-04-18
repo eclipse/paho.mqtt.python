@@ -13,7 +13,7 @@ jobs:
       - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
       - run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
       - run: isort --check-only --profile black .
-      - run: pip install -e .
+      - run: pip install .
       - run: mypy --ignore-missing-imports . || true
       - run: pytest .
       - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
