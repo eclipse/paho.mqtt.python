@@ -16,5 +16,5 @@ jobs:
       - run: pip install .
       - run: mypy --ignore-missing-imports . || true
       - run: pytest .
-      - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
+      - run: shopt -s globstar && pyupgrade --py37-plus **/*.py || true
       - run: safety check
