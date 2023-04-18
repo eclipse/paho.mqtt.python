@@ -13,15 +13,26 @@
                 "pip",
                 "install",
                 "--upgrade",
-                "setuptools",
-                "build",
-                "wheel",
-                "pylint",
-                "pyflakes",
-                "pylama",
-                "pytest",
-                "pytest-cov",
+                "-r",
+                "${workspaceFolder}/requirements_build.txt",
             ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Update Dependencies",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "-r",
+                "${workspaceFolder}/requirements.txt",
+            ],
+            "options": {
+                "cwd": "src"
+            },
             "problemMatcher": []
         },
         {
@@ -129,6 +140,8 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Clean",
+                "Update Toolchain",
+                "Update Dependencies",
                 "Pylint",
                 //"Test",
                 "Build",

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=64.0.0", "wheel"]
 build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
@@ -48,6 +48,7 @@ proxy = [
     "PySocks>=1.7",
 ]
 test = [
+    'setuptools>=64.0',
     'mock>=5.0',
     'pytest>=7.0',
     'pytest-runner>=6.0',
