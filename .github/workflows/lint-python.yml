@@ -4,8 +4,8 @@ jobs:
   lint_python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
       - run: pip install bandit black codespell flake8 isort mypy pytest pyupgrade safety
       - run: bandit --recursive --skip B101,B105,B106,B110,B303,B324,B404,B603 .
       - run: black --check . || true
@@ -15,7 +15,6 @@ jobs:
       - run: isort --check-only --profile black .
       - run: pip install -e .
       - run: mypy --ignore-missing-imports . || true
-      - run: mv setup.cfg setup.cfg.disabled
       - run: pytest .
       - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
       - run: safety check
