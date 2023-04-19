@@ -40,8 +40,8 @@ def get_websocket_response(response_headers):
 
 
 @pytest.mark.parametrize("proto_ver,proto_name", [
-    (client.MQTTv31, "MQIsdp"),
-    (client.MQTTv311, "MQTT"),
+    (client.MQTTV31, "MQIsdp"),
+    (client.MQTTV311, "MQTT"),
 ])
 class TestInvalidWebsocketResponse(object):
     def test_unexpected_response(self, proto_ver, proto_name, fake_websocket_broker):
@@ -66,8 +66,8 @@ class TestInvalidWebsocketResponse(object):
 
 
 @pytest.mark.parametrize("proto_ver,proto_name", [
-    (client.MQTTv31, "MQIsdp"),
-    (client.MQTTv311, "MQTT"),
+    (client.MQTTV31, "MQIsdp"),
+    (client.MQTTV311, "MQTT"),
 ])
 class TestBadWebsocketHeaders(object):
     """ Testing for basic functionality in checking for headers """
@@ -127,8 +127,8 @@ class TestBadWebsocketHeaders(object):
 
 
 @pytest.mark.parametrize("proto_ver,proto_name", [
-    (client.MQTTv31, "MQIsdp"),
-    (client.MQTTv311, "MQTT"),
+    (client.MQTTV31, "MQIsdp"),
+    (client.MQTTV311, "MQTT"),
 ])
 class TestValidHeaders(object):
     """ Testing for functionality in request/response headers """

@@ -69,7 +69,7 @@ def _on_message_simple(client, userdata, message):
 
 def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
              port=1883, client_id="", keepalive=60, will=None, auth=None,
-             tls=None, protocol=paho.MQTTv311, transport="tcp",
+             tls=None, protocol=paho.MQTTV311, transport="tcp",
              clean_session=True, proxy_args=None):
     """Subscribe to a list of topics and process them in a callback function.
 
@@ -147,7 +147,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
                          protocol=protocol, transport=transport,
                          clean_session=clean_session)
     client.on_message = _on_message_callback
-    if protocol == mqtt.client.MQTTv5:
+    if protocol == mqtt.client.MQTTV5:
         client.on_connect = _on_connect_v5
     else:
         client.on_connect = _on_connect
@@ -185,7 +185,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
 
 def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None, protocol=paho.MQTTv311, transport="tcp",
+           tls=None, protocol=paho.MQTTV311, transport="tcp",
            clean_session=True, proxy_args=None):
     """Subscribe to a list of topics and return msg_count messages.
 

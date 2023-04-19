@@ -15,7 +15,7 @@
 #   Frank Pagliughi - initial implementation
 #
 
-# This shows an example of an MQTTv5 Remote Procedure Call (RPC) server.
+# This shows an example of an MQTTV5 Remote Procedure Call (RPC) server.
 
 import json
 
@@ -38,7 +38,7 @@ def mult(nums):
         prod *= x
     return prod
 
-# Remember that the MQTTv5 callback takes the additional 'props' parameter.
+# Remember that the MQTTV5 callback takes the additional 'props' parameter.
 def on_connect(mqttc, userdata, flags, rc, props):
     print("Connected: '"+str(flags)+"', '"+str(rc)+"', '"+str(props))
     if not flags["session present"]:
@@ -85,7 +85,7 @@ def on_log(mqttc, obj, level, string):
 # Typically with an RPC service, you want to make sure that you're the only
 # client answering requests for specific topics. Using a known client ID 
 # might help.
-mqttc = mqtt.Client(client_id="paho_rpc_math_srvr", protocol=mqtt.MQTTv5)
+mqttc = mqtt.Client(client_id="paho_rpc_math_srvr", protocol=mqtt.MQTTV5)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 

@@ -24,8 +24,8 @@ from testsupport.broker import fake_broker
 
 
 @pytest.mark.parametrize("proto_ver", [
-    (client.MQTTv31),
-    (client.MQTTv311),
+    (client.MQTTV31),
+    (client.MQTTV311),
 ])
 class Test_connect(object):
     """

@@ -165,7 +165,7 @@ Client()
 
 .. code:: python
 
-    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp")
+    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTV311, transport="tcp")
 
 The ``Client()`` constructor takes the following arguments:
 
@@ -191,7 +191,7 @@ userdata
 
 protocol
     the version of the MQTT protocol to use for this client. Can be either
-    ``MQTTv31``, ``MQTTv311`` or ``MQTTv5``
+    ``MQTTV31``, ``MQTTV311`` or ``MQTTV5``
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
@@ -1193,7 +1193,7 @@ Publish a single message to a broker, then disconnect cleanly.
 
     single(topic, payload=None, qos=0, retain=False, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311, transport="tcp")
+        protocol=mqtt.MQTTV311, transport="tcp")
 
 
 Publish Single Function arguments
@@ -1256,8 +1256,8 @@ tls
     Defaults to None, which indicates that TLS should not be used.
 
 protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
-    ``MQTTv311``, or ``MQTTv5`.
+    choose the version of the MQTT protocol to use. Use either ``MQTTV31``,
+    ``MQTTV311``, or ``MQTTV5`.
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
@@ -1283,7 +1283,7 @@ set any properties on connection or when sending messages.
 .. code:: python
 
     multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-        will=None, auth=None, tls=None, protocol=mqtt.MQTTv311, transport="tcp")
+        will=None, auth=None, tls=None, protocol=mqtt.MQTTV311, transport="tcp")
 
 Publish Multiple Function arguments
 '''''''''''''''''''''''''''''''''''
@@ -1338,7 +1338,7 @@ blocking function.
 
     simple(topics, qos=0, msg_count=1, retained=False, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311)
+        protocol=mqtt.MQTTV311)
 
 
 Simple Subscribe Function arguments
@@ -1406,8 +1406,8 @@ tls
     Defaults to None, which indicates that TLS should not be used.
 
 protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
-    ``MQTTv311``, or ``MQTTv5``.
+    choose the version of the MQTT protocol to use. Use either ``MQTTV31``,
+    ``MQTTV311``, or ``MQTTV5``.
 
 
 Simple Example
@@ -1430,7 +1430,7 @@ provided callback.
 
     callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311)
+        protocol=mqtt.MQTTV311)
 
 Callback Subscribe Function arguments
 '''''''''''''''''''''''''''''''''''''

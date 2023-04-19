@@ -15,7 +15,7 @@
 #   Frank Pagliughi - initial implementation
 #
 
-# This shows an example of an MQTTv5 Remote Procedure Call (RPC) client.
+# This shows an example of an MQTTV5 Remote Procedure Call (RPC) client.
 
 import json
 import sys
@@ -36,7 +36,7 @@ corr_id = b"1"
 # This is sent in the message callback when we get the respone
 reply = None
 
-# The MQTTv5 callback takes the additional 'props' parameter.
+# The MQTTV5 callback takes the additional 'props' parameter.
 def on_connect(mqttc, userdata, flags, rc, props):
     global client_id, reply_to
 
@@ -65,7 +65,7 @@ if len(sys.argv) < 3:
     print("USAGE: client_rpc_math.py [add|mult] n1 n2 ...")
     sys.exit(1)
 
-mqttc = mqtt.Client(client_id="", protocol=mqtt.MQTTv5)
+mqttc = mqtt.Client(client_id="", protocol=mqtt.MQTTV5)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 

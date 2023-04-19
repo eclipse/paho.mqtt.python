@@ -11,5 +11,5 @@ paho.mqtt.publish.single(
     hostname="localhost",
     port=1888,
     client_id="publish-helper-qos0-test",
-    protocol=paho.mqtt.client.MQTTv5
+    protocol=paho.mqtt.client.MQTTV5
 )

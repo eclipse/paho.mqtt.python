@@ -69,7 +69,7 @@ def _on_publish(client, userdata, mid):
 
 
 def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None, protocol=paho.MQTTv311,
+             will=None, auth=None, tls=None, protocol=paho.MQTTV311,
              transport="tcp", proxy_args=None):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
@@ -141,7 +141,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
                          protocol=protocol, transport=transport)
 
     client.on_publish = _on_publish
-    if protocol == mqtt.client.MQTTv5:
+    if protocol == mqtt.client.MQTTV5:
         client.on_connect = _on_connect_v5
     else:
         client.on_connect = _on_connect
@@ -179,7 +179,7 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
 
 def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None, protocol=paho.MQTTv311, transport="tcp", proxy_args=None):
+           tls=None, protocol=paho.MQTTV311, transport="tcp", proxy_args=None):
     """Publish a single message to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
