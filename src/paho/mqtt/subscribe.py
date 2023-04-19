@@ -20,14 +20,15 @@ you to pass a callback for processing of messages.
 """
 from __future__ import absolute_import
 
-from .. import mqtt
-from . import client as paho
+from .exceptions import MQTTException
+from .constants import MQTTV5, MQTTV311, connack_string
+from .client import Client
 
 
 def _on_connect_v5(client, userdata, flags, rc, properties):
     """Internal callback"""
     if rc != 0:
-        raise mqtt.MQTTException(paho.connack_string(rc))
+        raise MQTTException(connack_string(rc))
 
     if isinstance(userdata['topics'], list):
         for topic in userdata['topics']:
@@ -69,7 +70,7 @@ def _on_message_simple(client, userdata, message):
 
 def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
              port=1883, client_id="", keepalive=60, will=None, auth=None,
-             tls=None, protocol=paho.MQTTV311, transport="tcp",
+             tls=None, protocol=MQTTV311, transport="tcp",
              clean_session=True, proxy_args=None):
     """Subscribe to a list of topics and process them in a callback function.
 
@@ -143,11 +144,11 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         'qos':qos,
         'userdata':userdata}
 
-    client = paho.Client(client_id=client_id, userdata=callback_userdata,
+    client = Client(client_id=client_id, userdata=callback_userdata,
                          protocol=protocol, transport=transport,
                          clean_session=clean_session)
     client.on_message = _on_message_callback
-    if protocol == mqtt.client.MQTTV5:
+    if protocol == MQTTV5:
         client.on_connect = _on_connect_v5
     else:
         client.on_connect = _on_connect
@@ -185,7 +186,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
 
 def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
            port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None, protocol=paho.MQTTV311, transport="tcp",
+           tls=None, protocol=MQTTV311, transport="tcp",
            clean_session=True, proxy_args=None):
     """Subscribe to a list of topics and return msg_count messages.
 

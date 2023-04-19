@@ -19,16 +19,8 @@
 import struct
 import sys
 
+from .exceptions import MQTTException, MalformedPacket
 from .packettypes import PacketTypes
-
-
-class MQTTException(Exception):
-    pass
-
-
-class MalformedPacket(MQTTException):
-    pass
-
 
 def writeInt16(length):
     # serialize a 16 bit integer to network format

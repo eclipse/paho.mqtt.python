@@ -1,12 +1,31 @@
-class MQTTMatcher(object):
-    """Intended to manage topic filters including wildcards.
+"""
+Copyright (c) 2012-2019 Roger Light and others
+
+All rights reserved. This program and the accompanying materials
+are made available under the terms of the Eclipse Public License v2.0
+and Eclipse Distribution License v1.0 which accompany this distribution.
+
+The Eclipse Public License is available at
+    http://www.eclipse.org/legal/epl-v10.html
+and the Eclipse Distribution License is available at
+    http://www.eclipse.org/org/documents/edl-v10.php.
+
+Contributors:
+    Roger Light - initial API and implementation
+    Ian Craggs - MQTT V5 support
+"""
+
+class MQTTMatcher():
+    """
+    Intended to manage topic filters including wildcards.
 
     Internally, MQTTMatcher use a prefix tree (trie) to store
     values associated with filters, and has an iter_match()
     method to iterate efficiently over all filters that match
-    some topic name."""
+    some topic name.
+    """
 
-    class Node(object):
+    class Node():
         __slots__ = '_children', '_content'
 
         def __init__(self):
@@ -33,8 +52,8 @@ class MQTTMatcher(object):
             if node._content is None:
                 raise KeyError(key)
             return node._content
-        except KeyError:
-            raise KeyError(key)
+        except KeyError as err:
+            raise KeyError(key) from err
 
     def __delitem__(self, key):
         """Delete the value associated with some topic filter :key"""
@@ -42,12 +61,12 @@ class MQTTMatcher(object):
         try:
             parent, node = None, self._root
             for k in key.split('/'):
-                 parent, node = node, node._children[k]
-                 lst.append((parent, k, node))
+                parent, node = node, node._children[k]
+                lst.append((parent, k, node))
             # TODO
             node._content = None
-        except KeyError:
-            raise KeyError(key)
+        except KeyError as err:
+            raise KeyError(key) from err
         else:  # cleanup
             for parent, k, node in reversed(lst):
                 if node._children or node._content is not None:

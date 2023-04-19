@@ -17,10 +17,7 @@
 """
 
 import sys
-
-
-class MQTTException(Exception):
-    pass
+from .exceptions import MQTTException
 
 
 class SubscribeOptions(object):
