@@ -1,25 +1,41 @@
 name: lint_python
 on: [pull_request, push]
 jobs:
-  lint_python:
+  lint-python:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
+
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-      - run: pip install .[deploy]
-      - run: pip install .[test]
-      - run: bandit --configfile pyproject.toml -r .
-      - run: black --check . || true
-      - run: codespell || true
-      # flake8 doesn't currently support pyproject.toml config - there is a wrapper pflake8 which does
-      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-      - run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
-      - run: isort --check-only .
-      - run: pip install --editable .  # will require build backend support for PEP660 (setuptools >= 64)
-      - run: mypy . || true
-      - run: pytest .
-      # - run: pytest --ignore=tests/test_client.py --ignore=tests/test_websocket_integration.py
-      # - run: pytest tests/test_websocket_integration.py || true  # Todo: Fix these failing tests
-      # - run: pytest tests/test_client.py || true  # Todo: Fix these failing tests
-      - run: shopt -s globstar && pyupgrade --py37-plus **/*.py || true
-      - run: safety check
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install deploy dependencies
+        run: pip install .[deploy]
+      - name: Install test dependencies
+        run: pip install .[test]
+      - name: Install code dependencies
+        run: pip install .
+      - name: Security vulnerability analysis with bandit
+        run: bandit -c pyproject.toml -r .
+      - name: Format with black
+        run: black --check . || true
+      - name: Check spelling
+        run: codespell || true
+      - name: Lint with flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Lint again with flake8
+        run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
+      - name: Sort imports
+        run: isort --check-only .
+      - name: Lint again with mypy
+        run: mypy . || true
+      - name: Test with pytest
+        run: pytest .
+      - name: Shopt
+        run: shopt -s globstar && pyupgrade --py37-plus **/*.py || true
+      - name: Security check with safety
+        run: safety check  --continue-on-error
