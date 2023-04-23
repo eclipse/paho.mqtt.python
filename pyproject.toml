@@ -54,6 +54,7 @@ deploy = [
     "wheel >= 0.40",
 ]
 test = [
+    'bandit >= 1.7',
     'black >= 23.0',
     'mock >= 5.0',
     'ptr >= 22.0',
