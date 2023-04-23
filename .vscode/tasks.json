@@ -5,7 +5,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Update Toolchain",
+            "label": "Install Build & Test Dependencies",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
             "args": [
@@ -19,7 +19,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Update Dependencies",
+            "label": "Install Code Dependencies",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
             "args": [
@@ -70,6 +70,42 @@
             "problemMatcher": []
         },
         {
+            "label": "Bandit",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "bandit",
+                "-c",
+                "pyproject.toml",
+                "-r",
+                "."
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "iSort",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "isort",
+                "."
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Codespell",
+            "type": "process",
+            "command": "codespell",
+            "args": [
+                "--toml",
+                "pyproject.toml",
+                "src"
+            ],
+            "problemMatcher": []
+        },
+        {
             "label": "Pylint",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
@@ -99,7 +135,7 @@
             "args": [
                 "-m",
                 "pylama",
-                "src"
+                "src",
             ],
             "problemMatcher": []
         },
@@ -140,9 +176,11 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Clean",
-                "Update Toolchain",
-                "Update Dependencies",
+                "Install Build & Test Dependencies",
+                "Install Code Dependencies",
+                "iSort",
                 "Pylint",
+                "Bandit",
                 //"Test",
                 "Build",
             ],

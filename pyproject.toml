@@ -59,15 +59,13 @@ test = [
 ]
 
 [tool.codespell]
-skip = ""
-ignore-words-list = ""
 count = ''
 quiet-level = 3
 
 [tool.isort]
+py_version=37
 profile = "black"
 src_paths = ["src"]
-check-only = true
 
 [tool.black]
 line-length = 167
@@ -79,6 +77,19 @@ skips = ["B101","B105","B106","B110","B303","B324","B404","B603"]
 
 [tool.mypy]
 ignore-missing-imports = true
+
+[tool.pylama]
+format = "pylint"
+skip = "*/.tox/*,*/.env/*"
+linters = "pylint,mccabe"
+ignore = "C0103"
+
+[tool.pylama.linter.pyflakes]
+builtins = "_"
+
+[tool.pylama.linter.pylint]
+max_line_length = 167
+disable = "R"
 
 [tool.pylint]
 exit-zero = true
