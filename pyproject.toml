@@ -58,8 +58,30 @@ test = [
     'tox>=4.4',
 ]
 
+[tool.codespell]
+skip = ""
+ignore-words-list = ""
+count = ''
+quiet-level = 3
+
+[tool.isort]
+profile = "black"
+src_paths = ["src"]
+check-only = true
+
+[tool.black]
+line-length = 167
+target-version = ['py37']
+
+[tool.bandit]
+exclude_dirs = ["docs", "examples", "tests"]
+skips = ["B101","B105","B106","B110","B303","B324","B404","B603"]
+
+[tool.mypy]
+ignore-missing-imports = true
+
 [tool.pylint]
-exit-zero = ""
+exit-zero = true
 disable = """
     raw-checker-failed,
     bad-inline-option,
