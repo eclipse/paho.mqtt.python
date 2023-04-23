@@ -47,15 +47,21 @@ changelog = "https://github.com/eclipse/paho.mqtt.python/blob/master/ChangeLog.t
 proxy = [
     "PySocks>=1.7",
 ]
+build = [
+    "build >= 0.10",
+    "pip >= 23.0",
+    "setuptools >= 64.0",
+    "wheel >= 0.40",
+]
 test = [
-    'mock>=5.0',
-    'ptr>=22.0',
-    'pylama>=8.4',
-    'pytest>=7.0',
-    'pytest-runner>=6.0',
-    'setuptools>=64.0',
-    'six>=1.16',
-    'tox>=4.4',
+    'black >= 23.0',
+    'mock >= 5.0',
+    'ptr >= 22.0',
+    'pylama >= 8.4',
+    'pytest >= 7.0',
+    'pytest-runner >= 6.0',
+    'six >= 1.16',
+    'tox >= 4.4',
 ]
 
 [tool.codespell]

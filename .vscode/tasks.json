@@ -5,7 +5,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Install Build & Test Dependencies",
+            "label": "Install Build Dependencies",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
             "args": [
@@ -13,8 +13,20 @@
                 "pip",
                 "install",
                 "--upgrade",
-                "-r",
-                "${workspaceFolder}/requirements_build.txt",
+                ".[build]"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Test Dependencies",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                ".[test]"
             ],
             "problemMatcher": []
         },
@@ -27,12 +39,8 @@
                 "pip",
                 "install",
                 "--upgrade",
-                "-r",
-                "${workspaceFolder}/requirements.txt",
+                "."
             ],
-            "options": {
-                "cwd": "src"
-            },
             "problemMatcher": []
         },
         {
@@ -176,7 +184,8 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Clean",
-                "Install Build & Test Dependencies",
+                "Install Build Dependencies",
+                "Install Test Dependencies",
                 "Install Code Dependencies",
                 "iSort",
                 "Pylint",

@@ -6,15 +6,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-      - run: pip install -r requirements_build.txt
-      - run: bandit -c pyproject.toml -r .
+      - run: pip install .[build]
+      - run: pip install .[text]
+      - run: bandit --configfile pyproject.toml -r .
       - run: black --check . || true
       - run: codespell || true
       # flake8 doesn't currently support pyproject.toml config - there is a wrapper pflake8 which does
       - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
       - run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
-      - run: isort -c .
-      - run: pip install -editable .  # will require build backend support for PEP660 (setuptools >= 64)
+      - run: isort --check-only .
+      - run: pip install --editable .  # will require build backend support for PEP660 (setuptools >= 64)
       - run: mypy . || true
       - run: pytest .
       # - run: pytest --ignore=tests/test_client.py --ignore=tests/test_websocket_integration.py
