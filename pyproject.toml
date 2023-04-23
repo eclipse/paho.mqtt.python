@@ -76,7 +76,7 @@ exclude_dirs = ["docs", "examples", "tests"]
 skips = ["B101","B105","B106","B110","B303","B324","B404","B603"]
 
 [tool.mypy]
-ignore-missing-imports = true
+ignore-missing-imports = ""
 
 [tool.pylama]
 format = "pylint"
@@ -90,9 +90,10 @@ builtins = "_"
 [tool.pylama.linter.pylint]
 max_line_length = 167
 disable = "R"
+exit-zero = ""
 
 [tool.pylint]
-exit-zero = true
+exit-zero = ""
 disable = """
     raw-checker-failed,
     bad-inline-option,
