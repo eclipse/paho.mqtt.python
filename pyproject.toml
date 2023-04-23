@@ -101,6 +101,7 @@ exit-zero = ""
 
 [tool.pylint]
 exit-zero = ""
+py-version = "3.7"
 disable = """
     raw-checker-failed,
     bad-inline-option,
