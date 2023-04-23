@@ -38,4 +38,4 @@ jobs:
       - name: Shopt
         run: shopt -s globstar && pyupgrade --py37-plus **/*.py || true
       - name: Security check with safety
-        run: safety check  --continue-on-error
+        run: safety check
