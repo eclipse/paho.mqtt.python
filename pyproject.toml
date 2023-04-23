@@ -47,7 +47,7 @@ changelog = "https://github.com/eclipse/paho.mqtt.python/blob/master/ChangeLog.t
 proxy = [
     "PySocks>=1.7",
 ]
-build = [
+deploy = [
     "build >= 0.10",
     "pip >= 23.0",
     "setuptools >= 64.0",

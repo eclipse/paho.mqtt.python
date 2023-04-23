@@ -5,7 +5,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Install Build Dependencies",
+            "label": "Install Deploy Dependencies",
             "type": "process",
             "command": "${config:python.defaultInterpreterPath}",
             "args": [
@@ -13,7 +13,7 @@
                 "pip",
                 "install",
                 "--upgrade",
-                ".[build]"
+                ".[deploy]"
             ],
             "problemMatcher": []
         },
@@ -184,7 +184,7 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Clean",
-                "Install Build Dependencies",
+                "Install Deploy Dependencies",
                 "Install Test Dependencies",
                 "Install Code Dependencies",
                 "iSort",

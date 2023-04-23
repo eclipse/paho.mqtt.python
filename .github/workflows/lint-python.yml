@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-      - run: pip install .[build]
+      - run: pip install .[deploy]
       - run: pip install .[test]
       - run: bandit --configfile pyproject.toml -r .
       - run: black --check . || true
