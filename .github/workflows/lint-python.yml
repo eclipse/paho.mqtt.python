@@ -14,7 +14,7 @@ jobs:
       - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
       - run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
       - run: isort -c .
-      - run: pip install -e . # editable mode needs build backend support for PEP660 (setuptools >= 64)
+      - run: pip install -editable .  # will require build backend support for PEP660 (setuptools >= 64)
       - run: mypy . || true
       - run: pytest .
       # - run: pytest --ignore=tests/test_client.py --ignore=tests/test_websocket_integration.py
