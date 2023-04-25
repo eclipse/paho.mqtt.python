@@ -1,0 +1,10 @@
+{
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.formatting.provider": "black",
+    "python.defaultInterpreterPath": "python3",
+    "editor.formatOnSave": false,
+    "modulename": "paho_mqtt",
+    "distname": "${workspaceFolderBasename}",
+    "moduleversion": "1.6.1"
+}

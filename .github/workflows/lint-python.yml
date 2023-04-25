@@ -1,21 +1,41 @@
 name: lint_python
 on: [pull_request, push]
 jobs:
-  lint_python:
+  lint-python:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-      - run: pip install bandit black codespell flake8 isort mypy pytest pyupgrade safety
-      - run: bandit --recursive --skip B101,B105,B106,B110,B303,B404,B603 .
-      - run: black --check . || true
-      - run: codespell || true  # --ignore-words-list="" --skip=""
-      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-      - run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
-      - run: isort --check-only --profile black .
-      - run: pip install -e .
-      - run: mypy --ignore-missing-imports . || true
-      - run: mv setup.cfg setup.cfg.disabled
-      - run: pytest .
-      - run: shopt -s globstar && pyupgrade --py36-plus **/*.py || true
-      - run: safety check
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install deploy dependencies
+        run: pip install .[deploy]
+      - name: Install test dependencies
+        run: pip install .[test]
+      - name: Install code dependencies
+        run: pip install .
+      - name: Security vulnerability analysis with bandit
+        run: bandit -c pyproject.toml -r .
+      - name: Format with black
+        run: black --check . || true
+      - name: Check spelling
+        run: codespell || true
+      - name: Lint with flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Lint again with flake8
+        run: flake8 . --count --exit-zero --max-complexity=29 --max-line-length=167 --show-source --statistics
+      - name: Sort imports
+        run: isort --check-only .
+      - name: Lint again with mypy
+        run: mypy . || true
+      - name: Test with pytest
+        run: pytest .
+      - name: Shopt
+        run: shopt -s globstar && pyupgrade --py37-plus **/*.py || true
+      - name: Security check with safety
+        run: safety check

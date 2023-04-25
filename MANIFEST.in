@@ -1,10 +1,12 @@
-include edl-v10 epl-v10
+include edl-v10
+include epl-v20
 include README.rst
 include CONTRIBUTING.md
-include setup.py
 include notice.html
 include LICENSE.txt
 include about.html
 
 recursive-include src *.py
 recursive-include examples *.py
+global-exclude __pycache__
+global-exclude *.pyc

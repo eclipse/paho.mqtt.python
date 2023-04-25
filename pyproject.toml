@@ -1,0 +1,126 @@
+[build-system]
+requires = ["setuptools>=66.0", "wheel"]
+build-backend = "setuptools.build_meta:__legacy__"
+
+[project]
+name = "paho-mqtt"
+authors = [
+    {name = "Roger Light", email = "roger@atchoo.org"},
+]
+maintainers = [
+  {name = "Roger Light", email = "roger@atchoo.org"}
+]
+description = "MQTT version 5.0/3.1.1 client class"
+version = "1.6.1"
+readme = "README.rst"
+license = {file = "LICENSE.txt"}
+requires-python = ">=3.7"
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: POSIX',
+    'Natural Language :: English',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Topic :: Communications',
+    'Topic :: Internet',
+]
+
+dependencies = [
+]
+
+[project.urls]
+homepage = "http://eclipse.org/paho"
+documentation = "https://www.eclipse.org/paho/index.php?page=documentation.php"
+repository = "https://github.com/eclipse/paho.mqtt.python"
+changelog = "https://github.com/eclipse/paho.mqtt.python/blob/master/ChangeLog.txt"
+
+[project.optional-dependencies]
+proxy = [
+    "PySocks>=1.7",
+]
+deploy = [
+    "build >= 0.10",
+    "pip >= 23.0",
+    "setuptools >= 66.0",
+    "wheel >= 0.40",
+]
+test = [
+    'bandit',
+    'black',
+    'codespell',
+    'flake8',
+    'isort',
+    'mock',
+    'mypy',
+    'ptr',
+    'pylama',
+    'pytest',
+    'safety',
+    'six',
+    'tox',
+]
+
+[tool.codespell]
+count = ''
+quiet-level = 3
+
+[tool.isort]
+py_version=37
+profile = "black"
+src_paths = ["src"]
+
+[tool.black]
+line-length = 167
+target-version = ['py37']
+
+[tool.bandit]
+exclude_dirs = ["docs", "examples", "tests"]
+skips = ["B101","B105","B106","B110","B303","B324","B404","B603"]
+
+[tool.mypy]
+ignore-missing-imports = ""
+
+[tool.pylama]
+format = "pylint"
+skip = "*/.tox/*,*/.env/*"
+linters = "pylint,mccabe"
+ignore = "C0103"
+
+[tool.pylama.linter.pyflakes]
+builtins = "_"
+
+[tool.pylama.linter.pylint]
+max_line_length = 167
+disable = "R"
+exit-zero = ""
+
+[tool.pylint]
+exit-zero = ""
+py-version = "3.7"
+disable = """
+    raw-checker-failed,
+    bad-inline-option,
+    locally-disabled,
+    file-ignored,
+    suppressed-message,
+    useless-suppression,
+    deprecated-pragma,
+    use-symbolic-message-instead,
+"""
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+pythonpath = ["src"]
+testpaths = [
+    "test",
+    "tests",
+]
