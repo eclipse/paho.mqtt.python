@@ -119,12 +119,8 @@ disable = """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-report term-missing -p no:cacheprovider"
 pythonpath = ["src"]
 testpaths = [
     "test",
     "tests",
 ]
-
-[tool.coverage.run]
-source = ["src"]
