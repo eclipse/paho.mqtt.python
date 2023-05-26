@@ -626,6 +626,7 @@ class Client(object):
         self._on_socket_close = None
         self._on_socket_register_write = None
         self._on_socket_unregister_write = None
+        self._on_pre_connect = None
         self._websocket_path = "/mqtt"
         self._websocket_extra_headers = None
         # for clean_start == MQTT_CLEAN_START_FIRST_ONLY
