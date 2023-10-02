@@ -1,0 +1,21 @@
+name: paho.mqtt.python
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build-and-test:
+    steps:
+    - name: Checkout paho.mqtt.python
+      uses: actions/checkout@v3
+    - name: Build
+      run: |
+        cd paho.mqtt.python && python setup.py install
+    - name: Store artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: paho.mqtt-python-${{ github.sha }}
+        path: ./artifacts
