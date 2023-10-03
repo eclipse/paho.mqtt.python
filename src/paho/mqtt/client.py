@@ -3343,22 +3343,32 @@ class Client(object):
             else:
                 return self._send_puback(message.mid)
         elif message.qos == 2:
-            rc = self._send_pubrec(message.mid)
+
+            if self._manual_ack:
+                rc = MQTT_ERR_SUCCESS
+            else:
+                rc = self._send_pubrec(message.mid)
+
             message.state = mqtt_ms_wait_for_pubrel
             with self._in_message_mutex:
                 self._in_messages[message.mid] = message
+
             return rc
         else:
             return MQTT_ERR_PROTOCOL
 
-    def ack( self, mid ):
+    def ack( self, mid, qos ):
         """
            send an acknowledgement for a given message id. (stored in message.mid )
            only useful in QoS=1 and auto_ack=False
         """
-        if not self._manual_ack :
-            return MQTT_ERR_SUCCESS
-        return self._send_puback(mid)
+        if self._manual_ack :
+            if qos == 1:
+                return self._send_puback(mid)
+            elif qos == 2:
+                return self._send_pubrec(mid)
+
+        return MQTT_ERR_SUCCESS
 
     def manual_ack( self, on=False ):
         """
