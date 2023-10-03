@@ -201,7 +201,7 @@ manual_ack
     defaults to False, allowing the library to acknowledge messages before
     passing them to on_message callback.  When set to True, every message
     must be manually acknowledged by application call to 
-    client.ack( *message.mid* )
+    client.ack( *message.mid* , *message.qos* )
 
 
 Constructor Example
