@@ -3344,10 +3344,7 @@ class Client(object):
                 return self._send_puback(message.mid)
         elif message.qos == 2:
 
-            if self._manual_ack:
-                rc = MQTT_ERR_SUCCESS
-            else:
-                rc = self._send_pubrec(message.mid)
+            rc = self._send_pubrec(message.mid)
 
             message.state = mqtt_ms_wait_for_pubrel
             with self._in_message_mutex:
@@ -3366,7 +3363,7 @@ class Client(object):
             if qos == 1:
                 return self._send_puback(mid)
             elif qos == 2:
-                return self._send_pubrec(mid)
+                return self._send_pubcomp(mid)
 
         return MQTT_ERR_SUCCESS
 
@@ -3408,7 +3405,10 @@ class Client(object):
         # is possible that we must known about this message.
         # Choose to acknwoledge this messsage (and thus losing a message) but
         # avoid hanging. See #284.
-        return self._send_pubcomp(mid)
+        if self._manual_ack:
+            return MQTT_ERR_SUCCESS
+        else:
+            return self._send_pubcomp(mid)
 
     def _update_inflight(self):
         # Dont lock message_mutex here
