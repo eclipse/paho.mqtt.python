@@ -913,13 +913,13 @@ class Client(object):
                            bind_address, bind_port, clean_start, properties)
         return self.reconnect()
 
-    def connect_srv(self, domain=None, keepalive=60, bind_address="",
+    def connect_srv(self, domain=None, keepalive=60, bind_address="", bind_port=0,
                     clean_start=MQTT_CLEAN_START_FIRST_ONLY, properties=None):
         """Connect to a remote broker.
 
         domain is the DNS domain to search for SRV records; if None,
         try to determine local domain name.
-        keepalive, bind_address, clean_start and properties are as for connect()
+        keepalive, bind_address, bind_port, clean_start and properties are as for connect()
         """
 
         if HAVE_DNS is False:
@@ -948,7 +948,7 @@ class Client(object):
             host, port, prio, weight = answer
 
             try:
-                return self.connect(host, port, keepalive, bind_address, clean_start, properties)
+                return self.connect(host, port, keepalive, bind_address, bind_port, clean_start, properties)
             except Exception:
                 pass
 
