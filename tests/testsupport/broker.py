@@ -1,9 +1,9 @@
 import contextlib
 import socket
+import socketserver
 import threading
 
 import pytest
-from six.moves import socketserver
 
 
 class FakeBroker:

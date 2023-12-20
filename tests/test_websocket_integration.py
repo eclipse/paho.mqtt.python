@@ -1,10 +1,10 @@
 import base64
 import hashlib
 import re
+import socketserver
 from collections import OrderedDict
 
 import pytest
-from six.moves import socketserver
 from testsupport.broker import fake_websocket_broker
 
 import paho.mqtt.client as client
