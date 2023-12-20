@@ -1,6 +1,8 @@
-v1.7.0 - 2023-xx-xx
+v2.0.0 - 2023-xx-xx
 ===================
 
+- **BREAKING** Drop support for Python 2.7, Python 3.5 and Python 3.6
+  Minimum tested version is Python 3.7
 - Add on_pre_connect() callback, which is called immediately before a
   connection attempt is made.
 
