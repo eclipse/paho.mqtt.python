@@ -1,0 +1,74 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=61.2",
+]
+
+[project]
+name = "paho-mqtt"
+version = "1.6.1"
+description = "MQTT version 5.0/3.1.1 client class"
+readme = "README.rst"
+keywords = [
+  "paho",
+]
+license = {text = "Eclipse Public License v2.0 / Eclipse Distribution License v1.0"}
+authors = [{name = "Roger Light", email = "roger@atchoo.org"}]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX",
+  "Natural Language :: English",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 2",
+  "Programming Language :: Python :: 2.7",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Communications",
+  "Topic :: Internet",
+]
+dependencies = [
+  "mock==5.0.2",
+  # "pylama==8.4.1",
+  'pytest==4.6.6; python_version < "3.0"',
+  'pytest==7.3.1; python_version >= "3.0"',
+  "tox==4.4.12",
+]
+[project.optional-dependencies]
+proxy = [
+  "PySocks",
+]
+testing = [
+  "pylama",
+  "pytest",
+  "six",
+]
+[project.urls]
+Homepage = "http://eclipse.org/paho"
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+# test-suite = "tests"
+zip-safe = false
+
+[tool.setuptools.packages]
+find = {namespaces = false}
+
+# [tool.pytest.ini_options]
+# addopts = "-r xs"
+# testpaths = ["tests", "src"]
+
+[tool.aliases]
+test = "pytest"
+
+[tool.pylama]
+linters = "pyflakes"
+skip = "tests/*"
