@@ -1,10 +1,7 @@
 import socket
 import sys
 
-if sys.version_info < (3, 0):
-    from mock import Mock
-else:
-    from unittest.mock import Mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -36,10 +33,7 @@ class TestHeaders(object):
         it = iter_response()
 
         def fakerecv(*args):
-            if sys.version_info < (3, 0):
-                return next(it)
-            else:
-                return bytes([next(it)])
+            return bytes([next(it)])
 
         mocksock = Mock(
             spec_set=socket.socket,

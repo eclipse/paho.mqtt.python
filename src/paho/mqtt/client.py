@@ -81,20 +81,9 @@ if platform.system() == 'Windows':
 else:
     EAGAIN = errno.EAGAIN
 
-# Python 2.7 does not have BlockingIOError.  Fall back to IOError
-try:
-    BlockingIOError
-except NameError:
-    BlockingIOError  = IOError
-
 MQTTv31 = 3
 MQTTv311 = 4
 MQTTv5 = 5
-
-if sys.version_info[0] >= 3:
-    # define some alias for python2 compatibility
-    unicode = str
-    basestring = str
 
 # Message types
 CONNECT = 0x10
@@ -556,7 +545,7 @@ class Client(object):
                 self._client_id = b""
         else:
             self._client_id = client_id
-        if isinstance(self._client_id, unicode):
+        if isinstance(self._client_id, str):
             self._client_id = self._client_id.encode('utf-8')
 
         self._username = None
@@ -717,14 +706,8 @@ class Client(object):
         if self._ssl_context is not None:
             raise ValueError('SSL/TLS has already been configured.')
 
-        # Assume that have SSL support, or at least that context input behaves like ssl.SSLContext
-        # in current versions of Python
-
         if context is None:
-            if hasattr(ssl, 'create_default_context'):
-                context = ssl.create_default_context()
-            else:
-                raise ValueError('SSL/TLS context must be specified')
+            context = ssl.create_default_context()
 
         self._ssl = True
         self._ssl_context = context
@@ -981,9 +964,6 @@ class Client(object):
             raise ValueError('Invalid port number.')
         if keepalive < 0:
             raise ValueError('Keepalive must be >=0.')
-        if bind_address != "" and bind_address is not None:
-            if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
-                raise ValueError('bind_address requires Python 2.7 or 3.2.')
         if bind_port < 0:
             raise ValueError('Invalid bind port number.')
 
@@ -1248,7 +1228,7 @@ class Client(object):
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
 
-        if isinstance(payload, unicode):
+        if isinstance(payload, str):
             local_payload = payload.encode('utf-8')
         elif isinstance(payload, (bytes, bytearray)):
             local_payload = payload
@@ -1318,17 +1298,17 @@ class Client(object):
         Must be called before connect() to have any effect.
         Requires a broker that supports MQTT v3.1.
 
-        username: The username to authenticate with. Need have no relationship to the client id. Must be unicode
+        username: The username to authenticate with. Need have no relationship to the client id. Must be str
             [MQTT-3.1.3-11].
             Set to None to reset client back to not using username/password for broker authentication.
-        password: The password to authenticate with. Optional, set to None if not required. If it is unicode, then it
+        password: The password to authenticate with. Optional, set to None if not required. If it is str, then it
             will be encoded as UTF-8.
         """
 
         # [MQTT-3.1.3-11] User name must be UTF-8 encoded string
         self._username = None if username is None else username.encode('utf-8')
         self._password = password
-        if isinstance(self._password, unicode):
+        if isinstance(self._password, str):
             self._password = self._password.encode('utf-8')
 
     def enable_bridge_mode(self):
@@ -1461,7 +1441,7 @@ class Client(object):
             else:
                 topic, qos = topic
 
-        if isinstance(topic, basestring):
+        if isinstance(topic, (bytes, str)):
             if qos < 0 or qos > 2:
                 raise ValueError('Invalid QoS level.')
             if self._protocol == MQTTv5:
@@ -1493,7 +1473,7 @@ class Client(object):
                 for t, q in topic:
                     if q < 0 or q > 2:
                         raise ValueError('Invalid QoS level.')
-                    if t is None or len(t) == 0 or not isinstance(t, basestring):
+                    if t is None or len(t) == 0 or not isinstance(t, (bytes, str)):
                         raise ValueError('Invalid topic.')
                     topic_qos_list.append((t.encode('utf-8'), q))
 
@@ -1529,14 +1509,14 @@ class Client(object):
         topic_list = None
         if topic is None:
             raise ValueError('Invalid topic.')
-        if isinstance(topic, basestring):
+        if isinstance(topic, (bytes, str)):
             if len(topic) == 0:
                 raise ValueError('Invalid topic.')
             topic_list = [topic.encode('utf-8')]
         elif isinstance(topic, list):
             topic_list = []
             for t in topic:
-                if len(t) == 0 or not isinstance(t, basestring):
+                if len(t) == 0 or not isinstance(t, (bytes, str)):
                     raise ValueError('Invalid topic.')
                 topic_list.append(t.encode('utf-8'))
 
@@ -1693,7 +1673,7 @@ class Client(object):
             raise ValueError(
                 "The properties argument must be an instance of the Properties class.")
 
-        if isinstance(payload, unicode):
+        if isinstance(payload, str):
             self._will_payload = payload.encode('utf-8')
         elif isinstance(payload, (bytes, bytearray)):
             self._will_payload = payload
@@ -2662,15 +2642,15 @@ class Client(object):
                 return packet
 
     def _pack_str16(self, packet, data):
-        if isinstance(data, unicode):
+        if isinstance(data, str):
             data = data.encode('utf-8')
         packet.extend(struct.pack("!H", len(data)))
         packet.extend(data)
 
     def _send_publish(self, mid, topic, payload=b'', qos=0, retain=False, dup=False, info=None, properties=None):
         # we assume that topic and payload are already properly encoded
-        assert not isinstance(topic, unicode) and not isinstance(
-            payload, unicode) and payload is not None
+        assert not isinstance(topic, str) and not isinstance(
+            payload, str) and payload is not None
 
         if self._sock is None:
             return MQTT_ERR_NO_CONN
@@ -3283,8 +3263,6 @@ class Client(object):
             props, props_len = properties.unpack(packet)
             reasoncodes = []
             for c in packet[props_len:]:
-                if sys.version_info[0] < 3:
-                    c = ord(c)
                 reasoncodes.append(ReasonCodes(SUBACK >> 4, identifier=c))
         else:
             pack_format = "!" + "B" * len(packet)
@@ -3477,8 +3455,6 @@ class Client(object):
             props, props_len = properties.unpack(packet)
             reasoncodes = []
             for c in packet[props_len:]:
-                if sys.version_info[0] < 3:
-                    c = ord(c)
                 reasoncodes.append(ReasonCodes(UNSUBACK >> 4, identifier=c))
             if len(reasoncodes) == 1:
                 reasoncodes = reasoncodes[0]
@@ -3714,12 +3690,6 @@ class Client(object):
         proxy = self._get_proxy()
         addr = (self._host, self._port)
         source = (self._bind_address, self._bind_port)
-
-
-        if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 2):
-            # Have to short-circuit here because of unsupported source_address
-            # param in earlier Python versions.
-            return socket.create_connection(addr, timeout=self._connect_timeout)
 
         if proxy:
             return socks.create_connection(addr, timeout=self._connect_timeout, source_address=source, **proxy)

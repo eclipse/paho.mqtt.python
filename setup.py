@@ -17,9 +17,6 @@ needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 setup_requirements = ['pytest-runner'] if needs_pytest else []
 extra_requirements = {'proxy': ['PySocks']}
 
-if sys.version_info < (3, 0):
-    test_requirements += ['mock']
-
 setup(
     name='paho-mqtt',
     version=__version__,
