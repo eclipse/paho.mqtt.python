@@ -52,10 +52,8 @@ def readInt32(buf):
 
 def writeUTF(data):
     # data could be a string, or bytes.  If string, encode into bytes with utf-8
-    if sys.version_info[0] < 3:
-        data = bytearray(data, 'utf-8')
-    else:
-        data = data if type(data) == type(b"") else bytes(data, "utf-8")
+    if not isinstance(data, bytes):
+        data = bytes(data, "utf-8")
     return writeInt16(len(data)) + data
 
 
@@ -109,10 +107,7 @@ class VariableByteIntegers:  # Variable Byte Integer
             x //= 128
             if x > 0:
                 digit |= 0x80
-            if sys.version_info[0] >= 3:
-                buffer += bytes([digit])
-            else:
-                buffer += bytes(chr(digit))
+            buffer += bytes([digit])
             if x == 0:
                 break
         return buffer
@@ -345,10 +340,7 @@ class Properties(object):
         buffer = b""
         buffer += VariableByteIntegers.encode(identifier)  # identifier
         if type == self.types.index("Byte"):  # value
-            if sys.version_info[0] < 3:
-                buffer += chr(value)
-            else:
-                buffer += bytes([value])
+            buffer += bytes([value])
         elif type == self.types.index("Two Byte Integer"):
             buffer += writeInt16(value)
         elif type == self.types.index("Four Byte Integer"):
@@ -412,8 +404,6 @@ class Properties(object):
         return rc
 
     def unpack(self, buffer):
-        if sys.version_info[0] < 3:
-            buffer = bytearray(buffer)
         self.clear()
         # deserialize properties into attributes from buffer received from network
         propslen, VBIlen = VariableByteIntegers.decode(buffer)

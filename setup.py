@@ -12,13 +12,10 @@ with open('README.rst', 'rb') as readme_file:
     readme = readme_file.read().decode('utf-8')
 
 requirements = []
-test_requirements = ['pytest', 'pylama', 'six']
+test_requirements = ['pytest', 'pylama']
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 setup_requirements = ['pytest-runner'] if needs_pytest else []
 extra_requirements = {'proxy': ['PySocks']}
-
-if sys.version_info < (3, 0):
-    test_requirements += ['mock']
 
 setup(
     name='paho-mqtt',
@@ -32,6 +29,7 @@ setup(
     package_dir={'': 'src'},
     include_package_data=True,
     install_requires=requirements,
+    python_requires='>=3.7',
     license='Eclipse Public License v2.0 / Eclipse Distribution License v1.0',
     zip_safe=False,
     keywords='paho',
@@ -45,7 +43,6 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',

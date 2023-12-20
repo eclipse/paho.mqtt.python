@@ -16,7 +16,6 @@
 *******************************************************************
 """
 
-import sys
 
 
 class MQTTException(Exception):
@@ -74,11 +73,7 @@ class SubscribeOptions(object):
         retainAsPublished = 1 if self.retainAsPublished else 0
         data = [(self.retainHandling << 4) | (retainAsPublished << 3) |
                 (noLocal << 2) | self.QoS]
-        if sys.version_info[0] >= 3:
-            buffer = bytes(data)
-        else:
-            buffer = bytearray(data)
-        return buffer
+        return bytes(data)
 
     def unpack(self, buffer):
         b0 = buffer[0]
