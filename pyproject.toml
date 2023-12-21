@@ -1,0 +1,31 @@
+[tool.ruff]
+line-length = 167
+
+ignore = [
+    "E402", # TODO: enable
+    "E711", # TODO: enable
+    "E711", # TODO: enable
+    "E712", # TODO: enable
+    "E721", # TODO: enable
+    "S101", # TODO: enable
+    "S110", # TODO: enable
+    "S324", # TODO: enable
+]
+extend-select = [
+    "S", # Bandit
+    "E9",
+    "F63",
+    "F7",
+    "F82",
+    "I",
+]
+
+[tool.ruff.per-file-ignores]
+"{test,tests,examples}/**/*.py" = [
+    "E741",
+    "F401",
+    "F811",
+    "F841",
+    "I",
+    "S",
+]
