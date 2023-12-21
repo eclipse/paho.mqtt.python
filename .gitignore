@@ -67,3 +67,6 @@ docs/_build/
 target/
 
 paho.mqtt.testing
+
+#  VSCode tasks
+.vscode/
