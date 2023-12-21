@@ -5,10 +5,9 @@ PYTHON?=python3
 .PHONY : all clean clean-build clean-pyc clean-test install test upload
 
 all :
-	$(PYTHON) ./setup.py build
 
 install : all
-	$(PYTHON) ./setup.py install --root=${DESTDIR}
+	$(PYTHON) -m pip install -e .
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
@@ -32,8 +31,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 
 test :
-	$(PYTHON) setup.py test
+	$(PYTHON) -m pytest .
 	$(MAKE) -C test test
 
 upload : test
-	$(PYTHON) ./setup.py sdist upload
+	$(PYTHON) -m hatch build
+	$(PYTHON) -m hatch publish
