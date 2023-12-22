@@ -16,7 +16,6 @@
 *******************************************************************
 """
 
-import sys
 
 from .packettypes import PacketTypes
 

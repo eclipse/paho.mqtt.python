@@ -501,7 +501,7 @@ def gen_connack(flags=0, rc=0, proto_ver=4, properties=b"", property_helper=True
 
         packet = struct.pack('!BBBB', 32, 2+len(properties), flags, rc) + properties
     else:
-        packet = struct.pack('!BBBB', 32, 2, flags, rc);
+        packet = struct.pack('!BBBB', 32, 2, flags, rc)
 
     return packet
 

@@ -18,7 +18,6 @@ import hashlib
 import logging
 import string
 import struct
-import sys
 import threading
 import time
 import uuid
@@ -3550,7 +3549,6 @@ class Client(object):
         return MQTT_ERR_SUCCESS
 
     def _handle_on_message(self, message):
-        matched = False
 
         try:
             topic = message.topic
