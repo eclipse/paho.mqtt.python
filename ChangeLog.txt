@@ -17,6 +17,8 @@ v1.6.0 - 2021-10-20
 ===================
 
 - Changed default TLS version to 1.2 instead of 1.0.
+- MQTT connection attempts now use a timeout of 5 seconds rather than the
+  configured keepalive interval
 - Fix incoming MQTT v5 messages with overall property length > 127 bytes being
   incorrectly decoded. Closes #541.
 - MQTTMessageInfo.wait_for_publish() and MQTTMessageInfo.is_published() will
