@@ -770,7 +770,10 @@ class Client(object):
         if tls_version is None:
             tls_version = ssl.PROTOCOL_TLSv1_2
             # If the python version supports it, use highest TLS version automatically
-            if hasattr(ssl, "PROTOCOL_TLS"):
+            if hasattr(ssl, "PROTOCOL_TLS_CLIENT"):
+                # This also enables CERT_REQUIRED and check_hostname by default.
+                tls_version = ssl.PROTOCOL_TLS_CLIENT
+            elif hasattr(ssl, "PROTOCOL_TLS"):
                 tls_version = ssl.PROTOCOL_TLS
         context = ssl.SSLContext(tls_version)
 

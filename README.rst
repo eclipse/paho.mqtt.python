@@ -286,7 +286,7 @@ tls_set()
 .. code:: python
 
     tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED,
-        tls_version=ssl.PROTOCOL_TLS, ciphers=None)
+        tls_version=ssl.PROTOCOL_TLS_CLIENT, ciphers=None)
 
 Configure network encryption and authentication options. Enables SSL/TLS support.
 
