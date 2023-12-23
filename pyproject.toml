@@ -85,7 +85,6 @@ extend-select = [
     "W",
 ]
 ignore = [
-    "E711", # TODO: enable
     "E712", # TODO: enable
     "E721", # TODO: enable
     "S101", # TODO: enable
@@ -98,6 +97,7 @@ line-length = 167
 "{test,tests,examples}/**/*.py" = [
     "B",
     "E402",
+    "E711",
     "E741",
     "F401",
     "F811",

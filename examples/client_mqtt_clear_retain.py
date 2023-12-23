@@ -96,7 +96,7 @@ def main(argv):
         elif opt in ("-v", "--verbose"):
             verbose = True
 
-    if topic == None:
+    if not topic:
         print("You must provide a topic to clear.\n")
         print_usage()
         sys.exit(2)

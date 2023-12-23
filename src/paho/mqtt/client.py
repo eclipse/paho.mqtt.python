@@ -897,7 +897,7 @@ class Client:
         else:
             if clean_start != MQTT_CLEAN_START_FIRST_ONLY:
                 raise ValueError("Clean start only applies to MQTT V5")
-            if properties != None:
+            if properties:
                 raise ValueError("Properties only apply to MQTT V5")
 
         self.connect_async(host, port, keepalive,
@@ -1680,7 +1680,7 @@ class Client:
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
 
-        if properties != None and not isinstance(properties, Properties):
+        if properties and not isinstance(properties, Properties):
             raise ValueError(
                 "The properties argument must be an instance of the Properties class.")
 
@@ -2882,9 +2882,9 @@ class Client:
         self._pack_remaining_length(packet, remaining_length)
 
         if self._protocol == MQTTv5:
-            if reasoncode != None:
+            if reasoncode is not None:
                 packet += reasoncode.pack()
-                if properties != None:
+                if properties is not None:
                     packet += packed_props
 
         return self._packet_queue(command, packet, 0, 0)
