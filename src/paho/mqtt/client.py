@@ -788,6 +788,9 @@ class Client(object):
         context = ssl.SSLContext(tls_version)
 
         # Configure context
+        if ciphers is not None:
+            context.set_ciphers(ciphers)
+
         if certfile is not None:
             context.load_cert_chain(certfile, keyfile, keyfile_password)
 
@@ -800,9 +803,6 @@ class Client(object):
             context.load_verify_locations(ca_certs)
         else:
             context.load_default_certs()
-
-        if ciphers is not None:
-            context.set_ciphers(ciphers)
 
         self.tls_set_context(context)
 
