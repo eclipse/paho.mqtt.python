@@ -85,7 +85,6 @@ extend-select = [
     "W",
 ]
 ignore = [
-    "S110", # TODO: enable
     "S324", # TODO: enable
 ]
 line-length = 167

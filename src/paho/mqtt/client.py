@@ -941,7 +941,7 @@ class Client:
 
             try:
                 return self.connect(host, port, keepalive, bind_address, clean_start, properties)
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         raise ValueError("No SRV hosts responded")
@@ -2559,7 +2559,7 @@ class Client:
             buf = fmt % args
             try:
                 self.on_log(self, self._userdata, level, buf)
-            except Exception:
+            except Exception:  # noqa: S110
                 # Can't _easy_log this, as we'll recurse until we break
                 pass  # self._logger will pick this up, so we're fine
         if self._logger is not None:
