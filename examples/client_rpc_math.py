@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2020 Frank Pagliughi <fpagliughi@mindspring.com>
-# All rights reserved. 
-# 
-# This program and the accompanying materials are made available 
+# All rights reserved.
+#
+# This program and the accompanying materials are made available
 # under the terms of the Eclipse Distribution License v1.0
 # which accompanies this distribution.
 #
@@ -96,7 +96,7 @@ for s in sys.argv[2:]:
     args.append(float(s))
 
 # Send the request
-topic = "requests/math/" + func 
+topic = "requests/math/" + func
 payload = json.dumps(args)
 mqttc.publish(topic, payload, qos=1, properties=props)
 

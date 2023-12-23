@@ -1659,7 +1659,7 @@ class Client(object):
     def user_data_set(self, userdata):
         """Set the user data variable passed to callbacks. May be any data type."""
         self._userdata = userdata
-        
+
     def user_data_get(self):
         """Get the user data variable passed to callbacks. May be any data type."""
         return self._userdata
@@ -3401,7 +3401,7 @@ class Client(object):
     def manual_ack_set(self, on):
         """
            The paho library normally acknowledges messages as soon as they are delivered to the caller.
-           If manual_ack is turned on, then the caller MUST manually acknowledge every message once 
+           If manual_ack is turned on, then the caller MUST manually acknowledge every message once
            application processing is complete.
         """
         self._manual_ack = on
