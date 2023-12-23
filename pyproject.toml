@@ -9,7 +9,7 @@ description = "MQTT version 5.0/3.1.1 client class"
 readme = "README.rst"
 # see https://lists.spdx.org/g/Spdx-legal/topic/request_for_adding_eclipse/67981884
 # for why Eclipse Distribution License v1.0 is listed as BSD-3-Clause
-license = "EPL-2.0 OR BSD-3-Clause"
+license = { text = "EPL-2.0 OR BSD-3-Clause" }
 requires-python = ">=3.7"
 authors = [
     { name = "Roger Light", email = "roger@atchoo.org" },
