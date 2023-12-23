@@ -198,7 +198,7 @@ transport
     "tcp" to use raw TCP.
 
 manual_ack
-    defaults to False, allowing the library to acknowledge messages before
+    defaults to False, allowing the library to acknowledge messages automatically after on_message callback return
     passing them to on_message callback.  When set to True, every message
     must be manually acknowledged by application call to 
     client.ack( *message.mid* , *message.qos* )
