@@ -3367,7 +3367,7 @@ class Client(object):
 
         return MQTT_ERR_SUCCESS
 
-    def manual_ack( self, on=False ):
+    def manual_ack_set(self, on):
         """
            The paho library normally acknowledges messages as soon as they are delivered to the caller.
            If manual_ack is turned on, then the caller MUST manually acknowledge every message once 
