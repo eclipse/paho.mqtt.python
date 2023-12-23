@@ -28,7 +28,7 @@ final_mid = 0
 
 
 def on_connect(mqttc, userdata, flags, rc):
-    if userdata == True:
+    if userdata:
         print("rc: " + str(rc))
 
 
@@ -38,7 +38,7 @@ def on_message(mqttc, userdata, msg):
         pass
         # sys.exit()
     else:
-        if userdata == True:
+        if userdata:
             print("Clearing topic " + msg.topic)
         (rc, final_mid) = mqttc.publish(msg.topic, None, 1, True)
 

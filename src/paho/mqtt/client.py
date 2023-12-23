@@ -664,7 +664,7 @@ class Client:
             sock.close()
 
     def _reset_sockets(self, sockpair_only=False):
-        if sockpair_only == False:
+        if not sockpair_only:
             self._sock_close()
 
         if self._sockpairR:
@@ -2762,7 +2762,7 @@ class Client:
 
         connect_flags = 0
         if self._protocol == MQTTv5:
-            if self._clean_start == True:
+            if self._clean_start is True:
                 connect_flags |= 0x02
             elif self._clean_start == MQTT_CLEAN_START_FIRST_ONLY and self._mqttv5_first_connect:
                 connect_flags |= 0x02
