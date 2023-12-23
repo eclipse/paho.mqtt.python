@@ -99,7 +99,8 @@ class VariableByteIntegers:  # Variable Byte Integer
           Convert an integer 0 <= x <= 268435455 into multi-byte format.
           Returns the buffer convered from the integer.
         """
-        assert 0 <= x <= 268435455
+        if not 0 <= x <= 268435455:
+            raise ValueError(f"Value {x!r} must be in range 0-268435455")
         buffer = b''
         while 1:
             digit = x % 128

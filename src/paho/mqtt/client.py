@@ -224,7 +224,8 @@ def connack_string(connack_code):
 
 def base62(num, base=string.digits + string.ascii_letters, padding=1):
     """Convert a number to base-62 representation."""
-    assert num >= 0
+    if num < 0:
+        raise ValueError("Number must be positive or zero")
     digits = []
     while num:
         num, rest = divmod(num, 62)
@@ -2664,8 +2665,10 @@ class Client:
 
     def _send_publish(self, mid, topic, payload=b'', qos=0, retain=False, dup=False, info=None, properties=None):
         # we assume that topic and payload are already properly encoded
-        assert not isinstance(topic, str) and not isinstance(
-            payload, str) and payload is not None
+        if not isinstance(topic, bytes):
+            raise TypeError('topic must be bytes, not str')
+        if payload and not isinstance(payload, bytes):
+            raise TypeError('payload must be bytes if set')
 
         if self._sock is None:
             return MQTT_ERR_NO_CONN
