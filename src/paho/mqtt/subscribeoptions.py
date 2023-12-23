@@ -22,7 +22,7 @@ class MQTTException(Exception):
     pass
 
 
-class SubscribeOptions(object):
+class SubscribeOptions:
     """The MQTT v5.0 subscribe options class.
 
     The options are:

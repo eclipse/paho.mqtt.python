@@ -282,7 +282,7 @@ def _socketpair_compat():
     return (sock1, sock2)
 
 
-class MQTTMessageInfo(object):
+class MQTTMessageInfo:
     """This is a class returned from Client.publish() and can be used to find
     out the mid of the message that was published, and to determine whether the
     message has been published, and/or wait until it is published.
@@ -372,7 +372,7 @@ class MQTTMessageInfo(object):
             return self._published
 
 
-class MQTTMessage(object):
+class MQTTMessage:
     """ This is a class that describes an incoming or outgoing message. It is
     passed to the on_message callback as the message parameter.
 
@@ -418,7 +418,7 @@ class MQTTMessage(object):
         self._topic = value
 
 
-class Client(object):
+class Client:
     """MQTT version 3.1/3.1.1/5.0 client class.
 
     This is the main class for use communicating with an MQTT broker.
@@ -3752,7 +3752,7 @@ class Client(object):
             return socket.create_connection(addr, timeout=self._connect_timeout, source_address=source)
 
 
-class WebsocketWrapper(object):
+class WebsocketWrapper:
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1
     OPCODE_BINARY = 0x2

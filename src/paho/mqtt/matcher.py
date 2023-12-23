@@ -1,4 +1,4 @@
-class MQTTMatcher(object):
+class MQTTMatcher:
     """Intended to manage topic filters including wildcards.
 
     Internally, MQTTMatcher use a prefix tree (trie) to store
@@ -6,7 +6,7 @@ class MQTTMatcher(object):
     method to iterate efficiently over all filters that match
     some topic name."""
 
-    class Node(object):
+    class Node:
         __slots__ = '_children', '_content'
 
         def __init__(self):

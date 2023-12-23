@@ -133,7 +133,7 @@ class VariableByteIntegers:  # Variable Byte Integer
         return (value, bytes)
 
 
-class Properties(object):
+class Properties:
     """MQTT v5.0 properties class.
 
     See Properties.names for a list of accepted property names along with their numeric values.
