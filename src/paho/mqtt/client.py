@@ -1779,7 +1779,11 @@ class Client(object):
                     run = False
 
             def should_exit():
-                return self._state == mqtt_cs_disconnecting or run is False or self._thread_terminate is True
+                return (
+                    self._state == mqtt_cs_disconnecting or
+                    run is False or  # noqa: B023 (uses the run variable from the outer scope on purpose)
+                    self._thread_terminate is True
+                )
 
             if should_exit() or not self._reconnect_on_failure:
                 run = False
