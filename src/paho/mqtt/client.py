@@ -3836,7 +3836,8 @@ class WebsocketWrapper:
                         server_hash = server_hash.strip().encode('utf-8')
 
                         client_hash = sec_websocket_key.decode('utf-8') + GUID
-                        client_hash = hashlib.sha1(client_hash.encode('utf-8'))
+                        # Use of SHA-1 is OK here; it's according to the Websocket spec.
+                        client_hash = hashlib.sha1(client_hash.encode('utf-8'))  # noqa: S324
                         client_hash = base64.b64encode(client_hash.digest())
 
                         if server_hash != client_hash:

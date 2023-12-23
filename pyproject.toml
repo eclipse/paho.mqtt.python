@@ -84,9 +84,7 @@ extend-select = [
     "UP",
     "W",
 ]
-ignore = [
-    "S324", # TODO: enable
-]
+ignore = []
 line-length = 167
 
 [tool.ruff.per-file-ignores]
