@@ -264,7 +264,7 @@ class Properties:
                 raise MQTTException(f"Property {name} does not apply to packet type {PacketTypes.Names[self.packetType]}")
 
             # Check for forbidden values
-            if type(value) != type([]):
+            if not isinstance(value, list):
                 if name in ["ReceiveMaximum", "TopicAlias"] \
                         and (value < 1 or value > 65535):
 
@@ -287,7 +287,7 @@ class Properties:
                         "%s property value must be 0 or 1" % (name))
 
             if self.allowsMultiple(name):
-                if type(value) != type([]):
+                if not isinstance(value, list):
                     value = [value]
                 if hasattr(self, name):
                     value = object.__getattribute__(self, name) + value

@@ -85,7 +85,6 @@ extend-select = [
     "W",
 ]
 ignore = [
-    "E721", # TODO: enable
     "S101", # TODO: enable
     "S110", # TODO: enable
     "S324", # TODO: enable
