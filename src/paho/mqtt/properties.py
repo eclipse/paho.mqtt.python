@@ -261,8 +261,7 @@ class Properties:
                     "Property name must be one of "+str(self.names.keys()))
             # check that this attribute applies to the packet type
             if self.packetType not in self.properties[self.getIdentFromName(name)][1]:
-                raise MQTTException("Property %s does not apply to packet type %s"
-                                    % (name, PacketTypes.Names[self.packetType]))
+                raise MQTTException(f"Property {name} does not apply to packet type {PacketTypes.Names[self.packetType]}")
 
             # Check for forbidden values
             if type(value) != type([]):

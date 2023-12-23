@@ -81,6 +81,7 @@ extend-select = [
     "F82",
     "I",
     "S", # Bandit
+    "UP",
     "W",
 ]
 ignore = [
@@ -103,4 +104,5 @@ line-length = 167
     "F841",
     "I",
     "S",
+    "UP",
 ]

@@ -3790,10 +3790,10 @@ class WebsocketWrapper:
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
         websocket_headers = {
-            "Host": "{self._host:s}:{self._port:d}".format(self=self),
+            "Host": f"{self._host}:{self._port}",
             "Upgrade": "websocket",
             "Connection": "Upgrade",
-            "Origin": "https://{self._host:s}:{self._port:d}".format(self=self),
+            "Origin": f"https://{self._host}:{self._port}",
             "Sec-WebSocket-Key": sec_websocket_key.decode("utf8"),
             "Sec-Websocket-Version": "13",
             "Sec-Websocket-Protocol": "mqtt",
@@ -3807,9 +3807,8 @@ class WebsocketWrapper:
             websocket_headers = extra_headers(websocket_headers)
 
         header = "\r\n".join([
-            "GET {self._path} HTTP/1.1".format(self=self),
-            "\r\n".join("{}: {}".format(i, j)
-                        for i, j in websocket_headers.items()),
+            f"GET {self._path} HTTP/1.1",
+            "\r\n".join(f"{i}: {j}" for i, j in websocket_headers.items()),
             "\r\n",
         ]).encode("utf8")
 

@@ -18,7 +18,6 @@ to topics and retrieving messages. The two functions are simple(), which
 returns one or messages matching a set of topics, and callback() which allows
 you to pass a callback for processing of messages.
 """
-from __future__ import absolute_import
 
 from .. import mqtt
 from . import client as paho
