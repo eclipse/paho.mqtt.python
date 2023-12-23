@@ -3354,7 +3354,7 @@ class Client(object):
         else:
             return MQTT_ERR_PROTOCOL
 
-    def ack( self, mid, qos ):
+    def ack(self, mid: int, qos: int) -> int:
         """
            send an acknowledgement for a given message id. (stored in message.mid )
            only useful in QoS=1 and auto_ack=False
