@@ -22,7 +22,7 @@ class MQTTException(Exception):
     pass
 
 
-class SubscribeOptions(object):
+class SubscribeOptions:
     """The MQTT v5.0 subscribe options class.
 
     The options are:
@@ -55,9 +55,10 @@ class SubscribeOptions(object):
         self.noLocal = noLocal  # bit 2
         self.retainAsPublished = retainAsPublished  # bit 3
         self.retainHandling = retainHandling  # bits 4 and 5: 0, 1 or 2
-        assert self.QoS in [0, 1, 2]
-        assert self.retainHandling in [
-            0, 1, 2], "Retain handling should be 0, 1 or 2"
+        if self.retainHandling not in (0, 1, 2):
+            raise AssertionError(f"Retain handling should be 0, 1 or 2, not {self.retainHandling}")
+        if self.QoS not in (0, 1, 2):
+            raise AssertionError(f"QoS should be 0, 1 or 2, not {self.QoS}")
 
     def __setattr__(self, name, value):
         if name not in self.names:
@@ -66,9 +67,10 @@ class SubscribeOptions(object):
         object.__setattr__(self, name, value)
 
     def pack(self):
-        assert self.QoS in [0, 1, 2]
-        assert self.retainHandling in [
-            0, 1, 2], "Retain handling should be 0, 1 or 2"
+        if self.retainHandling not in (0, 1, 2):
+            raise AssertionError(f"Retain handling should be 0, 1 or 2, not {self.retainHandling}")
+        if self.QoS not in (0, 1, 2):
+            raise AssertionError(f"QoS should be 0, 1 or 2, not {self.QoS}")
         noLocal = 1 if self.noLocal else 0
         retainAsPublished = 1 if self.retainAsPublished else 0
         data = [(self.retainHandling << 4) | (retainAsPublished << 3) |
@@ -81,10 +83,10 @@ class SubscribeOptions(object):
         self.retainAsPublished = True if ((b0 >> 3) & 0x01) == 1 else False
         self.noLocal = True if ((b0 >> 2) & 0x01) == 1 else False
         self.QoS = (b0 & 0x03)
-        assert self.retainHandling in [
-            0, 1, 2], "Retain handling should be 0, 1 or 2, not %d" % self.retainHandling
-        assert self.QoS in [
-            0, 1, 2], "QoS should be 0, 1 or 2, not %d" % self.QoS
+        if self.retainHandling not in (0, 1, 2):
+            raise AssertionError(f"Retain handling should be 0, 1 or 2, not {self.retainHandling}")
+        if self.QoS not in (0, 1, 2):
+            raise AssertionError(f"QoS should be 0, 1 or 2, not {self.QoS}")
         return 1
 
     def __repr__(self):

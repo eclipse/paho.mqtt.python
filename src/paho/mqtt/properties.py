@@ -99,7 +99,8 @@ class VariableByteIntegers:  # Variable Byte Integer
           Convert an integer 0 <= x <= 268435455 into multi-byte format.
           Returns the buffer convered from the integer.
         """
-        assert 0 <= x <= 268435455
+        if not 0 <= x <= 268435455:
+            raise ValueError(f"Value {x!r} must be in range 0-268435455")
         buffer = b''
         while 1:
             digit = x % 128
@@ -133,7 +134,7 @@ class VariableByteIntegers:  # Variable Byte Integer
         return (value, bytes)
 
 
-class Properties(object):
+class Properties:
     """MQTT v5.0 properties class.
 
     See Properties.names for a list of accepted property names along with their numeric values.
@@ -261,11 +262,10 @@ class Properties(object):
                     "Property name must be one of "+str(self.names.keys()))
             # check that this attribute applies to the packet type
             if self.packetType not in self.properties[self.getIdentFromName(name)][1]:
-                raise MQTTException("Property %s does not apply to packet type %s"
-                                    % (name, PacketTypes.Names[self.packetType]))
+                raise MQTTException(f"Property {name} does not apply to packet type {PacketTypes.Names[self.packetType]}")
 
             # Check for forbidden values
-            if type(value) != type([]):
+            if not isinstance(value, list):
                 if name in ["ReceiveMaximum", "TopicAlias"] \
                         and (value < 1 or value > 65535):
 
@@ -288,7 +288,7 @@ class Properties(object):
                         "%s property value must be 0 or 1" % (name))
 
             if self.allowsMultiple(name):
-                if type(value) != type([]):
+                if not isinstance(value, list):
                     value = [value]
                 if hasattr(self, name):
                     value = object.__getattribute__(self, name) + value

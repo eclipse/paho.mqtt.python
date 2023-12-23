@@ -496,7 +496,7 @@ def gen_connect(client_id, clean_session=True, keepalive=60, username=None, pass
 
 def gen_connack(flags=0, rc=0, proto_ver=4, properties=b"", property_helper=True):
     if proto_ver == 5:
-        if property_helper == True:
+        if property_helper:
             if properties is not None:
                 properties = mqtt5_props.gen_uint16_prop(mqtt5_props.PROP_TOPIC_ALIAS_MAXIMUM, 10) \
                     + properties + mqtt5_props.gen_uint16_prop(mqtt5_props.PROP_RECEIVE_MAXIMUM, 20)

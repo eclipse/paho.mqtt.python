@@ -18,14 +18,9 @@ of messages in a one-shot manner. In other words, they are useful for the
 situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect and nothing else is required.
 """
-from __future__ import absolute_import
 
 import collections
-
-try:
-    from collections.abc import Iterable
-except ImportError:
-    from collections import Iterable
+from collections.abc import Iterable
 
 from .. import mqtt
 from . import client as paho

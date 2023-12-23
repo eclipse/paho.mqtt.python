@@ -12,14 +12,26 @@
 # Contributors:
 #    Roger Light - initial API and implementation
 #    Ian Craggs - MQTT V5 support
+"""
+This is an MQTT client module. MQTT is a lightweight pub/sub messaging
+protocol that is easy to implement and suitable for low powered devices.
+"""
 
 import base64
+import collections
+import errno
 import hashlib
 import logging
+import os
+import platform
+import select
+import socket
 import string
 import struct
 import threading
 import time
+import urllib.parse
+import urllib.request
 import uuid
 
 from .matcher import MQTTMatcher
@@ -27,38 +39,16 @@ from .properties import Properties
 from .reasoncodes import ReasonCodes
 from .subscribeoptions import SubscribeOptions
 
-"""
-This is an MQTT client module. MQTT is a lightweight pub/sub messaging
-protocol that is easy to implement and suitable for low powered devices.
-"""
-import collections
-import errno
-import os
-import platform
-import select
-import socket
-
-ssl = None
 try:
     import ssl
 except ImportError:
-    pass
+    ssl = None
 
-socks = None
+
 try:
     import socks
 except ImportError:
-    pass
-
-try:
-    # Python 3
-    from urllib import parse as urllib_dot_parse
-    from urllib import request as urllib_dot_request
-except ImportError:
-    # Python 2
-    import urllib as urllib_dot_request
-
-    import urlparse as urllib_dot_parse
+    socks = None
 
 
 try:
@@ -69,10 +59,10 @@ except AttributeError:
 
 try:
     import dns.resolver
+
+    HAVE_DNS = True
 except ImportError:
     HAVE_DNS = False
-else:
-    HAVE_DNS = True
 
 
 if platform.system() == 'Windows':
@@ -234,7 +224,8 @@ def connack_string(connack_code):
 
 def base62(num, base=string.digits + string.ascii_letters, padding=1):
     """Convert a number to base-62 representation."""
-    assert num >= 0
+    if num < 0:
+        raise ValueError("Number must be positive or zero")
     digits = []
     while num:
         num, rest = divmod(num, 62)
@@ -282,7 +273,7 @@ def _socketpair_compat():
     return (sock1, sock2)
 
 
-class MQTTMessageInfo(object):
+class MQTTMessageInfo:
     """This is a class returned from Client.publish() and can be used to find
     out the mid of the message that was published, and to determine whether the
     message has been published, and/or wait until it is published.
@@ -372,7 +363,7 @@ class MQTTMessageInfo(object):
             return self._published
 
 
-class MQTTMessage(object):
+class MQTTMessage:
     """ This is a class that describes an incoming or outgoing message. It is
     passed to the on_message callback as the message parameter.
 
@@ -418,7 +409,7 @@ class MQTTMessage(object):
         self._topic = value
 
 
-class Client(object):
+class Client:
     """MQTT version 3.1/3.1.1/5.0 client class.
 
     This is the main class for use communicating with an MQTT broker.
@@ -637,27 +628,27 @@ class Client(object):
     def _sock_recv(self, bufsize):
         try:
             return self._sock.recv(bufsize)
-        except ssl.SSLWantReadError:
-            raise BlockingIOError
-        except ssl.SSLWantWriteError:
+        except ssl.SSLWantReadError as err:
+            raise BlockingIOError() from err
+        except ssl.SSLWantWriteError as err:
             self._call_socket_register_write()
-            raise BlockingIOError
+            raise BlockingIOError() from err
         except AttributeError as err:
             self._easy_log(
                 MQTT_LOG_DEBUG, "socket was None: %s", err)
-            raise ConnectionError
+            raise ConnectionError() from err
 
     def _sock_send(self, buf):
         try:
             return self._sock.send(buf)
-        except ssl.SSLWantReadError:
-            raise BlockingIOError
-        except ssl.SSLWantWriteError:
+        except ssl.SSLWantReadError as err:
+            raise BlockingIOError() from err
+        except ssl.SSLWantWriteError as err:
             self._call_socket_register_write()
-            raise BlockingIOError
-        except BlockingIOError:
+            raise BlockingIOError() from err
+        except BlockingIOError as err:
             self._call_socket_register_write()
-            raise BlockingIOError
+            raise BlockingIOError() from err
 
     def _sock_close(self):
         """Close the connection to the server."""
@@ -674,7 +665,7 @@ class Client(object):
             sock.close()
 
     def _reset_sockets(self, sockpair_only=False):
-        if sockpair_only == False:
+        if not sockpair_only:
             self._sock_close()
 
         if self._sockpairR:
@@ -907,7 +898,7 @@ class Client(object):
         else:
             if clean_start != MQTT_CLEAN_START_FIRST_ONLY:
                 raise ValueError("Clean start only applies to MQTT V5")
-            if properties != None:
+            if properties:
                 raise ValueError("Properties only apply to MQTT V5")
 
         self.connect_async(host, port, keepalive,
@@ -941,8 +932,8 @@ class Client(object):
                 addr = answer.target.to_text()[:-1]
                 answers.append(
                     (addr, answer.port, answer.priority, answer.weight))
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
-            raise ValueError("No answer/NXDOMAIN for SRV in %s" % (domain))
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers) as err:
+            raise ValueError("No answer/NXDOMAIN for SRV in %s" % domain) from err
 
         # FIXME: doesn't account for weight
         for answer in answers:
@@ -950,7 +941,7 @@ class Client(object):
 
             try:
                 return self.connect(host, port, keepalive, bind_address, clean_start, properties)
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         raise ValueError("No SRV hosts responded")
@@ -1659,7 +1650,7 @@ class Client(object):
     def user_data_set(self, userdata):
         """Set the user data variable passed to callbacks. May be any data type."""
         self._userdata = userdata
-        
+
     def user_data_get(self):
         """Get the user data variable passed to callbacks. May be any data type."""
         return self._userdata
@@ -1690,7 +1681,7 @@ class Client(object):
         if qos < 0 or qos > 2:
             raise ValueError('Invalid QoS level.')
 
-        if properties != None and not isinstance(properties, Properties):
+        if properties and not isinstance(properties, Properties):
             raise ValueError(
                 "The properties argument must be an instance of the Properties class.")
 
@@ -1779,7 +1770,11 @@ class Client(object):
                     run = False
 
             def should_exit():
-                return self._state == mqtt_cs_disconnecting or run is False or self._thread_terminate is True
+                return (
+                    self._state == mqtt_cs_disconnecting or
+                    run is False or  # noqa: B023 (uses the run variable from the outer scope on purpose)
+                    self._thread_terminate is True
+                )
 
             if should_exit() or not self._reconnect_on_failure:
                 run = False
@@ -2564,7 +2559,7 @@ class Client(object):
             buf = fmt % args
             try:
                 self.on_log(self, self._userdata, level, buf)
-            except Exception:
+            except Exception:  # noqa: S110
                 # Can't _easy_log this, as we'll recurse until we break
                 pass  # self._logger will pick this up, so we're fine
         if self._logger is not None:
@@ -2670,8 +2665,10 @@ class Client(object):
 
     def _send_publish(self, mid, topic, payload=b'', qos=0, retain=False, dup=False, info=None, properties=None):
         # we assume that topic and payload are already properly encoded
-        assert not isinstance(topic, str) and not isinstance(
-            payload, str) and payload is not None
+        if not isinstance(topic, bytes):
+            raise TypeError('topic must be bytes, not str')
+        if payload and not isinstance(payload, bytes):
+            raise TypeError('payload must be bytes if set')
 
         if self._sock is None:
             return MQTT_ERR_NO_CONN
@@ -2768,7 +2765,7 @@ class Client(object):
 
         connect_flags = 0
         if self._protocol == MQTTv5:
-            if self._clean_start == True:
+            if self._clean_start is True:
                 connect_flags |= 0x02
             elif self._clean_start == MQTT_CLEAN_START_FIRST_ONLY and self._mqttv5_first_connect:
                 connect_flags |= 0x02
@@ -2888,9 +2885,9 @@ class Client(object):
         self._pack_remaining_length(packet, remaining_length)
 
         if self._protocol == MQTTv5:
-            if reasoncode != None:
+            if reasoncode is not None:
                 packet += reasoncode.pack()
-                if properties != None:
+                if properties is not None:
                     packet += packed_props
 
         return self._packet_queue(command, packet, 0, 0)
@@ -3401,7 +3398,7 @@ class Client(object):
     def manual_ack_set(self, on):
         """
            The paho library normally acknowledges messages as soon as they are delivered to the caller.
-           If manual_ack is turned on, then the caller MUST manually acknowledge every message once 
+           If manual_ack is turned on, then the caller MUST manually acknowledge every message once
            application processing is complete.
         """
         self._manual_ack = on
@@ -3705,11 +3702,11 @@ class Client(object):
         # Next, check for an mqtt_proxy environment variable as long as the host
         # we're trying to connect to isn't listed under the no_proxy environment
         # variable (matches built-in module urllib's behavior)
-        if not (hasattr(urllib_dot_request, "proxy_bypass") and
-                urllib_dot_request.proxy_bypass(self._host)):
-            env_proxies = urllib_dot_request.getproxies()
+        if not (hasattr(urllib.request, "proxy_bypass") and
+                urllib.request.proxy_bypass(self._host)):
+            env_proxies = urllib.request.getproxies()
             if "mqtt" in env_proxies:
-                parts = urllib_dot_parse.urlparse(env_proxies["mqtt"])
+                parts = urllib.parse.urlparse(env_proxies["mqtt"])
                 if parts.scheme == "http":
                     proxy = {
                         "proxy_type": socks.HTTP,
@@ -3748,7 +3745,7 @@ class Client(object):
             return socket.create_connection(addr, timeout=self._connect_timeout, source_address=source)
 
 
-class WebsocketWrapper(object):
+class WebsocketWrapper:
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1
     OPCODE_BINARY = 0x2
@@ -3786,10 +3783,10 @@ class WebsocketWrapper(object):
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
         websocket_headers = {
-            "Host": "{self._host:s}:{self._port:d}".format(self=self),
+            "Host": f"{self._host}:{self._port}",
             "Upgrade": "websocket",
             "Connection": "Upgrade",
-            "Origin": "https://{self._host:s}:{self._port:d}".format(self=self),
+            "Origin": f"https://{self._host}:{self._port}",
             "Sec-WebSocket-Key": sec_websocket_key.decode("utf8"),
             "Sec-Websocket-Version": "13",
             "Sec-Websocket-Protocol": "mqtt",
@@ -3803,9 +3800,8 @@ class WebsocketWrapper(object):
             websocket_headers = extra_headers(websocket_headers)
 
         header = "\r\n".join([
-            "GET {self._path} HTTP/1.1".format(self=self),
-            "\r\n".join("{}: {}".format(i, j)
-                        for i, j in websocket_headers.items()),
+            f"GET {self._path} HTTP/1.1",
+            "\r\n".join(f"{i}: {j}" for i, j in websocket_headers.items()),
             "\r\n",
         ]).encode("utf8")
 
@@ -3840,7 +3836,8 @@ class WebsocketWrapper(object):
                         server_hash = server_hash.strip().encode('utf-8')
 
                         client_hash = sec_websocket_key.decode('utf-8') + GUID
-                        client_hash = hashlib.sha1(client_hash.encode('utf-8'))
+                        # Use of SHA-1 is OK here; it's according to the Websocket spec.
+                        client_hash = hashlib.sha1(client_hash.encode('utf-8'))  # noqa: S324
                         client_hash = base64.b64encode(client_hash.digest())
 
                         if server_hash != client_hash:

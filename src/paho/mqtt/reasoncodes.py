@@ -134,10 +134,12 @@ class ReasonCodes:
 
         Used when displaying the reason code.
         """
-        assert identifier in self.names.keys(), identifier
+        if identifier not in self.names:
+            raise KeyError(identifier)
         names = self.names[identifier]
         namelist = [name for name in names.keys() if packetType in names[name]]
-        assert len(namelist) == 1
+        if len(namelist) != 1:
+            raise ValueError(f"Expected exactly one name, found {namelist!r}")
         return namelist[0]
 
     def getId(self, name):
@@ -147,14 +149,11 @@ class ReasonCodes:
         Used when setting the reason code for a packetType
         check that only valid codes for the packet are set.
         """
-        identifier = None
         for code in self.names.keys():
             if name in self.names[code].keys():
                 if self.packetType in self.names[code][name]:
-                    identifier = code
-                break
-        assert identifier is not None, name
-        return identifier
+                    return code
+        raise KeyError(f"Reason code name not found: {name}")
 
     def set(self, name):
         self.value = self.getId(name)
