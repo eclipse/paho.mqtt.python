@@ -34,7 +34,7 @@ def create_server_socket():
     return sock
 
 
-def create_server_socket_ssl(*args, **kwargs):
+def create_server_socket_ssl(cert_reqs=None):
     if ssl is None:
         raise RuntimeError
 
@@ -46,10 +46,13 @@ def create_server_socket_ssl(*args, **kwargs):
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    ssock = ssl.wrap_socket(
-        sock, ca_certs="../ssl/all-ca.crt",
-        keyfile="../ssl/server.key", certfile="../ssl/server.crt",
-        server_side=True, ssl_version=ssl_version, **kwargs)
+    context = ssl.SSLContext(ssl_version)
+    context.load_verify_locations("../ssl/all-ca.crt")
+    context.load_cert_chain("../ssl/server.crt", "../ssl/server.key")
+    if cert_reqs:
+        context.verify_mode = cert_reqs
+
+    ssock = context.wrap_socket(sock, server_side=True)
     ssock.settimeout(10)
     ssock.bind(('', 1888))
     ssock.listen(5)
