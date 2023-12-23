@@ -637,27 +637,27 @@ class Client(object):
     def _sock_recv(self, bufsize):
         try:
             return self._sock.recv(bufsize)
-        except ssl.SSLWantReadError:
-            raise BlockingIOError
-        except ssl.SSLWantWriteError:
+        except ssl.SSLWantReadError as err:
+            raise BlockingIOError() from err
+        except ssl.SSLWantWriteError as err:
             self._call_socket_register_write()
-            raise BlockingIOError
+            raise BlockingIOError() from err
         except AttributeError as err:
             self._easy_log(
                 MQTT_LOG_DEBUG, "socket was None: %s", err)
-            raise ConnectionError
+            raise ConnectionError() from err
 
     def _sock_send(self, buf):
         try:
             return self._sock.send(buf)
-        except ssl.SSLWantReadError:
-            raise BlockingIOError
-        except ssl.SSLWantWriteError:
+        except ssl.SSLWantReadError as err:
+            raise BlockingIOError() from err
+        except ssl.SSLWantWriteError as err:
             self._call_socket_register_write()
-            raise BlockingIOError
-        except BlockingIOError:
+            raise BlockingIOError() from err
+        except BlockingIOError as err:
             self._call_socket_register_write()
-            raise BlockingIOError
+            raise BlockingIOError() from err
 
     def _sock_close(self):
         """Close the connection to the server."""
@@ -941,8 +941,8 @@ class Client(object):
                 addr = answer.target.to_text()[:-1]
                 answers.append(
                     (addr, answer.port, answer.priority, answer.weight))
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
-            raise ValueError("No answer/NXDOMAIN for SRV in %s" % (domain))
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers) as err:
+            raise ValueError("No answer/NXDOMAIN for SRV in %s" % domain) from err
 
         # FIXME: doesn't account for weight
         for answer in answers:
