@@ -12,14 +12,26 @@
 # Contributors:
 #    Roger Light - initial API and implementation
 #    Ian Craggs - MQTT V5 support
+"""
+This is an MQTT client module. MQTT is a lightweight pub/sub messaging
+protocol that is easy to implement and suitable for low powered devices.
+"""
 
 import base64
+import collections
+import errno
 import hashlib
 import logging
+import os
+import platform
+import select
+import socket
 import string
 import struct
 import threading
 import time
+import urllib.parse
+import urllib.request
 import uuid
 
 from .matcher import MQTTMatcher
@@ -27,38 +39,16 @@ from .properties import Properties
 from .reasoncodes import ReasonCodes
 from .subscribeoptions import SubscribeOptions
 
-"""
-This is an MQTT client module. MQTT is a lightweight pub/sub messaging
-protocol that is easy to implement and suitable for low powered devices.
-"""
-import collections
-import errno
-import os
-import platform
-import select
-import socket
-
-ssl = None
 try:
     import ssl
 except ImportError:
-    pass
+    ssl = None
 
-socks = None
+
 try:
     import socks
 except ImportError:
-    pass
-
-try:
-    # Python 3
-    from urllib import parse as urllib_dot_parse
-    from urllib import request as urllib_dot_request
-except ImportError:
-    # Python 2
-    import urllib as urllib_dot_request
-
-    import urlparse as urllib_dot_parse
+    socks = None
 
 
 try:
@@ -69,10 +59,10 @@ except AttributeError:
 
 try:
     import dns.resolver
+
+    HAVE_DNS = True
 except ImportError:
     HAVE_DNS = False
-else:
-    HAVE_DNS = True
 
 
 if platform.system() == 'Windows':
@@ -3709,11 +3699,11 @@ class Client:
         # Next, check for an mqtt_proxy environment variable as long as the host
         # we're trying to connect to isn't listed under the no_proxy environment
         # variable (matches built-in module urllib's behavior)
-        if not (hasattr(urllib_dot_request, "proxy_bypass") and
-                urllib_dot_request.proxy_bypass(self._host)):
-            env_proxies = urllib_dot_request.getproxies()
+        if not (hasattr(urllib.request, "proxy_bypass") and
+                urllib.request.proxy_bypass(self._host)):
+            env_proxies = urllib.request.getproxies()
             if "mqtt" in env_proxies:
-                parts = urllib_dot_parse.urlparse(env_proxies["mqtt"])
+                parts = urllib.parse.urlparse(env_proxies["mqtt"])
                 if parts.scheme == "http":
                     proxy = {
                         "proxy_type": socks.HTTP,
