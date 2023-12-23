@@ -10,7 +10,7 @@ v2.0.0 - 2023-xx-xx
 v1.6.1 - 2021-10-21
 ===================
 
-- Fix Python 2.7 compatilibity.
+- Fix Python 2.7 compatibility.
 
 
 v1.6.0 - 2021-10-20
@@ -205,7 +205,7 @@ v1.2 - 2016-06-03
 - Allow ^C to interrupt client loop.
 - Fix for keepalive=0 causing an infinite disconnect/reconnect loop. Closes
   #42.
-- Modify callbacks definition/structure to allow classical inheritence. Closes
+- Modify callbacks definition/structure to allow classical inheritance. Closes
   #53, #54.
 - Add websockets support.
 - Default MQTT version is again changed to v3.1.1.

@@ -3434,7 +3434,7 @@ class Client(object):
         # If unknown it's a protocol error and we should close the connection.
         # But since we don't have (on disk) persistence for the session, it
         # is possible that we must known about this message.
-        # Choose to acknwoledge this messsage (and thus losing a message) but
+        # Choose to acknowledge this message (thus losing a message) but
         # avoid hanging. See #284.
         if self._manual_ack:
             return MQTT_ERR_SUCCESS
@@ -3976,7 +3976,7 @@ class WebsocketWrapper(object):
                 self._readbuffer = bytearray()
                 self._payload_head = 0
 
-                # respond to non-binary opcodes, their arrival is not guaranteed beacause of non-blocking sockets
+                # respond to non-binary opcodes, their arrival is not guaranteed because of non-blocking sockets
                 if opcode == WebsocketWrapper.OPCODE_CONNCLOSE:
                     frame = self._create_frame(
                         WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)

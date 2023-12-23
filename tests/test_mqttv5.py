@@ -444,7 +444,7 @@ class Test(unittest.TestCase):
         ocallback.clear()
 
     def test_subscribe_failure(self):
-        # Subscribe failure.  A new feature of MQTT 3.1.1 is the ability to send back negative reponses to subscribe
+        # Subscribe failure.  A new feature of MQTT 3.1.1 is the ability to send back negative responses to subscribe
         # requests.  One way of doing this is to subscribe to a topic which is not allowed to be subscribed to.
         logging.info("Subscribe failure test starting")
 
@@ -479,7 +479,7 @@ class Test(unittest.TestCase):
         # Unsubscribe from one topic
         bclient.unsubscribe(topics[0])
         callback2.wait_unsubscribed()
-        callback2.clear()  # if there were any retained messsages
+        callback2.clear()  # if there were any retained messages
 
         aclient.connect(host="localhost", port=self._test_broker_port)
         aclient.loop_start()
