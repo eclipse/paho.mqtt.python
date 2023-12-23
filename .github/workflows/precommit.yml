@@ -15,6 +15,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
-      - run: pip install pre-commit
+      - use: pre-commit/action@v3.0.0
       - run: pre-commit --version
       - run: pre-commit run --all-files
