@@ -72,11 +72,17 @@ addopts = ["-r", "xs"]
 testpaths = "tests src"
 
 [tool.ruff]
-line-length = 167
-
+exclude = ["test/lib/python/*"]
+extend-select = [
+    "S",  # Bandit
+    "E9",
+    "F63",
+    "F7",
+    "F82",
+    "I",
+]
 ignore = [
     "E402", # TODO: enable
-    "E711", # TODO: enable
     "E711", # TODO: enable
     "E712", # TODO: enable
     "E721", # TODO: enable
@@ -84,14 +90,7 @@ ignore = [
     "S110", # TODO: enable
     "S324", # TODO: enable
 ]
-extend-select = [
-    "S", # Bandit
-    "E9",
-    "F63",
-    "F7",
-    "F82",
-    "I",
-]
+line-length = 167
 
 [tool.ruff.per-file-ignores]
 "{test,tests,examples}/**/*.py" = [
