@@ -1,0 +1,39 @@
+# Learn more about this config here: https://pre-commit.com/
+
+# To enable these pre-commit hooks run:
+# `brew install pre-commit` or `python3 -m pip install pre-commit`
+# Then in the project root directory run `pre-commit install`
+
+# default_language_version:
+#   python: python3
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-builtin-literals
+      # - id: check-executables-have-shebangs
+      # - id: check-shebang-scripts-are-executable
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      # - id: detect-private-key
+      # - id: end-of-file-fixer
+      # - id: mixed-line-ending
+      # - id: trailing-whitespace
+
+  #- repo: https://github.com/codespell-project/codespell
+  #  rev: v2.2.6
+  #  hooks:
+  #    - id: codespell  # See pyproject.toml for args
+  #      additional_dependencies:
+  #        - tomli
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff  # See pyproject.toml for args
+
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.15
+    hooks:
+      - id: validate-pyproject
