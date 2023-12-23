@@ -526,7 +526,7 @@ class Client(object):
         mechanism. Set to "tcp" to use raw TCP, which is the default.
 
         Normally, when a message is received, the library automatically
-        acknowledges immediately.  manual_ack=True allows the application to
+        acknowledges after on_message callback returns.  manual_ack=True allows the application to
         acknowledge receipt after it has completed processing of a message
         using a the ack() method. This addresses vulnerabilty to message loss
         if applications fails while processing a message, or while it pending
