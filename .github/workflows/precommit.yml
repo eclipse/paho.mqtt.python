@@ -17,5 +17,4 @@ jobs:
           python-version: 3.x
       - run: pip install pre-commit
       - run: pre-commit --version
-      - run: pre-commit install
       - run: pre-commit run --all-files
