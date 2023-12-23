@@ -18,15 +18,4 @@ jobs:
             tox.ini
             setup.py
       - run: pip install tox
-      - if: matrix.python == '3.7'
-        run: TOXENV=py37 tox
-      - if: matrix.python == '3.8'
-        run: TOXENV=py38 tox
-      - if: matrix.python == '3.9'
-        run: TOXENV=py39 tox
-      - if: matrix.python == '3.10'
-        run: TOXENV=py310 tox
-      - if: matrix.python == '3.11'
-        run: TOXENV=py311 tox
-      - if: matrix.python == '3.12'
-        run: TOXENV=py312 tox
+      - run: tox -e py
