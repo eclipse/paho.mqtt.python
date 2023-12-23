@@ -259,7 +259,7 @@ class Properties:
             # the name could have spaces in, or not.  Remove spaces before assignment
             if name not in [aname.replace(' ', '') for aname in self.names.keys()]:
                 raise MQTTException(
-                    "Property name must be one of "+str(self.names.keys()))
+                    f"Property name must be one of {self.names.keys()}")
             # check that this attribute applies to the packet type
             if self.packetType not in self.properties[self.getIdentFromName(name)][1]:
                 raise MQTTException(f"Property {name} does not apply to packet type {PacketTypes.Names[self.packetType]}")
@@ -269,23 +269,20 @@ class Properties:
                 if name in ["ReceiveMaximum", "TopicAlias"] \
                         and (value < 1 or value > 65535):
 
-                    raise MQTTException(
-                        "%s property value must be in the range 1-65535" % (name))
+                    raise MQTTException(f"{name} property value must be in the range 1-65535")
                 elif name in ["TopicAliasMaximum"] \
                         and (value < 0 or value > 65535):
 
-                    raise MQTTException(
-                        "%s property value must be in the range 0-65535" % (name))
+                    raise MQTTException(f"{name} property value must be in the range 0-65535")
                 elif name in ["MaximumPacketSize", "SubscriptionIdentifier"] \
                         and (value < 1 or value > 268435455):
 
-                    raise MQTTException(
-                        "%s property value must be in the range 1-268435455" % (name))
+                    raise MQTTException(f"{name} property value must be in the range 1-268435455")
                 elif name in ["RequestResponseInformation", "RequestProblemInformation", "PayloadFormatIndicator"] \
                         and (value != 0 and value != 1):
 
                     raise MQTTException(
-                        "%s property value must be 0 or 1" % (name))
+                        f"{name} property value must be 0 or 1")
 
             if self.allowsMultiple(name):
                 if not isinstance(value, list):
@@ -302,8 +299,7 @@ class Properties:
             if hasattr(self, compressedName):
                 if not first:
                     buffer += ", "
-                buffer += compressedName + " : " + \
-                    str(getattr(self, compressedName))
+                buffer += f"{compressedName} : {getattr(self, compressedName)}"
                 first = False
         buffer += "]"
         return buffer
@@ -422,6 +418,6 @@ class Properties:
             compressedName = propname.replace(' ', '')
             if not self.allowsMultiple(compressedName) and hasattr(self, compressedName):
                 raise MQTTException(
-                    "Property '%s' must not exist more than once" % property)
+                    f"Property '{property}' must not exist more than once")
             setattr(self, propname, value)
         return self, propslen + VBIlen

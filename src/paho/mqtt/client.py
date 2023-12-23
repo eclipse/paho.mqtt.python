@@ -338,7 +338,7 @@ class MQTTMessageInfo:
         elif self.rc == MQTT_ERR_AGAIN:
             pass
         elif self.rc > 0:
-            raise RuntimeError('Message publish failed: %s' % (error_string(self.rc)))
+            raise RuntimeError(f'Message publish failed: {error_string(self.rc)}')
 
         timeout_time = None if timeout is None else time_func() + timeout
         timeout_tenth = None if timeout is None else timeout / 10.
@@ -357,7 +357,7 @@ class MQTTMessageInfo:
         elif self.rc == MQTT_ERR_AGAIN:
             pass
         elif self.rc > 0:
-            raise RuntimeError('Message publish failed: %s' % (error_string(self.rc)))
+            raise RuntimeError(f'Message publish failed: {error_string(self.rc)}')
 
         with self._condition:
             return self._published
@@ -515,7 +515,7 @@ class Client:
 
         if transport.lower() not in ('websockets', 'tcp'):
             raise ValueError(
-                'transport must be "websockets" or "tcp", not %s' % transport)
+                f'transport must be "websockets" or "tcp", not {transport}')
         self._manual_ack = manual_ack
         self._transport = transport.lower()
         self._protocol = protocol
@@ -923,17 +923,17 @@ class Client:
             domain = domain[domain.find('.') + 1:]
 
         try:
-            rr = '_mqtt._tcp.%s' % domain
+            rr = f'_mqtt._tcp.{domain}'
             if self._ssl:
                 # IANA specifies secure-mqtt (not mqtts) for port 8883
-                rr = '_secure-mqtt._tcp.%s' % domain
+                rr = f'_secure-mqtt._tcp.{domain}'
             answers = []
             for answer in dns.resolver.query(rr, dns.rdatatype.SRV):
                 addr = answer.target.to_text()[:-1]
                 answers.append(
                     (addr, answer.port, answer.priority, answer.weight))
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers) as err:
-            raise ValueError("No answer/NXDOMAIN for SRV in %s" % domain) from err
+            raise ValueError(f"No answer/NXDOMAIN for SRV in {domain}") from err
 
         # FIXME: doesn't account for weight
         for answer in answers:
@@ -2808,8 +2808,10 @@ class Client:
             proto_ver |= 0x80
 
         self._pack_remaining_length(packet, remaining_length)
-        packet.extend(struct.pack("!H" + str(len(protocol)) + "sBBH", len(protocol), protocol, proto_ver, connect_flags,
-                                  keepalive))
+        packet.extend(struct.pack(
+            f"!H{len(protocol)}sBBH",
+            len(protocol), protocol, proto_ver, connect_flags, keepalive,
+        ))
 
         if self._protocol == MQTTv5:
             packet += packed_connect_properties
@@ -3273,7 +3275,7 @@ class Client:
 
     def _handle_suback(self):
         self._easy_log(MQTT_LOG_DEBUG, "Received SUBACK")
-        pack_format = "!H" + str(len(self._in_packet['packet']) - 2) + 's'
+        pack_format = f"!H{len(self._in_packet['packet']) - 2}s"
         (mid, packet) = struct.unpack(pack_format, self._in_packet['packet'])
 
         if self._protocol == MQTTv5:
@@ -3283,7 +3285,7 @@ class Client:
             for c in packet[props_len:]:
                 reasoncodes.append(ReasonCodes(SUBACK >> 4, identifier=c))
         else:
-            pack_format = "!" + "B" * len(packet)
+            pack_format = f"!{'B' * len(packet)}"
             granted_qos = struct.unpack(pack_format, packet)
 
         with self._callback_mutex:
@@ -3315,9 +3317,9 @@ class Client:
         message.qos = (header & 0x06) >> 1
         message.retain = (header & 0x01)
 
-        pack_format = "!H" + str(len(self._in_packet['packet']) - 2) + 's'
+        pack_format = f"!H{len(self._in_packet['packet']) - 2}s"
         (slen, packet) = struct.unpack(pack_format, self._in_packet['packet'])
-        pack_format = '!' + str(slen) + 's' + str(len(packet) - slen) + 's'
+        pack_format = f"!{slen}s{len(packet) - slen}s"
         (topic, packet) = struct.unpack(pack_format, packet)
 
         if self._protocol != MQTTv5 and len(topic) == 0:
@@ -3330,12 +3332,12 @@ class Client:
         try:
             print_topic = topic.decode('utf-8')
         except UnicodeDecodeError:
-            print_topic = "TOPIC WITH INVALID UTF-8: " + str(topic)
+            print_topic = f"TOPIC WITH INVALID UTF-8: {topic!r}"
 
         message.topic = topic
 
         if message.qos > 0:
-            pack_format = "!H" + str(len(packet) - 2) + 's'
+            pack_format = f"!H{len(packet) - 2}s"
             (message.mid, packet) = struct.unpack(pack_format, packet)
 
         if self._protocol == MQTTv5:
