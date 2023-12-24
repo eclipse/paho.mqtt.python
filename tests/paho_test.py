@@ -20,11 +20,6 @@ vg_index = 1
 vg_logfiles = []
 
 
-class TestError(Exception):
-    def __init__(self, message="Mismatched packets"):
-        self.message = message
-
-
 def bind_to_any_free_port(sock) -> int:
     """
     Bind a socket to an available port on localhost,

@@ -32,7 +32,6 @@ clean-test: ## remove test and coverage artifacts
 
 test :
 	$(PYTHON) -m pytest .
-	$(MAKE) -C test test
 
 upload : test
 	$(PYTHON) -m hatch build
