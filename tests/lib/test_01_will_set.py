@@ -1,7 +1,7 @@
 # Test whether a client produces a correct connect with a will.
 # Will QoS=1, will retain=1.
 
-# The client should connect to port 1888 with keepalive=60, clean session set,
+# The client should connect with keepalive=60, clean session set,
 # client id 01-will-set will topic set to topic/on/unexpected/disconnect , will
 # payload set to "will message", will qos set to 1 and will retain set.
 

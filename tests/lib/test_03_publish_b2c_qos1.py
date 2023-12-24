@@ -1,6 +1,6 @@
 # Test whether a client responds correctly to a PUBLISH with QoS 1.
 
-# The client should connect to port 1888 with keepalive=60, clean session set,
+# The client should connect with keepalive=60, clean session set,
 # and client id publish-qos1-test
 # The test will send a CONNACK message to the client with rc=0. Upon receiving
 # the CONNACK the client should verify that rc==0.

@@ -1,6 +1,6 @@
 # Test whether a client sends a pingreq after the keepalive time
 
-# The client should connect to port 1888 with keepalive=4, clean session set,
+# The client should connect with keepalive=4, clean session set,
 # and client id 01-keepalive-pingreq
 # The client should send a PINGREQ message after the appropriate amount of time
 # (4 seconds after no traffic).

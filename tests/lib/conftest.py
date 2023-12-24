@@ -12,8 +12,9 @@ clients_path = tests_path / "lib" / "clients"
 
 
 @pytest.fixture()
-def server_socket():
-    sock = create_server_socket()
+def server_socket(monkeypatch):
+    sock, port = create_server_socket()
+    monkeypatch.setenv("PAHO_SERVER_PORT", str(port))
     try:
         yield sock
     finally:
@@ -21,8 +22,9 @@ def server_socket():
 
 
 @pytest.fixture()
-def ssl_server_socket():
-    sock = create_server_socket_ssl()
+def ssl_server_socket(monkeypatch):
+    sock, port = create_server_socket_ssl()
+    monkeypatch.setenv("PAHO_SERVER_PORT", str(port))
     try:
         yield sock
     finally:
@@ -51,6 +53,7 @@ def start_client(request: pytest.FixtureRequest):
             PAHO_SSL_PATH=str(ssl_path),
             PYTHONPATH=f"{tests_path}{os.pathsep}{os.environ.get('PYTHONPATH', '')}",
         )
+        assert 'PAHO_SERVER_PORT' in env, "PAHO_SERVER_PORT must be set in the environment when starting a client"
         # TODO: it would be nice to run this under `coverage` too!
         proc = subprocess.Popen([  # noqa: S603
             sys.executable,

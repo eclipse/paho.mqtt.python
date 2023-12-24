@@ -1,7 +1,7 @@
 import paho.mqtt.client
 import paho.mqtt.publish
 
-from tests.paho_test import wait_for_keyboard_interrupt
+from tests.paho_test import get_test_server_port, wait_for_keyboard_interrupt
 
 with wait_for_keyboard_interrupt():
     paho.mqtt.publish.single(
@@ -9,7 +9,7 @@ with wait_for_keyboard_interrupt():
         "message",
         qos=0,
         hostname="localhost",
-        port=1888,
+        port=get_test_server_port(),
         client_id="publish-helper-qos0-test",
         protocol=paho.mqtt.client.MQTTv5,
     )

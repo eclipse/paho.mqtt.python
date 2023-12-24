@@ -29,7 +29,7 @@ class Test_connect:
 
         mqttc.on_connect = on_connect
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -67,7 +67,7 @@ class Test_connect:
 
         mqttc.on_connect = on_connect
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -104,7 +104,7 @@ class TestPublishBroker2Client:
 
         mqttc.on_message = on_message
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -148,7 +148,7 @@ class TestPublishBroker2Client:
 
         mqttc.on_message = on_message
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -188,7 +188,7 @@ class TestPublishBroker2Client:
         # It should be non-ascii multi-bytes character
         topic = unicodedata.lookup('SNOWMAN')
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -253,7 +253,7 @@ class TestPublishBroker2Client:
         mqttc.message_callback_add('topic/callback/1', callback1)
         mqttc.message_callback_add('topic/callback/+', callback2)
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:

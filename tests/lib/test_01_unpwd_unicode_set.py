@@ -1,6 +1,6 @@
 # Test whether a client produces a correct connect with a unicode username and password.
 
-# The client should connect to port 1888 with keepalive=60, clean session set,
+# The client should connect with keepalive=60, clean session set,
 # client id 01-unpwd-unicode-set, username and password from corresponding variables
 
 

@@ -1,6 +1,6 @@
 import paho.mqtt.client as mqtt
 
-from tests.paho_test import loop_until_keyboard_interrupt
+from tests.paho_test import get_test_server_port, loop_until_keyboard_interrupt
 
 
 def on_connect(mqttc, obj, flags, rc):
@@ -10,5 +10,5 @@ def on_connect(mqttc, obj, flags, rc):
 mqttc = mqtt.Client("01-keepalive-pingreq")
 mqttc.on_connect = on_connect
 
-mqttc.connect("localhost", 1888, keepalive=4)
+mqttc.connect("localhost", get_test_server_port(), keepalive=4)
 loop_until_keyboard_interrupt(mqttc)

@@ -1,6 +1,6 @@
 # Test whether a client produces a correct connect with a will, username and password.
 
-# The client should connect to port 1888 with keepalive=60, clean session set,
+# The client should connect with keepalive=60, clean session set,
 # client id 01-will-unpwd-set , will topic set to "will-topic", will payload
 # set to "will message", will qos=2, will retain not set, username set to
 # "oibvvwqw" and password set to "#'^2hg9a&nm38*us".

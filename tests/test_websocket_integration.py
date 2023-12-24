@@ -59,7 +59,7 @@ class TestInvalidWebsocketResponse:
                 _self.request.sendall(b"200 OK")
 
         with fake_websocket_broker.serve(WebsocketHandler), pytest.raises(WebsocketConnectionError) as exc:
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
         assert str(exc.value) == "WebSocket handshake error"
 
@@ -101,7 +101,7 @@ class TestBadWebsocketHeaders:
         response = self._get_basic_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response), pytest.raises(WebsocketConnectionError) as exc:
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
         assert str(exc.value) == "WebSocket handshake error, connection not upgraded"
 
@@ -118,7 +118,7 @@ class TestBadWebsocketHeaders:
         response = self._get_basic_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response), pytest.raises(WebsocketConnectionError) as exc:
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
         assert str(exc.value) == "WebSocket handshake error, invalid secret key"
 
@@ -176,7 +176,7 @@ class TestValidHeaders:
         response = self._get_callback_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response):
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
             mqttc.disconnect()
 
@@ -210,7 +210,7 @@ class TestValidHeaders:
         )
 
         with fake_websocket_broker.serve(response):
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
             mqttc.disconnect()
 
@@ -246,6 +246,6 @@ class TestValidHeaders:
         )
 
         with fake_websocket_broker.serve(response):
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
             mqttc.disconnect()

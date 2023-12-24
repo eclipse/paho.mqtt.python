@@ -1,6 +1,6 @@
 import paho.mqtt.client as mqtt
 
-from tests.paho_test import wait_for_keyboard_interrupt
+from tests.paho_test import get_test_server_port, wait_for_keyboard_interrupt
 
 expected_payload = b"message"
 
@@ -21,7 +21,7 @@ mqttc = mqtt.Client("publish-qos2-test", clean_session=True)
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 
-mqttc.connect("localhost", 1888)
+mqttc.connect("localhost", get_test_server_port())
 
 with wait_for_keyboard_interrupt():
     while True:

@@ -1,6 +1,6 @@
 # Test whether a client produces a correct connect with clean session not set.
 
-# The client should connect to port 1888 with keepalive=60, clean session not
+# The client should connect with keepalive=60, clean session not
 # set, and client id 01-no-clean-session.
 
 

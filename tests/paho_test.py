@@ -3,7 +3,6 @@ import contextlib
 import os
 import socket
 import struct
-import sys
 import time
 
 from tests.consts import ssl_path
@@ -26,13 +25,25 @@ class TestError(Exception):
         self.message = message
 
 
+def bind_to_any_free_port(sock) -> int:
+    """
+    Bind a socket to an available port on localhost,
+    and return the port number.
+    """
+    while True:
+        try:
+            sock.bind(('', 0))
+            return sock.getsockname()[1]
+        except OSError:
+            pass
+
+
 def create_server_socket():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.settimeout(10)
-    sock.bind(('', 1888))
+    port = bind_to_any_free_port(sock)
     sock.listen(5)
-    return sock
+    return (sock, port)
 
 
 def create_server_socket_ssl(cert_reqs=None):
@@ -57,9 +68,9 @@ def create_server_socket_ssl(cert_reqs=None):
         context.verify_mode = cert_reqs
     ssock = context.wrap_socket(sock, server_side=True)
     ssock.settimeout(10)
-    ssock.bind(('', 1888))
+    port = bind_to_any_free_port(ssock)
     ssock.listen(5)
-    return ssock
+    return (ssock, port)
 
 
 def expect_packet(sock, name, expected):
@@ -695,29 +706,6 @@ def pack_remaining_length(remaining_length):
             return s
 
 
-def get_port(count=1):
-    if count == 1:
-        if len(sys.argv) == 2:
-            return int(sys.argv[1])
-        else:
-            return 1888
-    else:
-        if len(sys.argv) == 1+count:
-            p = ()
-            for i in range(0, count):
-                p = p + (int(sys.argv[1+i]),)
-            return p
-        else:
-            return tuple(range(1888, 1888+count))
-
-
-def get_lib_port():
-    if len(sys.argv) == 3:
-        return int(sys.argv[2])
-    else:
-        return 1888
-
-
 def do_ping(sock, error_string="pingresp"):
      do_send_receive(sock, gen_pingreq(), gen_pingresp(), error_string)
 
@@ -767,3 +755,10 @@ def wait_for_keyboard_interrupt():
             time.sleep(0.1)
     except KeyboardInterrupt:
         pass
+
+
+def get_test_server_port() -> int:
+    """
+    Get the port number for the test server.
+    """
+    return int(os.environ['PAHO_SERVER_PORT'])

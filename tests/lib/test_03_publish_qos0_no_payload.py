@@ -1,6 +1,6 @@
 # Test whether a client sends a correct PUBLISH to a topic with QoS 0 and no payload.
 
-# The client should connect to port 1888 with keepalive=60, clean session set,
+# The client should connect with keepalive=60, clean session set,
 # and client id publish-qos0-test-np
 # The test will send a CONNACK message to the client with rc=0. Upon receiving
 # the CONNACK and verifying that rc=0, the client should send a PUBLISH message

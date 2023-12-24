@@ -3,6 +3,8 @@ import socket
 
 import paho.mqtt.client as mqtt
 
+from tests.paho_test import get_test_server_port
+
 client_id = 'asyncio-test'
 
 
@@ -78,7 +80,7 @@ async def main():
 
     _aioh = AsyncioHelper(loop, client)
 
-    client.connect('localhost', 1888, 60)
+    client.connect('localhost', get_test_server_port(), 60)
     client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
     await disconnected

@@ -5,7 +5,7 @@ import pytest
 import tests.paho_test as paho_test
 from tests.paho_test import ssl
 
-# The client should connect to port 1888 with keepalive=60, clean session set,
+# The client should connect with keepalive=60, clean session set,
 # and client id 08-ssl-connect-crt-auth
 # It should use the CA certificate ssl/all-ca.crt for verifying the server.
 # The test will send a CONNACK message to the client with rc=0. Upon receiving
