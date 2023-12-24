@@ -4,9 +4,8 @@ import sys
 import time
 import unicodedata
 
-import pytest
-
 import paho.mqtt.client as client
+import pytest
 
 # From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder
 cmd_subfolder = os.path.realpath(
@@ -20,14 +19,14 @@ if cmd_subfolder not in sys.path:
 import paho_test
 
 # Import test fixture
-from testsupport.broker import fake_broker
+from testsupport.broker import fake_broker  # noqa: F401
 
 
 @pytest.mark.parametrize("proto_ver", [
     (client.MQTTv31),
     (client.MQTTv311),
 ])
-class Test_connect(object):
+class Test_connect:
     """
     Tests on connect/disconnect behaviour of the client
     """
@@ -105,14 +104,14 @@ class Test_connect(object):
             mqttc.loop_stop()
 
 
-class TestPublishBroker2Client(object):
+class TestPublishBroker2Client:
 
     def test_invalid_utf8_topic(self, fake_broker):
         mqttc = client.Client("client-id")
 
         def on_message(client, userdata, msg):
             with pytest.raises(UnicodeDecodeError):
-                msg.topic
+                assert msg.topic
             client.disconnect()
 
         mqttc.on_message = on_message

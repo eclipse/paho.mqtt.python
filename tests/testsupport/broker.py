@@ -68,7 +68,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 class FakeWebsocketBroker(threading.Thread):
     def __init__(self):
-        super(FakeWebsocketBroker, self).__init__()
+        super().__init__()
 
         self.host = "localhost"
         self.port = 1888
