@@ -21,6 +21,7 @@ import sys
 import threading
 import time
 import unittest
+import unittest.mock
 
 import paho.mqtt
 import paho.mqtt.client
@@ -164,18 +165,22 @@ class Test(unittest.TestCase):
         except ImportError as ie:
             raise unittest.SkipTest("paho.mqtt.testing not present.") from ie
 
-        cls._test_broker = threading.Thread(
-            target=mqtt.brokers.run,
-            kwargs={
-                "config": ["listener 0"],
-            },
-        )
-        cls._test_broker.daemon = True
-        cls._test_broker.start()
-        # Wait a bit for TCP server to bind to an address
-        time.sleep(0.5)
-        # Hack to find the port used by the test broker...
-        cls._test_broker_port = mqtt.brokers.listeners.TCPListeners.server.socket.getsockname()[1]
+        # Hack: we need to patch `signal.signal()` because `mqtt.brokers.run()`
+        #       calls it to set up a signal handler; however, that won't work
+        #       from a thread...
+        with unittest.mock.patch("signal.signal", unittest.mock.MagicMock()):
+            cls._test_broker = threading.Thread(
+                target=mqtt.brokers.run,
+                kwargs={
+                    "config": ["listener 0"],
+                },
+            )
+            cls._test_broker.daemon = True
+            cls._test_broker.start()
+            # Wait a bit for TCP server to bind to an address
+            time.sleep(0.5)
+            # Hack to find the port used by the test broker...
+            cls._test_broker_port = mqtt.brokers.listeners.TCPListeners.server.socket.getsockname()[1]
         setData()
         cleanup(cls._test_broker_port)
 
