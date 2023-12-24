@@ -1803,7 +1803,7 @@ class Client:
 
         self._sockpairR, self._sockpairW = _socketpair_compat()
         self._thread_terminate = False
-        self._thread = threading.Thread(target=self._thread_main)
+        self._thread = threading.Thread(target=self._thread_main, name=f"paho-mqtt-client-{self._client_id.decode()}")
         self._thread.daemon = True
         self._thread.start()
 
