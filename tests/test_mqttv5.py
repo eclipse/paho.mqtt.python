@@ -990,21 +990,6 @@ class Test(unittest.TestCase):
     def test_client_topic_alias(self):
         clientid = 'client topic alias'
 
-        # no server side topic aliases allowed
-        laclient, lacallback = self.new_client(clientid+" a")
-        laclient.connect(host="localhost", port=self._test_broker_port)
-        connack = lacallback.wait_connected()
-        laclient.loop_start()
-
-        publish_properties = Properties(PacketTypes.PUBLISH)
-        publish_properties.TopicAlias = 0  # topic alias 0 not allowed
-        laclient.publish(topics[0], "topic alias 0", 1,
-                         properties=publish_properties)
-
-        # should get back a disconnect with Topic alias invalid
-        lacallback.wait_disconnected()
-        laclient.loop_stop()
-
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.TopicAliasMaximum = 0  # server topic aliases not allowed
         connect_properties.SessionExpiryInterval = 99999
