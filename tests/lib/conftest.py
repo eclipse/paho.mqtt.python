@@ -54,7 +54,6 @@ def start_client(request: pytest.FixtureRequest):
             PYTHONPATH=f"{tests_path}{os.pathsep}{os.environ.get('PYTHONPATH', '')}",
         )
         assert 'PAHO_SERVER_PORT' in env, "PAHO_SERVER_PORT must be set in the environment when starting a client"
-        # TODO: it would be nice to run this under `coverage` too!
         proc = subprocess.Popen([  # noqa: S603
             sys.executable,
             str(client_path),
