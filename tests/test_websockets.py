@@ -1,14 +1,11 @@
 import socket
-import sys
-
 from unittest.mock import Mock
 
 import pytest
-
 from paho.mqtt.client import WebsocketConnectionError, WebsocketWrapper
 
 
-class TestHeaders(object):
+class TestHeaders:
     """ Make sure headers are used correctly """
 
     def test_normal_headers(self):
@@ -27,7 +24,7 @@ class TestHeaders(object):
             for i in "\r\n".join(response).encode("utf8"):
                 yield i
 
-            for i in "\r\n".encode("utf8"):
+            for i in b"\r\n":
                 yield i
 
         it = iter_response()

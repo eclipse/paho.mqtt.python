@@ -4,11 +4,11 @@ import re
 import socketserver
 from collections import OrderedDict
 
-import pytest
-from testsupport.broker import fake_websocket_broker
-
 import paho.mqtt.client as client
+import pytest
 from paho.mqtt.client import WebsocketConnectionError
+
+from tests.testsupport.broker import fake_websocket_broker  # noqa: F401
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def get_websocket_response(response_headers):
     """
     response = "\r\n".join([
         "HTTP/1.1 101 Switching Protocols",
-        "\r\n".join("{}: {}".format(i, j) for i, j in response_headers.items()),
+        "\r\n".join(f"{i}: {j}" for i, j in response_headers.items()),
         "\r\n",
     ]).encode("utf8")
 
@@ -43,7 +43,7 @@ def get_websocket_response(response_headers):
     (client.MQTTv31, "MQIsdp"),
     (client.MQTTv311, "MQTT"),
 ])
-class TestInvalidWebsocketResponse(object):
+class TestInvalidWebsocketResponse:
     def test_unexpected_response(self, proto_ver, proto_name, fake_websocket_broker):
         """ Server responds with a valid code, but it's not what the client expected """
 
@@ -56,11 +56,10 @@ class TestInvalidWebsocketResponse(object):
         class WebsocketHandler(socketserver.BaseRequestHandler):
             def handle(_self):
                 # Respond with data passed in to serve()
-                _self.request.sendall("200 OK".encode("utf8"))
+                _self.request.sendall(b"200 OK")
 
-        with fake_websocket_broker.serve(WebsocketHandler):
-            with pytest.raises(WebsocketConnectionError) as exc:
-                mqttc.connect("localhost", 1888, keepalive=10)
+        with fake_websocket_broker.serve(WebsocketHandler), pytest.raises(WebsocketConnectionError) as exc:
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
         assert str(exc.value) == "WebSocket handshake error"
 
@@ -69,7 +68,7 @@ class TestInvalidWebsocketResponse(object):
     (client.MQTTv31, "MQIsdp"),
     (client.MQTTv311, "MQTT"),
 ])
-class TestBadWebsocketHeaders(object):
+class TestBadWebsocketHeaders:
     """ Testing for basic functionality in checking for headers """
 
     def _get_basic_handler(self, response_headers):
@@ -101,9 +100,8 @@ class TestBadWebsocketHeaders(object):
         init_response_headers["Connection"] = "bad"
         response = self._get_basic_handler(init_response_headers)
 
-        with fake_websocket_broker.serve(response):
-            with pytest.raises(WebsocketConnectionError) as exc:
-                mqttc.connect("localhost", 1888, keepalive=10)
+        with fake_websocket_broker.serve(response), pytest.raises(WebsocketConnectionError) as exc:
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
         assert str(exc.value) == "WebSocket handshake error, connection not upgraded"
 
@@ -119,9 +117,8 @@ class TestBadWebsocketHeaders(object):
 
         response = self._get_basic_handler(init_response_headers)
 
-        with fake_websocket_broker.serve(response):
-            with pytest.raises(WebsocketConnectionError) as exc:
-                mqttc.connect("localhost", 1888, keepalive=10)
+        with fake_websocket_broker.serve(response), pytest.raises(WebsocketConnectionError) as exc:
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
         assert str(exc.value) == "WebSocket handshake error, invalid secret key"
 
@@ -130,7 +127,7 @@ class TestBadWebsocketHeaders(object):
     (client.MQTTv31, "MQIsdp"),
     (client.MQTTv311, "MQTT"),
 ])
-class TestValidHeaders(object):
+class TestValidHeaders:
     """ Testing for functionality in request/response headers """
 
     def _get_callback_handler(self, response_headers, check_request=None):
@@ -152,8 +149,8 @@ class TestValidHeaders(object):
                 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
                 key = re.search("sec-websocket-key: ([A-Za-z0-9+/=]*)", decoded, re.IGNORECASE).group(1)
 
-                to_hash = "{:s}{:s}".format(key, GUID)
-                hashed = hashlib.sha1(to_hash.encode("utf8"))
+                to_hash = f"{key:s}{GUID:s}"
+                hashed = hashlib.sha1(to_hash.encode("utf8"))  # noqa: S324
                 encoded = base64.b64encode(hashed.digest()).decode("utf8")
 
                 response_headers["Sec-WebSocket-Accept"] = encoded
@@ -179,7 +176,7 @@ class TestValidHeaders(object):
         response = self._get_callback_handler(init_response_headers)
 
         with fake_websocket_broker.serve(response):
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
             mqttc.disconnect()
 
@@ -205,7 +202,7 @@ class TestValidHeaders(object):
         def check_path_correct(decoded):
             # Make sure it connects to the right path
             if mqtt_path:
-                assert re.search("GET {:s} HTTP/1.1".format(mqtt_path), decoded, re.IGNORECASE) is not None
+                assert re.search(f"GET {mqtt_path:s} HTTP/1.1", decoded, re.IGNORECASE) is not None
 
         response = self._get_callback_handler(
             init_response_headers,
@@ -213,7 +210,7 @@ class TestValidHeaders(object):
         )
 
         with fake_websocket_broker.serve(response):
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
             mqttc.disconnect()
 
@@ -241,7 +238,7 @@ class TestValidHeaders(object):
             # Make sure it connects to the right path
             if auth_headers:
                 for h in auth_headers:
-                    assert re.search("{:s}: {:s}".format(h, auth_headers[h]), decoded, re.IGNORECASE) is not None
+                    assert re.search(f"{h:s}: {auth_headers[h]:s}", decoded, re.IGNORECASE) is not None
 
         response = self._get_callback_handler(
             init_response_headers,
@@ -249,6 +246,6 @@ class TestValidHeaders(object):
         )
 
         with fake_websocket_broker.serve(response):
-            mqttc.connect("localhost", 1888, keepalive=10)
+            mqttc.connect("localhost", fake_websocket_broker.port, keepalive=10)
 
             mqttc.disconnect()

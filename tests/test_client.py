@@ -1,33 +1,20 @@
-import inspect
-import os
-import sys
 import time
 import unicodedata
 
+import paho.mqtt.client as client
 import pytest
 
-import paho.mqtt.client as client
-
-# From http://stackoverflow.com/questions/279237/python-import-a-module-from-a-folder
-cmd_subfolder = os.path.realpath(
-    os.path.abspath(
-        os.path.join(
-            os.path.split(
-                inspect.getfile(inspect.currentframe()))[0],
-            '..', 'test')))
-if cmd_subfolder not in sys.path:
-    sys.path.insert(0, cmd_subfolder)
-import paho_test
+import tests.paho_test as paho_test
 
 # Import test fixture
-from testsupport.broker import fake_broker
+from tests.testsupport.broker import fake_broker  # noqa: F401
 
 
 @pytest.mark.parametrize("proto_ver", [
     (client.MQTTv31),
     (client.MQTTv311),
 ])
-class Test_connect(object):
+class Test_connect:
     """
     Tests on connect/disconnect behaviour of the client
     """
@@ -42,7 +29,7 @@ class Test_connect(object):
 
         mqttc.on_connect = on_connect
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -80,7 +67,7 @@ class Test_connect(object):
 
         mqttc.on_connect = on_connect
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -105,19 +92,19 @@ class Test_connect(object):
             mqttc.loop_stop()
 
 
-class TestPublishBroker2Client(object):
+class TestPublishBroker2Client:
 
     def test_invalid_utf8_topic(self, fake_broker):
         mqttc = client.Client("client-id")
 
         def on_message(client, userdata, msg):
             with pytest.raises(UnicodeDecodeError):
-                msg.topic
+                assert msg.topic
             client.disconnect()
 
         mqttc.on_message = on_message
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -161,7 +148,7 @@ class TestPublishBroker2Client(object):
 
         mqttc.on_message = on_message
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -201,7 +188,7 @@ class TestPublishBroker2Client(object):
         # It should be non-ascii multi-bytes character
         topic = unicodedata.lookup('SNOWMAN')
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:
@@ -266,7 +253,7 @@ class TestPublishBroker2Client(object):
         mqttc.message_callback_add('topic/callback/1', callback1)
         mqttc.message_callback_add('topic/callback/+', callback2)
 
-        mqttc.connect_async("localhost", 1888)
+        mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
 
         try:

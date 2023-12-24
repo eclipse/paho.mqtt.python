@@ -88,7 +88,7 @@ ignore = []
 line-length = 167
 
 [tool.ruff.per-file-ignores]
-"{test,tests,examples}/**/*.py" = [
+"examples/**/*.py" = [
     "B",
     "E402",
     "E711",
@@ -99,4 +99,13 @@ line-length = 167
     "I",
     "S",
     "UP",
+]
+"tests/**/*.py" = [
+    "F811",
+    "S101",
+    "S105",
+    "S106",
+]
+"tests/test_mqttv5.py" = [
+    "F841",  # TODO: fix when fixing this test file
 ]

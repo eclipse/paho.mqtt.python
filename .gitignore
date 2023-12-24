@@ -45,9 +45,9 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
-test/ssl/demoCA
-test/ssl/rootCA
-test/ssl/signingCA
+tests/ssl/demoCA
+tests/ssl/rootCA
+tests/ssl/signingCA
 *.csr
 
 # Translations

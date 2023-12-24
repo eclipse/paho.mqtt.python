@@ -16,19 +16,16 @@
 *******************************************************************
 """
 
-import getopt
 import logging
 import sys
 import threading
 import time
-import traceback
 import unittest
 
 import paho.mqtt
 import paho.mqtt.client
 from paho.mqtt.packettypes import PacketTypes
 from paho.mqtt.properties import Properties
-from paho.mqtt.reasoncodes import ReasonCodes
 from paho.mqtt.subscribeoptions import SubscribeOptions
 
 
@@ -118,7 +115,7 @@ class Callbacks:
 
 def cleanRetained(port):
     callback = Callbacks()
-    curclient = paho.mqtt.client.Client("clean retained".encode("utf-8"),
+    curclient = paho.mqtt.client.Client(b"clean retained",
                                         protocol=paho.mqtt.client.MQTTv5)
     curclient.loop_start()
     callback.register(curclient)
@@ -164,8 +161,8 @@ class Test(unittest.TestCase):
         sys.path.append("paho.mqtt.testing/interoperability/")
         try:
             import mqtt.brokers
-        except ImportError:
-            raise unittest.SkipTest("paho.mqtt.testing not present.")
+        except ImportError as ie:
+            raise unittest.SkipTest("paho.mqtt.testing not present.") from ie
 
         cls._test_broker = threading.Thread(
             target=mqtt.brokers.run,
@@ -187,12 +184,10 @@ class Test(unittest.TestCase):
 
         #aclient = mqtt_client.Client(b"\xEF\xBB\xBF" + "myclientid".encode("utf-8"))
         #aclient = mqtt_client.Client("myclientid".encode("utf-8"))
-        aclient = paho.mqtt.client.Client("aclient".encode(
-            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
+        aclient = paho.mqtt.client.Client(b"aclient", protocol=paho.mqtt.client.MQTTv5)
         callback.register(aclient)
 
-        bclient = paho.mqtt.client.Client("bclient".encode(
-            "utf-8"), protocol=paho.mqtt.client.MQTTv5)
+        bclient = paho.mqtt.client.Client(b"bclient", protocol=paho.mqtt.client.MQTTv5)
         callback2.register(bclient)
 
     @classmethod
@@ -368,7 +363,7 @@ class Test(unittest.TestCase):
         # message queueing for offline clients
         cleanRetained(self._test_broker_port)
         ocallback = Callbacks()
-        clientid = "offline message queueing".encode("utf-8")
+        clientid = b"offline message queueing"
 
         oclient = paho.mqtt.client.Client(
             clientid, protocol=paho.mqtt.client.MQTTv5)
@@ -413,7 +408,7 @@ class Test(unittest.TestCase):
         # the server may send back one message with the highest QoS of any matching subscription, or one message for
         # each subscription with a matching QoS.
         ocallback = Callbacks()
-        clientid = "overlapping subscriptions".encode("utf-8")
+        clientid = b"overlapping subscriptions"
 
         oclient = paho.mqtt.client.Client(
             clientid, protocol=paho.mqtt.client.MQTTv5)
@@ -449,7 +444,7 @@ class Test(unittest.TestCase):
         logging.info("Subscribe failure test starting")
 
         ocallback = Callbacks()
-        clientid = "subscribe failure".encode("utf-8")
+        clientid = b"subscribe failure"
         oclient = paho.mqtt.client.Client(
             clientid, protocol=paho.mqtt.client.MQTTv5)
         ocallback.register(oclient)

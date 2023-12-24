@@ -13,7 +13,8 @@ class FakeBroker:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.settimeout(30)
-        sock.bind(("localhost", 1888))
+        sock.bind(("localhost", 0))
+        self.port = sock.getsockname()[1]
         sock.listen(1)
 
         self._sock = sock
@@ -68,10 +69,10 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 class FakeWebsocketBroker(threading.Thread):
     def __init__(self):
-        super(FakeWebsocketBroker, self).__init__()
+        super().__init__()
 
         self.host = "localhost"
-        self.port = 1888
+        self.port = -1  # Will be set by `serve()`
 
         self._server = None
         self._running = True
@@ -79,10 +80,11 @@ class FakeWebsocketBroker(threading.Thread):
 
     @contextlib.contextmanager
     def serve(self, tcphandler):
-        self._server = ThreadedTCPServer((self.host, self.port), tcphandler)
+        self._server = ThreadedTCPServer((self.host, 0), tcphandler)
 
         try:
             self.start()
+            self.port = self._server.server_address[1]
 
             if not self._running:
                 raise RuntimeError("Error starting server")
@@ -99,8 +101,6 @@ class FakeWebsocketBroker(threading.Thread):
 
 @pytest.fixture
 def fake_websocket_broker():
-    socketserver.TCPServer.allow_reuse_address = True
-
     broker = FakeWebsocketBroker()
 
     yield broker

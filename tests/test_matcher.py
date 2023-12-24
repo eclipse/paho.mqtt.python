@@ -1,9 +1,8 @@
+import paho.mqtt.client as client
 import pytest
 
-import paho.mqtt.client as client
 
-
-class Test_client_function(object):
+class Test_client_function:
     """
     Tests on topic_matches_sub function in the client module
     """
