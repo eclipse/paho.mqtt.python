@@ -27,7 +27,7 @@ def bind_to_any_free_port(sock) -> int:
     """
     while True:
         try:
-            sock.bind(('', 0))
+            sock.bind(('localhost', 0))
             return sock.getsockname()[1]
         except OSError:
             pass
