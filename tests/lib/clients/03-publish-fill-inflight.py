@@ -4,8 +4,9 @@ import paho.mqtt.client as mqtt
 
 from tests.paho_test import get_test_server_port, loop_until_keyboard_interrupt
 
+
 def expected_payload(i: int) -> bytes:
-    return f"message{i}".encode("utf8")
+    return f"message{i}".encode()
 
 
 def on_message(mqttc, obj, msg):

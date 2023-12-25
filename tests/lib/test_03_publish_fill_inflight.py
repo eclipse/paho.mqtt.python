@@ -18,6 +18,7 @@ import pytest
 
 import tests.paho_test as paho_test
 
+
 def expected_payload(i: int) -> bytes:
     return f"message{i}"
 
