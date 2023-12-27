@@ -25,12 +25,8 @@ def bind_to_any_free_port(sock) -> int:
     Bind a socket to an available port on localhost,
     and return the port number.
     """
-    while True:
-        try:
-            sock.bind(('localhost', 0))
-            return sock.getsockname()[1]
-        except OSError:
-            pass
+    sock.bind(('localhost', 0))
+    return sock.getsockname()[1]
 
 
 def create_server_socket():
