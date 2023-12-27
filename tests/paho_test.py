@@ -12,12 +12,7 @@ try:
 except ImportError:
     ssl = None
 
-import atexit
-
 from tests import mqtt5_props
-
-vg_index = 1
-vg_logfiles = []
 
 
 def bind_to_any_free_port(sock) -> int:
@@ -100,107 +95,6 @@ def packet_matches(name, recvd, expected):
         return False
     else:
         return True
-
-
-def receive_unordered(sock, recv1_packet, recv2_packet, error_string):
-    expected1 = recv1_packet + recv2_packet
-    expected2 = recv2_packet + recv1_packet
-    recvd = b''
-    while len(recvd) < len(expected1):
-        r = sock.recv(1)
-        if len(r) == 0:
-            raise ValueError(error_string)
-        recvd += r
-
-    if recvd in (expected1, expected2):
-        return
-    else:
-        packet_matches(error_string, recvd, expected2)
-        raise ValueError(error_string)
-
-
-def do_send_receive(sock, send_packet, receive_packet, error_string="send receive error"):
-    size = len(send_packet)
-    total_sent = 0
-    while total_sent < size:
-        sent = sock.send(send_packet[total_sent:])
-        if sent == 0:
-            raise RuntimeError("socket connection broken")
-        total_sent += sent
-
-    if expect_packet(sock, error_string, receive_packet):
-        return sock
-    else:
-        sock.close()
-        raise ValueError
-
-
-# Useful for mocking a client receiving (with ack) a qos1 publish
-def do_receive_send(sock, receive_packet, send_packet, error_string="receive send error"):
-    if expect_packet(sock, error_string, receive_packet):
-        size = len(send_packet)
-        total_sent = 0
-        while total_sent < size:
-            sent = sock.send(send_packet[total_sent:])
-            if sent == 0:
-                raise RuntimeError("socket connection broken")
-            total_sent += sent
-        return sock
-    else:
-        sock.close()
-        raise ValueError
-
-
-def do_client_connect(connect_packet, connack_packet, hostname="localhost", port=1888, timeout=10, connack_error="connack"):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-    sock.connect((hostname, port))
-
-    return do_send_receive(sock, connect_packet, connack_packet, connack_error)
-
-
-def read_varint(sock, rl):
-    varint = 0
-    multiplier = 1
-    while True:
-        byte = sock.recv(1)
-        byte, = struct.unpack("!B", byte)
-        varint += (byte & 127)*multiplier
-        multiplier *= 128
-        rl -= 1
-        if byte & 128 == 0x00:
-            return (varint, rl)
-
-
-def mqtt_read_string(sock, rl):
-    slen = sock.recv(2)
-    slen, = struct.unpack("!H", slen)
-    payload = sock.recv(slen)
-    payload, = struct.unpack("!%ds" % (slen), payload)
-    rl -= (2 + slen)
-    return (payload, rl)
-
-
-def read_publish(sock, proto_ver=4):
-    cmd, = struct.unpack("!B", sock.recv(1))
-    if cmd & 0xF0 != 0x30:
-        raise ValueError
-
-    qos = (cmd & 0x06) >> 1
-    rl, t = read_varint(sock, 0)
-    topic, rl = mqtt_read_string(sock, rl)
-
-    if qos > 0:
-        sock.recv(2)
-        rl -= 1
-
-    if proto_ver == 5:
-        proplen, rl = read_varint(sock, rl)
-        sock.recv(proplen)
-        rl -= proplen
-
-    payload = sock.recv(rl).decode('utf-8')
-    return payload
 
 
 def gen_connect(client_id, clean_session=True, keepalive=60, username=None, password=None, will_topic=None, will_qos=0, will_retain=False, will_payload=b"", proto_ver=4, connect_reserved=False, properties=b"", will_properties=b"", session_expiry=-1):
@@ -487,23 +381,6 @@ def pack_remaining_length(remaining_length):
         s = s + struct.pack("!B", byte)
         if remaining_length == 0:
             return s
-
-
-def do_ping(sock, error_string="pingresp"):
-     do_send_receive(sock, gen_pingreq(), gen_pingresp(), error_string)
-
-
-@atexit.register
-def test_cleanup():
-    global vg_logfiles
-
-    if os.environ.get('MOSQ_USE_VALGRIND') is not None:
-        for f in vg_logfiles:
-            try:
-                if os.stat(f).st_size == 0:
-                    os.remove(f)
-            except OSError:
-                pass
 
 
 def loop_until_keyboard_interrupt(mqttc):
