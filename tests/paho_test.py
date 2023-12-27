@@ -62,7 +62,7 @@ def expect_packet(sock, name, expected):
             if len(data) == 0:
                 break
             packet_recvd += data
-    except socket.timeout:
+    except socket.timeout:  # pragma: no cover
         pass
 
     assert packet_matches(name, packet_recvd, expected)
@@ -88,7 +88,7 @@ def expect_no_packet(sock, delay=1):
 
 
 def packet_matches(name, recvd, expected):
-    if recvd != expected:
+    if recvd != expected:  # pragma: no cover
         print(f"FAIL: Received incorrect {name}.")
         dump_packet("Received", recvd)
         dump_packet("Expected", expected)

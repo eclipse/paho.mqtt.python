@@ -106,3 +106,13 @@ line-length = 167
     "S105",
     "S106",
 ]
+
+[tool.coverage.report]
+exclude_also = [
+    "@(abc\\.)?abstractmethod",
+    "def __repr__",
+    "except ImportError:",
+    "if TYPE_CHECKING:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
