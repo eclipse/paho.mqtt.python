@@ -38,18 +38,11 @@ def create_server_socket():
 
 
 def create_server_socket_ssl(cert_reqs=None):
-    if ssl is None:
-        raise RuntimeError
-
-    ssl_version = ssl.PROTOCOL_TLSv1
-    if hasattr(ssl, "PROTOCOL_TLS_SERVER"):
-        ssl_version = ssl.PROTOCOL_TLS_SERVER
-    elif hasattr(ssl, "PROTOCOL_TLS"):
-        ssl_version = ssl.PROTOCOL_TLS
+    assert ssl, "SSL not available"
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    context = ssl.SSLContext(ssl_version)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_verify_locations(str(ssl_path / "all-ca.crt"))
     context.load_cert_chain(
         str(ssl_path / "server.crt"),
