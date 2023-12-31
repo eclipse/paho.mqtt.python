@@ -106,6 +106,3 @@ line-length = 167
     "S105",
     "S106",
 ]
-"tests/test_mqttv5.py" = [
-    "F841",  # TODO: fix when fixing this test file
-]

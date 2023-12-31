@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: eclipse/paho.mqtt.testing
+          ref: a4dc694010217b291ee78ee13a6d1db812f9babd
+          path: paho.mqtt.testing
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
