@@ -241,6 +241,8 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
           processed using the tls_set_context method.
           Defaults to None, which indicates that TLS should not be used.
 
+    protocol : the MQTT protocol version to use. Defaults to MQTTv311.
+
     transport : set to "tcp" to use the default setting of transport which is
           raw TCP. Set to "websockets" to use WebSockets as the transport.
 
@@ -249,7 +251,8 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
                     when it disconnects. If False, the client is a persistent
                     client and subscription information and queued messages
                     will be retained when the client disconnects.
-                    Defaults to True.
+                    Defaults to True. If protocoll is MQTTv50, clean_session
+                    is ignored.
 
     proxy_args: a dictionary that will be given to the client.
     """
@@ -263,6 +266,10 @@ def simple(topics, qos=0, msg_count=1, retained=True, hostname="localhost",
         messages = None
     else:
         messages = []
+
+    # Ignore clean_session if protocol is MQTTv50, otherwise Client will raise
+    if protocol == paho.MQTTv5:
+        clean_session = None
 
     userdata = {'retained':retained, 'msg_count':msg_count, 'messages':messages}
 
