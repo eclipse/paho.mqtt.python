@@ -1,4 +1,3 @@
-import binascii
 import contextlib
 import os
 import socket
@@ -6,18 +5,14 @@ import struct
 import time
 
 from tests.consts import ssl_path
+from tests.debug_helpers import dump_packet
 
 try:
     import ssl
 except ImportError:
     ssl = None
 
-import atexit
-
 from tests import mqtt5_props
-
-vg_index = 1
-vg_logfiles = []
 
 
 def bind_to_any_free_port(sock) -> int:
@@ -25,12 +20,8 @@ def bind_to_any_free_port(sock) -> int:
     Bind a socket to an available port on localhost,
     and return the port number.
     """
-    while True:
-        try:
-            sock.bind(('localhost', 0))
-            return sock.getsockname()[1]
-        except OSError:
-            pass
+    sock.bind(('localhost', 0))
+    return sock.getsockname()[1]
 
 
 def create_server_socket():
@@ -42,18 +33,11 @@ def create_server_socket():
 
 
 def create_server_socket_ssl(cert_reqs=None):
-    if ssl is None:
-        raise RuntimeError
-
-    ssl_version = ssl.PROTOCOL_TLSv1
-    if hasattr(ssl, "PROTOCOL_TLS_SERVER"):
-        ssl_version = ssl.PROTOCOL_TLS_SERVER
-    elif hasattr(ssl, "PROTOCOL_TLS"):
-        ssl_version = ssl.PROTOCOL_TLS
+    assert ssl, "SSL not available"
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    context = ssl.SSLContext(ssl_version)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_verify_locations(str(ssl_path / "all-ca.crt"))
     context.load_cert_chain(
         str(ssl_path / "server.crt"),
@@ -78,11 +62,12 @@ def expect_packet(sock, name, expected):
             if len(data) == 0:
                 break
             packet_recvd += data
-    except socket.timeout:
+    except socket.timeout:  # pragma: no cover
         pass
 
     assert packet_matches(name, packet_recvd, expected)
     return True
+
 
 def expect_no_packet(sock, delay=1):
     """ expect that nothing is received within given delay
@@ -97,342 +82,19 @@ def expect_no_packet(sock, delay=1):
         sock.settimeout(previous_timeout)
 
     if data is not None:
-        try:
-            print("Received: " + to_string(data))
-        except struct.error:
-            print("Received (not decoded): 0x" +
-                  binascii.b2a_hex(data).decode('utf8'))
+        dump_packet("Received unexpected", data)
 
     assert data is None, "shouldn't receive any data"
 
 
 def packet_matches(name, recvd, expected):
-    if recvd != expected:
+    if recvd != expected:  # pragma: no cover
         print(f"FAIL: Received incorrect {name}.")
-        try:
-            print(f"Received: {to_string(recvd)}")
-        except struct.error:
-            print(f"Received (not decoded): 0x{binascii.b2a_hex(recvd).decode('utf8')}")
-        try:
-            print(f"Expected: {to_string(expected)}")
-        except struct.error:
-            print("Expected (not decoded): 0x" +
-                  binascii.b2a_hex(expected).decode('utf8'))
-
+        dump_packet("Received", recvd)
+        dump_packet("Expected", expected)
         return False
     else:
         return True
-
-
-def receive_unordered(sock, recv1_packet, recv2_packet, error_string):
-    expected1 = recv1_packet + recv2_packet
-    expected2 = recv2_packet + recv1_packet
-    recvd = b''
-    while len(recvd) < len(expected1):
-        r = sock.recv(1)
-        if len(r) == 0:
-            raise ValueError(error_string)
-        recvd += r
-
-    if recvd in (expected1, expected2):
-        return
-    else:
-        packet_matches(error_string, recvd, expected2)
-        raise ValueError(error_string)
-
-
-def do_send_receive(sock, send_packet, receive_packet, error_string="send receive error"):
-    size = len(send_packet)
-    total_sent = 0
-    while total_sent < size:
-        sent = sock.send(send_packet[total_sent:])
-        if sent == 0:
-            raise RuntimeError("socket connection broken")
-        total_sent += sent
-
-    if expect_packet(sock, error_string, receive_packet):
-        return sock
-    else:
-        sock.close()
-        raise ValueError
-
-
-# Useful for mocking a client receiving (with ack) a qos1 publish
-def do_receive_send(sock, receive_packet, send_packet, error_string="receive send error"):
-    if expect_packet(sock, error_string, receive_packet):
-        size = len(send_packet)
-        total_sent = 0
-        while total_sent < size:
-            sent = sock.send(send_packet[total_sent:])
-            if sent == 0:
-                raise RuntimeError("socket connection broken")
-            total_sent += sent
-        return sock
-    else:
-        sock.close()
-        raise ValueError
-
-
-def do_client_connect(connect_packet, connack_packet, hostname="localhost", port=1888, timeout=10, connack_error="connack"):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-    sock.connect((hostname, port))
-
-    return do_send_receive(sock, connect_packet, connack_packet, connack_error)
-
-
-def remaining_length(packet):
-    l = min(5, len(packet))  # noqa: E741
-    all_bytes = struct.unpack(f"!{'B' * l}", packet[:l])
-    mult = 1
-    rl = 0
-    for i in range(1, l - 1):
-        byte = all_bytes[i]
-
-        rl += (byte & 127) * mult
-        mult *= 128
-        if byte & 128 == 0:
-            packet = packet[i + 1:]
-            break
-
-    return (packet, rl)
-
-
-def to_hex_string(packet):
-    if len(packet) == 0:
-        return ""
-
-    s = ""
-    while len(packet) > 0:
-        packet0 = struct.unpack("!B", packet[0])
-        s = s+hex(packet0[0]) + " "
-        packet = packet[1:]
-
-    return s
-
-
-def to_string(packet):
-    if len(packet) == 0:
-        return ""
-
-    packet0 = struct.unpack(f"!B{len(packet) - 1}s", bytes(packet))
-    packet0 = packet0[0]
-    cmd = packet0 & 0xF0
-    if cmd == 0x00:
-        # Reserved
-        return "0x00"
-    elif cmd == 0x10:
-        # CONNECT
-        (packet, rl) = remaining_length(packet)
-        pack_format = "!H" + str(len(packet) - 2) + 's'
-        (slen, packet) = struct.unpack(pack_format, packet)
-        pack_format = "!" + str(slen) + 'sBBH' + str(len(packet) - slen - 4) + 's'
-        (protocol, proto_ver, flags, keepalive, packet) = struct.unpack(pack_format, packet)
-        kind = ("clean-session" if flags & 2 else "durable")
-        s = f"CONNECT, proto={protocol}{proto_ver}, keepalive={keepalive}, {kind}"
-
-        pack_format = "!H" + str(len(packet) - 2) + 's'
-        (slen, packet) = struct.unpack(pack_format, packet)
-        pack_format = "!" + str(slen) + 's' + str(len(packet) - slen) + 's'
-        (client_id, packet) = struct.unpack(pack_format, packet)
-        s = s + ", id=" + str(client_id)
-
-        if flags & 4:
-            pack_format = "!H" + str(len(packet) - 2) + 's'
-            (slen, packet) = struct.unpack(pack_format, packet)
-            pack_format = "!" + str(slen) + 's' + str(len(packet) - slen) + 's'
-            (will_topic, packet) = struct.unpack(pack_format, packet)
-            s = s + ", will-topic=" + str(will_topic)
-
-            pack_format = "!H" + str(len(packet) - 2) + 's'
-            (slen, packet) = struct.unpack(pack_format, packet)
-            pack_format = "!" + str(slen) + 's' + str(len(packet) - slen) + 's'
-            (will_message, packet) = struct.unpack(pack_format, packet)
-            s = s + ", will-message=" + will_message
-
-            s = s + ", will-qos=" + str((flags & 24) >> 3)
-            s = s + ", will-retain=" + str((flags & 32) >> 5)
-
-        if flags & 128:
-            pack_format = "!H" + str(len(packet) - 2) + 's'
-            (slen, packet) = struct.unpack(pack_format, packet)
-            pack_format = "!" + str(slen) + 's' + str(len(packet) - slen) + 's'
-            (username, packet) = struct.unpack(pack_format, packet)
-            s = s + ", username=" + str(username)
-
-        if flags & 64:
-            pack_format = "!H" + str(len(packet) - 2) + 's'
-            (slen, packet) = struct.unpack(pack_format, packet)
-            pack_format = "!" + str(slen) + 's' + str(len(packet) - slen) + 's'
-            (password, packet) = struct.unpack(pack_format, packet)
-            s = s + ", password=" + str(password)
-
-        if flags & 1:
-            s = s + ", reserved=1"
-
-        return s
-    elif cmd == 0x20:
-        # CONNACK
-        if len(packet) == 4:
-            (cmd, rl, resv, rc) = struct.unpack('!BBBB', packet)
-            return "CONNACK, rl="+str(rl)+", res="+str(resv)+", rc="+str(rc)
-        elif len(packet) == 5:
-            (cmd, rl, flags, reason_code, proplen) = struct.unpack('!BBBBB', packet)
-            return "CONNACK, rl="+str(rl)+", flags="+str(flags)+", rc="+str(reason_code)+", proplen="+str(proplen)
-        else:
-            return "CONNACK, (not decoded)"
-
-    elif cmd == 0x30:
-        # PUBLISH
-        dup = (packet0 & 0x08) >> 3
-        qos = (packet0 & 0x06) >> 1
-        retain = (packet0 & 0x01)
-        (packet, rl) = remaining_length(packet)
-        pack_format = "!H" + str(len(packet) - 2) + 's'
-        (tlen, packet) = struct.unpack(pack_format, packet)
-        pack_format = "!" + str(tlen) + 's' + str(len(packet) - tlen) + 's'
-        (topic, packet) = struct.unpack(pack_format, packet)
-        s = "PUBLISH, rl=" + str(rl) + ", topic=" + str(topic) + ", qos=" + str(qos) + ", retain=" + str(retain) + ", dup=" + str(dup)
-        if qos > 0:
-            pack_format = "!H" + str(len(packet) - 2) + 's'
-            (mid, packet) = struct.unpack(pack_format, packet)
-            s = s + ", mid=" + str(mid)
-
-        s = s + ", payload=" + str(packet)
-        return s
-    elif cmd == 0x40:
-        # PUBACK
-        if len(packet) == 5:
-            (cmd, rl, mid, reason_code) = struct.unpack('!BBHB', packet)
-            return "PUBACK, rl="+str(rl)+", mid="+str(mid)+", reason_code="+str(reason_code)
-        else:
-            (cmd, rl, mid) = struct.unpack('!BBH', packet)
-            return "PUBACK, rl="+str(rl)+", mid="+str(mid)
-    elif cmd == 0x50:
-        # PUBREC
-        if len(packet) == 5:
-            (cmd, rl, mid, reason_code) = struct.unpack('!BBHB', packet)
-            return "PUBREC, rl="+str(rl)+", mid="+str(mid)+", reason_code="+str(reason_code)
-        else:
-            (cmd, rl, mid) = struct.unpack('!BBH', packet)
-            return "PUBREC, rl="+str(rl)+", mid="+str(mid)
-    elif cmd == 0x60:
-        # PUBREL
-        dup = (packet0 & 0x08) >> 3
-        (cmd, rl, mid) = struct.unpack('!BBH', packet)
-        return "PUBREL, rl=" + str(rl) + ", mid=" + str(mid) + ", dup=" + str(dup)
-    elif cmd == 0x70:
-        # PUBCOMP
-        (cmd, rl, mid) = struct.unpack('!BBH', packet)
-        return "PUBCOMP, rl=" + str(rl) + ", mid=" + str(mid)
-    elif cmd == 0x80:
-        # SUBSCRIBE
-        (packet, rl) = remaining_length(packet)
-        pack_format = "!H" + str(len(packet) - 2) + 's'
-        (mid, packet) = struct.unpack(pack_format, packet)
-        s = "SUBSCRIBE, rl=" + str(rl) + ", mid=" + str(mid)
-        topic_index = 0
-        while len(packet) > 0:
-            pack_format = "!H" + str(len(packet) - 2) + 's'
-            (tlen, packet) = struct.unpack(pack_format, packet)
-            pack_format = "!" + str(tlen) + 'sB' + str(len(packet) - tlen - 1) + 's'
-            (topic, qos, packet) = struct.unpack(pack_format, packet)
-            s = s + ", topic" + str(topic_index) + "=" + str(topic) + "," + str(qos)
-        return s
-    elif cmd == 0x90:
-        # SUBACK
-        (packet, rl) = remaining_length(packet)
-        pack_format = "!H" + str(len(packet) - 2) + 's'
-        (mid, packet) = struct.unpack(pack_format, packet)
-        pack_format = "!" + "B" * len(packet)
-        granted_qos = struct.unpack(pack_format, packet)
-
-        s = "SUBACK, rl=" + str(rl) + ", mid=" + str(mid) + ", granted_qos=" + str(granted_qos[0])
-        for i in range(1, len(granted_qos) - 1):
-            s = s + ", " + str(granted_qos[i])
-        return s
-    elif cmd == 0xA0:
-        # UNSUBSCRIBE
-        (packet, rl) = remaining_length(packet)
-        pack_format = "!H" + str(len(packet) - 2) + 's'
-        (mid, packet) = struct.unpack(pack_format, packet)
-        s = "UNSUBSCRIBE, rl=" + str(rl) + ", mid=" + str(mid)
-        topic_index = 0
-        while len(packet) > 0:
-            pack_format = "!H" + str(len(packet) - 2) + 's'
-            (tlen, packet) = struct.unpack(pack_format, packet)
-            pack_format = "!" + str(tlen) + 's' + str(len(packet) - tlen) + 's'
-            (topic, packet) = struct.unpack(pack_format, packet)
-            s = s + ", topic" + str(topic_index) + "=" + str(topic)
-        return s
-    elif cmd == 0xB0:
-        # UNSUBACK
-        (cmd, rl, mid) = struct.unpack('!BBH', packet)
-        return "UNSUBACK, rl=" + str(rl) + ", mid=" + str(mid)
-    elif cmd == 0xC0:
-        # PINGREQ
-        (cmd, rl) = struct.unpack('!BB', packet)
-        return "PINGREQ, rl=" + str(rl)
-    elif cmd == 0xD0:
-        # PINGRESP
-        (cmd, rl) = struct.unpack('!BB', packet)
-        return "PINGRESP, rl=" + str(rl)
-    elif cmd == 0xE0:
-        # DISCONNECT
-        if len(packet) == 3:
-            (cmd, rl, reason_code) = struct.unpack('!BBB', packet)
-            return "DISCONNECT, rl="+str(rl)+", reason_code="+str(reason_code)
-        else:
-            (cmd, rl) = struct.unpack('!BB', packet)
-            return "DISCONNECT, rl="+str(rl)
-    elif cmd == 0xF0:
-        # AUTH
-        (cmd, rl) = struct.unpack('!BB', packet)
-        return "AUTH, rl="+str(rl)
-
-
-def read_varint(sock, rl):
-    varint = 0
-    multiplier = 1
-    while True:
-        byte = sock.recv(1)
-        byte, = struct.unpack("!B", byte)
-        varint += (byte & 127)*multiplier
-        multiplier *= 128
-        rl -= 1
-        if byte & 128 == 0x00:
-            return (varint, rl)
-
-
-def mqtt_read_string(sock, rl):
-    slen = sock.recv(2)
-    slen, = struct.unpack("!H", slen)
-    payload = sock.recv(slen)
-    payload, = struct.unpack(f"!{slen}s", payload)
-    rl -= (2 + slen)
-    return (payload, rl)
-
-
-def read_publish(sock, proto_ver=4):
-    cmd, = struct.unpack("!B", sock.recv(1))
-    if cmd & 0xF0 != 0x30:
-        raise ValueError
-
-    qos = (cmd & 0x06) >> 1
-    rl, t = read_varint(sock, 0)
-    topic, rl = mqtt_read_string(sock, rl)
-
-    if qos > 0:
-        sock.recv(2)
-        rl -= 1
-
-    if proto_ver == 5:
-        proplen, rl = read_varint(sock, rl)
-        sock.recv(proplen)
-        rl -= proplen
-
-    payload = sock.recv(rl).decode('utf-8')
-    return payload
 
 
 def gen_connect(client_id, clean_session=True, keepalive=60, username=None, password=None, will_topic=None, will_qos=0, will_retain=False, will_payload=b"", proto_ver=4, connect_reserved=False, properties=b"", will_properties=b"", session_expiry=-1):
@@ -719,23 +381,6 @@ def pack_remaining_length(remaining_length):
         s = s + struct.pack("!B", byte)
         if remaining_length == 0:
             return s
-
-
-def do_ping(sock, error_string="pingresp"):
-     do_send_receive(sock, gen_pingreq(), gen_pingresp(), error_string)
-
-
-@atexit.register
-def test_cleanup():
-    global vg_logfiles
-
-    if os.environ.get('MOSQ_USE_VALGRIND') is not None:
-        for f in vg_logfiles:
-            try:
-                if os.stat(f).st_size == 0:
-                    os.remove(f)
-            except OSError:
-                pass
 
 
 def loop_until_keyboard_interrupt(mqttc):
