@@ -10,7 +10,7 @@ def on_message(mqttc, obj, msg):
     assert msg.topic == "pub/qos1/receive", f"Invalid topic: ({msg.topic})"
     assert msg.payload == expected_payload, f"Invalid payload: ({msg.payload})"
     assert msg.qos == 1, f"Invalid qos: ({msg.qos})"
-    assert msg.retain is not False, f"Invalid retain: ({msg.retain})"
+    assert not msg.retain, f"Invalid retain: ({msg.retain})"
 
 
 def on_connect(mqttc, obj, flags, rc):

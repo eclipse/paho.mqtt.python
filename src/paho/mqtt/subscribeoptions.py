@@ -41,10 +41,10 @@ class SubscribeOptions:
 
     def __init__(
         self,
-        qos=0,
-        noLocal=False,
-        retainAsPublished=False,
-        retainHandling=RETAIN_SEND_ON_SUBSCRIBE,
+        qos: int = 0,
+        noLocal: bool = False,
+        retainAsPublished: bool = False,
+        retainHandling: int = RETAIN_SEND_ON_SUBSCRIBE,
     ):
         """
         qos:                0, 1 or 2.  0 is the default.

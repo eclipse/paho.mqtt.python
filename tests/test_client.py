@@ -311,3 +311,44 @@ class TestPublishBroker2Client:
         assert userdata["on_message"] == 1
         assert userdata["callback1"] == 1
         assert userdata["callback2"] == 2
+
+
+class Test_compatibility:
+    """
+    Few test for backward compatibility
+    """
+
+    def test_change_error_code_to_enum(self):
+        """Make sure code don't break after MQTTErrorCode enum introduction"""
+        rc_ok = client.MQTTErrorCode.MQTT_ERR_SUCCESS
+        rc_again = client.MQTTErrorCode.MQTT_ERR_AGAIN
+        rc_err = client.MQTTErrorCode.MQTT_ERR_NOMEM
+
+        # Access using old name still works
+        assert rc_ok == client.MQTT_ERR_SUCCESS
+
+        # User might compare to 0 to check for success
+        assert rc_ok == 0
+        assert not rc_err == 0
+        assert not rc_again == 0
+        assert not rc_ok != 0
+        assert rc_err != 0
+        assert rc_again != 0
+
+        # User might compare to specific code
+        assert rc_again == -1
+        assert rc_err == 1
+
+        # User might just use "if rc:"
+        assert not rc_ok
+        assert rc_err
+        assert rc_again
+
+        # User might do inequality with 0 (like "if rc > 0")
+        assert not (rc_ok > 0)
+        assert rc_err > 0
+        assert rc_again < 0
+
+        # This might probably not be done: User might use rc as number in
+        # operation
+        assert rc_ok + 1 == 1
