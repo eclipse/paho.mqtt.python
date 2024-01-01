@@ -42,18 +42,18 @@ def gen_uint32_prop(identifier, word):
 
 def gen_string_prop(identifier, s):
     s = s.encode("utf-8")
-    prop = struct.pack('!BH%ds'%(len(s)), identifier, len(s), s)
+    prop = struct.pack(f'!BH{len(s)}s', identifier, len(s), s)
     return prop
 
 def gen_string_pair_prop(identifier, s1, s2):
     s1 = s1.encode("utf-8")
     s2 = s2.encode("utf-8")
-    prop = struct.pack('!BH%dsH%ds'%(len(s1), len(s2)), identifier, len(s1), s1, len(s2), s2)
+    prop = struct.pack(f'!BH{len(s1)}sH{len(s2)}s', identifier, len(s1), s1, len(s2), s2)
     return prop
 
 def gen_varint_prop(identifier, val):
     v = pack_varint(val)
-    return struct.pack("!B"+str(len(v))+"s", identifier, v)
+    return struct.pack(f"!B{len(v)}s", identifier, v)
 
 def pack_varint(varint):
     s = b""

@@ -63,7 +63,7 @@ class SubscribeOptions:
     def __setattr__(self, name, value):
         if name not in self.names:
             raise MQTTException(
-                name + " Attribute name must be one of "+str(self.names))
+                f"{name} Attribute name must be one of {self.names}")
         object.__setattr__(self, name, value)
 
     def pack(self):

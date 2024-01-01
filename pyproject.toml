@@ -79,6 +79,7 @@ extend-select = [
     "F63",
     "F7",
     "F82",
+    "FLY",  # flynt
     "I",
     "S", # Bandit
     "UP",

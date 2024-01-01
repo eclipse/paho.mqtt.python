@@ -456,7 +456,7 @@ class Test(unittest.TestCase):
         response = ocallback.wait_subscribed()
 
         self.assertEqual(response["reasonCodes"][0].getName(), "Unspecified error",
-                         "return code should be 0x80 %s" % response["reasonCodes"][0].getName())
+                         f"return code should be 0x80 {response['reasonCodes'][0].getName()}")
         oclient.disconnect()
         oclient.loop_stop()
 
@@ -701,7 +701,7 @@ class Test(unittest.TestCase):
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.SessionExpiryInterval = 99999
 
-        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient, lbcallback = self.new_client(f"{clientid} b")
         lbclient.loop_start()
         lbclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
         lbcallback.wait_connected()
@@ -713,7 +713,7 @@ class Test(unittest.TestCase):
         lbcallback.wait_disconnected()
         lbclient.loop_stop()
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.loop_start()
         laclient.connect(host="localhost", port=self._test_broker_port)
         publish_properties = Properties(PacketTypes.PUBLISH)
@@ -731,7 +731,7 @@ class Test(unittest.TestCase):
                          2, retain=False, properties=publish_properties)
 
         time.sleep(3)
-        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient, lbcallback = self.new_client(f"{clientid} b")
         lbclient.loop_start()
         lbclient.connect(host="localhost", port=self._test_broker_port, clean_start=False)
         lbcallback.wait_connected()
@@ -754,7 +754,7 @@ class Test(unittest.TestCase):
         # noLocal
         clientid = 'subscribe options - noLocal'
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.loop_start()
@@ -762,7 +762,7 @@ class Test(unittest.TestCase):
             topics[0], options=SubscribeOptions(qos=2, noLocal=True))
         lacallback.wait_subscribed()
 
-        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient, lbcallback = self.new_client(f"{clientid} b")
         lbclient.connect(host="localhost", port=self._test_broker_port)
         lbcallback.wait_connected()
         lbclient.loop_start()
@@ -785,7 +785,7 @@ class Test(unittest.TestCase):
 
         # retainAsPublished
         clientid = 'subscribe options - retain as published'
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.subscribe(topics[0], options=SubscribeOptions(
@@ -809,7 +809,7 @@ class Test(unittest.TestCase):
 
         # retainHandling
         clientid = 'subscribe options - retain handling'
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.publish(topics[1], b"qos 0", 0, retain=True)
@@ -895,7 +895,7 @@ class Test(unittest.TestCase):
     def test_subscription_identifiers(self):
         clientid = 'subscription identifiers'
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.loop_start()
@@ -905,7 +905,7 @@ class Test(unittest.TestCase):
         laclient.subscribe(topics[0], qos=2, properties=sub_properties)
         lacallback.wait_subscribed()
 
-        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient, lbcallback = self.new_client(f"{clientid} b")
         lbclient.connect(host="localhost", port=self._test_broker_port)
         lbcallback.wait_connected()
         lbclient.loop_start()
@@ -916,7 +916,7 @@ class Test(unittest.TestCase):
 
         sub_properties.clear()
         sub_properties.SubscriptionIdentifier = 3
-        lbclient.subscribe(topics[0]+"/#", qos=2, properties=sub_properties)
+        lbclient.subscribe(f"{topics[0]}/#", qos=2, properties=sub_properties)
 
         lbclient.publish(topics[0], b"sub identifier test", 1, retain=False)
 
@@ -941,12 +941,12 @@ class Test(unittest.TestCase):
     def test_request_response(self):
         clientid = 'request response'
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port)
         lacallback.wait_connected()
         laclient.loop_start()
 
-        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient, lbcallback = self.new_client(f"{clientid} b")
         lbclient.connect(host="localhost", port=self._test_broker_port)
         lbcallback.wait_connected()
         lbclient.loop_start()
@@ -994,7 +994,7 @@ class Test(unittest.TestCase):
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.TopicAliasMaximum = 0  # server topic aliases not allowed
         connect_properties.SessionExpiryInterval = 99999
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         clientTopicAliasMaximum = 0
@@ -1027,7 +1027,7 @@ class Test(unittest.TestCase):
         laclient.loop_stop()
 
         # check aliases have been deleted
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port, clean_start=False,
                          properties=connect_properties)
 
@@ -1051,7 +1051,7 @@ class Test(unittest.TestCase):
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.TopicAliasMaximum = serverTopicAliasMaximum
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
         lacallback.wait_connected()
         laclient.loop_start()
@@ -1087,7 +1087,7 @@ class Test(unittest.TestCase):
         connect_properties = Properties(PacketTypes.CONNECT)
         # connect_properties.TopicAliasMaximum = serverTopicAliasMaximum # default is 0
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
         lacallback.wait_connected()
         laclient.loop_start()
@@ -1115,7 +1115,7 @@ class Test(unittest.TestCase):
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.TopicAliasMaximum = serverTopicAliasMaximum  # default is 0
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
         lacallback.wait_connected()
         laclient.loop_start()
@@ -1143,7 +1143,7 @@ class Test(unittest.TestCase):
         clientid = 'maximum packet size'
 
         # 1. server max packet size
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port)
         connack = lacallback.wait_connected()
         laclient.loop_start()
@@ -1172,7 +1172,7 @@ class Test(unittest.TestCase):
         connect_properties = Properties(PacketTypes.CONNECT)
         connect_properties.MaximumPacketSize = maximumPacketSize
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
         connack = lacallback.wait_connected()
         laclient.loop_start()
@@ -1230,7 +1230,7 @@ class Test(unittest.TestCase):
         will_properties.WillDelayInterval = 3  # in seconds
         connect_properties.SessionExpiryInterval = 5
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.will_set(
             topics[0], payload=b"test_will_delay will message", properties=will_properties)
         laclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
@@ -1239,7 +1239,7 @@ class Test(unittest.TestCase):
         self.assertEqual(connack["flags"]["session present"], False)
         laclient.loop_start()
 
-        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient, lbcallback = self.new_client(f"{clientid} b")
         lbclient.connect(host="localhost", port=self._test_broker_port, properties=connect_properties)
         connack = lbcallback.wait_connected()
         lbclient.loop_start()
@@ -1266,10 +1266,10 @@ class Test(unittest.TestCase):
     def test_shared_subscriptions(self):
         clientid = 'shared subscriptions'
 
-        shared_sub_topic = '$share/sharename/' + topic_prefix + 'x'
-        shared_pub_topic = topic_prefix + 'x'
+        shared_sub_topic = f"$share/sharename/{topic_prefix}x"
+        shared_pub_topic = f"{topic_prefix}x"
 
-        laclient, lacallback = self.new_client(clientid+" a")
+        laclient, lacallback = self.new_client(f"{clientid} a")
         laclient.connect(host="localhost", port=self._test_broker_port)
         connack = lacallback.wait_connected()
         laclient.loop_start()
@@ -1281,7 +1281,7 @@ class Test(unittest.TestCase):
             [(shared_sub_topic, SubscribeOptions(2)), (topics[0], SubscribeOptions(2))])
         lacallback.wait_subscribed()
 
-        lbclient, lbcallback = self.new_client(clientid+" b")
+        lbclient, lbcallback = self.new_client(f"{clientid} b")
         lbclient.connect(host="localhost", port=self._test_broker_port)
         connack = lbcallback.wait_connected()
         lbclient.loop_start()
@@ -1298,7 +1298,7 @@ class Test(unittest.TestCase):
 
         count = 1
         for i in range(count):
-            lbclient.publish(topics[0], "message "+str(i), 0)
+            lbclient.publish(topics[0], f"message {i}", 0)
         j = 0
         while len(lacallback.messages) + len(lbcallback.messages) < 2*count and j < 20:
             time.sleep(.1)
@@ -1311,7 +1311,7 @@ class Test(unittest.TestCase):
         lbcallback.clear()
 
         for i in range(count):
-            lbclient.publish(shared_pub_topic, "message "+str(i), 0)
+            lbclient.publish(shared_pub_topic, f"message {i}", 0)
         j = 0
         while len(lacallback.messages) + len(lbcallback.messages) < count and j < 20:
             time.sleep(.1)

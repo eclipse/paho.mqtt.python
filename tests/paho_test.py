@@ -108,14 +108,13 @@ def expect_no_packet(sock, delay=1):
 
 def packet_matches(name, recvd, expected):
     if recvd != expected:
-        print("FAIL: Received incorrect " + name + ".")
+        print(f"FAIL: Received incorrect {name}.")
         try:
-            print("Received: " + to_string(recvd))
+            print(f"Received: {to_string(recvd)}")
         except struct.error:
-            print("Received (not decoded): 0x" +
-                  binascii.b2a_hex(recvd).decode('utf8'))
+            print(f"Received (not decoded): 0x{binascii.b2a_hex(recvd).decode('utf8')}")
         try:
-            print("Expected: " + to_string(expected))
+            print(f"Expected: {to_string(expected)}")
         except struct.error:
             print("Expected (not decoded): 0x" +
                   binascii.b2a_hex(expected).decode('utf8'))
@@ -184,7 +183,7 @@ def do_client_connect(connect_packet, connack_packet, hostname="localhost", port
 
 def remaining_length(packet):
     l = min(5, len(packet))  # noqa: E741
-    all_bytes = struct.unpack("!" + "B" * l, packet[:l])
+    all_bytes = struct.unpack(f"!{'B' * l}", packet[:l])
     mult = 1
     rl = 0
     for i in range(1, l - 1):
@@ -216,7 +215,7 @@ def to_string(packet):
     if len(packet) == 0:
         return ""
 
-    packet0 = struct.unpack("!B%ds" % (len(packet)-1), bytes(packet))
+    packet0 = struct.unpack(f"!B{len(packet) - 1}s", bytes(packet))
     packet0 = packet0[0]
     cmd = packet0 & 0xF0
     if cmd == 0x00:
@@ -409,7 +408,7 @@ def mqtt_read_string(sock, rl):
     slen = sock.recv(2)
     slen, = struct.unpack("!H", slen)
     payload = sock.recv(slen)
-    payload, = struct.unpack("!%ds" % (slen), payload)
+    payload, = struct.unpack(f"!{slen}s", payload)
     rl -= (2 + slen)
     return (payload, rl)
 

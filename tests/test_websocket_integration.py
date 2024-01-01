@@ -81,7 +81,7 @@ class TestBadWebsocketHeaders:
         class WebsocketHandler(socketserver.BaseRequestHandler):
             def handle(_self):
                 self.data = _self.request.recv(1024).strip()
-                print("Received '{:s}'".format(self.data.decode("utf8")))
+                print('Received', self.data.decode('utf8'))
                 # Respond with data passed in to serve()
                 _self.request.sendall(response)
 
@@ -138,7 +138,7 @@ class TestValidHeaders:
         class WebsocketHandler(socketserver.BaseRequestHandler):
             def handle(_self):
                 self.data = _self.request.recv(1024).strip()
-                print("Received '{:s}'".format(self.data.decode("utf8")))
+                print('Received', self.data.decode('utf8'))
 
                 decoded = self.data.decode("utf8")
 
@@ -202,7 +202,7 @@ class TestValidHeaders:
         def check_path_correct(decoded):
             # Make sure it connects to the right path
             if mqtt_path:
-                assert re.search(f"GET {mqtt_path:s} HTTP/1.1", decoded, re.IGNORECASE) is not None
+                assert re.search(f"GET {mqtt_path} HTTP/1.1", decoded, re.IGNORECASE) is not None
 
         response = self._get_callback_handler(
             init_response_headers,
@@ -237,8 +237,8 @@ class TestValidHeaders:
         def check_headers_used(decoded):
             # Make sure it connects to the right path
             if auth_headers:
-                for h in auth_headers:
-                    assert re.search(f"{h:s}: {auth_headers[h]:s}", decoded, re.IGNORECASE) is not None
+                for k, v in auth_headers.items():
+                    assert f"{k}: {v}" in decoded
 
         response = self._get_callback_handler(
             init_response_headers,
