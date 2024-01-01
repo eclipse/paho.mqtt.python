@@ -72,6 +72,34 @@ if platform.system() == "Windows":
 else:
     EAGAIN = errno.EAGAIN
 
+if typing.TYPE_CHECKING:
+    try:
+        from typing import TypedDict
+    except ImportError:
+        from typing_extensions import TypedDict
+
+    from typing_extensions import Literal
+
+    class _InPacket(TypedDict):
+        command: int
+        have_remaining: int
+        remaining_count: typing.List[int]
+        remaining_mult: int
+        remaining_length: int
+        packet: bytearray
+        to_process: int
+        pos: int
+
+    class _OutPacket(TypedDict):
+        command: int
+        mid: int
+        qos: int
+        pos: int
+        to_process: int
+        packet: bytes
+        info: typing.Optional["MQTTMessageInfo"]
+
+
 MQTTv31 = 3
 MQTTv311 = 4
 MQTTv5 = 5
@@ -191,7 +219,7 @@ sockpair_data = b"0"
 # * None is converted to a zero-length payload (i.e. b"")
 PayloadType = typing.Union[str, bytes, bytearray, int, float, None]
 
-HTTPHeader = dict[str, str]
+HTTPHeader = typing.Dict[str, str]
 WebSocketHeaders = typing.Union[typing.Callable[[HTTPHeader], HTTPHeader], HTTPHeader]
 
 SocketLike = typing.Union[socket.socket, "ssl.SSLSocket", "WebsocketWrapper"]
@@ -204,9 +232,12 @@ CallbackOnConnect = typing.Union[
 CallbackOnConnectFail = typing.Callable[["Client", typing.Any], None]
 CallbackOnDisconnect = typing.Union[
     typing.Callable[
-        ["Client", typing.Any, dict[str, typing.Any], ReasonCodes, Properties], None
+        ["Client", typing.Any, typing.Dict[str, typing.Any], ReasonCodes, Properties],
+        None,
     ],
-    typing.Callable[["Client", typing.Any, dict[str, typing.Any], MQTTErrorCode], None],
+    typing.Callable[
+        ["Client", typing.Any, typing.Dict[str, typing.Any], MQTTErrorCode], None
+    ],
 ]
 CallbackOnLog = typing.Callable[["Client", typing.Any, int, str], None]
 CallbackOnMessage = typing.Callable[["Client", typing.Any, "MQTTMessage"], None]
@@ -215,9 +246,9 @@ CallbackOnPublish = typing.Callable[["Client", typing.Any, int], None]
 CallbackOnSocket = typing.Callable[["Client", typing.Any, SocketLike], None]
 CallbackOnSubscribe = typing.Union[
     typing.Callable[
-        ["Client", typing.Any, Properties, list[ReasonCodes], Properties], None
+        ["Client", typing.Any, Properties, typing.List[ReasonCodes], Properties], None
     ],
-    typing.Callable[["Client", typing.Any, int, tuple[int, ...]], None],
+    typing.Callable[["Client", typing.Any, int, typing.Tuple[int, ...]], None],
 ]
 CallbackOnUnsubscribe = typing.Union[
     typing.Callable[["Client", typing.Any, Properties, ReasonCodes], None],
@@ -226,27 +257,6 @@ CallbackOnUnsubscribe = typing.Union[
 
 # This is needed for typing because class Client redefined the name "socket"
 _socket = socket
-
-
-class _InPacket(typing.TypedDict):
-    command: int
-    have_remaining: int
-    remaining_count: list[int]
-    remaining_mult: int
-    remaining_length: int
-    packet: bytearray
-    to_process: int
-    pos: int
-
-
-class _OutPacket(typing.TypedDict):
-    command: int
-    mid: int
-    qos: int
-    pos: int
-    to_process: int
-    packet: bytes
-    info: typing.Optional["MQTTMessageInfo"]
 
 
 class WebsocketConnectionError(ValueError):
@@ -342,7 +352,7 @@ def topic_matches_sub(sub: str, topic: str) -> bool:
         return False
 
 
-def _socketpair_compat() -> tuple[socket.socket, socket.socket]:
+def _socketpair_compat() -> typing.Tuple[socket.socket, socket.socket]:
     """TCP/IP socketpair including Windows support"""
     listensock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_IP)
     listensock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -665,19 +675,18 @@ class Client:
 
         self._username: typing.Optional[bytes] = None
         self._password: typing.Optional[bytes] = None
-        self._in_packet = _InPacket(
-            {
-                "command": 0,
-                "have_remaining": 0,
-                "remaining_count": [],
-                "remaining_mult": 1,
-                "remaining_length": 0,
-                "packet": bytearray(b""),
-                "to_process": 0,
-                "pos": 0,
-            }
-        )
-        self._out_packet: collections.deque[_OutPacket] = collections.deque()
+        self._in_packet: "_InPacket" = {
+            "command": 0,
+            "have_remaining": 0,
+            "remaining_count": [],
+            "remaining_mult": 1,
+            "remaining_length": 0,
+            "packet": bytearray(b""),
+            "to_process": 0,
+            "pos": 0,
+        }
+
+        self._out_packet: typing.Deque["_OutPacket"] = collections.deque()
         self._last_msg_in = time_func()
         self._last_msg_out = time_func()
         self._reconnect_min_delay = 1
@@ -1029,7 +1038,7 @@ class Client:
         bind_address: str = "",
         bind_port: int = 0,
         clean_start: typing.Union[
-            bool, typing.Literal[3]
+            bool, "Literal[3]"
         ] = MQTT_CLEAN_START_FIRST_ONLY,  # type: ignore
         properties: typing.Optional[Properties] = None,
     ) -> MQTTErrorCode:
@@ -1071,7 +1080,7 @@ class Client:
         bind_address: str = "",
         bind_port: int = 0,
         clean_start: typing.Union[
-            bool, typing.Literal[3]
+            bool, "Literal[3]"
         ] = MQTT_CLEAN_START_FIRST_ONLY,  # type: ignore
         properties: typing.Optional[Properties] = None,
     ) -> MQTTErrorCode:
@@ -1134,7 +1143,7 @@ class Client:
         bind_address: str = "",
         bind_port: int = 0,
         clean_start: typing.Union[
-            bool, typing.Literal[3]
+            bool, "Literal[3]"
         ] = MQTT_CLEAN_START_FIRST_ONLY,  # type: ignore
         properties: typing.Optional[Properties] = None,
     ) -> None:
@@ -1195,18 +1204,16 @@ class Client:
         if self._port <= 0:
             raise ValueError("Invalid port number.")
 
-        self._in_packet = _InPacket(
-            {
-                "command": 0,
-                "have_remaining": 0,
-                "remaining_count": [],
-                "remaining_mult": 1,
-                "remaining_length": 0,
-                "packet": bytearray(b""),
-                "to_process": 0,
-                "pos": 0,
-            }
-        )
+        self._in_packet = {
+            "command": 0,
+            "have_remaining": 0,
+            "remaining_count": [],
+            "remaining_mult": 1,
+            "remaining_length": 0,
+            "packet": bytearray(b""),
+            "to_process": 0,
+            "pos": 0,
+        }
 
         self._out_packet = collections.deque()
 
@@ -1613,15 +1620,15 @@ class Client:
         self,
         topic: typing.Union[
             str,
-            tuple[str, int],
-            tuple[str, SubscribeOptions],
-            list[tuple[str, int]],
-            list[tuple[str, SubscribeOptions]],
+            typing.Tuple[str, int],
+            typing.Tuple[str, SubscribeOptions],
+            typing.List[typing.Tuple[str, int]],
+            typing.List[typing.Tuple[str, SubscribeOptions]],
         ],
         qos: int = 0,
         options: typing.Optional[SubscribeOptions] = None,
         properties: typing.Optional[Properties] = None,
-    ) -> tuple[MQTTErrorCode, typing.Optional[int]]:
+    ) -> typing.Tuple[MQTTErrorCode, typing.Optional[int]]:
         """Subscribe the client to one or more topics.
 
         This function may be called in three different ways (and a further three for MQTT v5.0):
@@ -1767,7 +1774,7 @@ class Client:
 
     def unsubscribe(
         self, topic: str, properties: typing.Optional[Properties] = None
-    ) -> tuple[MQTTErrorCode, typing.Optional[int]]:
+    ) -> typing.Tuple[MQTTErrorCode, typing.Optional[int]]:
         """Unsubscribe the client from one or more topics.
 
         topic: A single string, or list of strings that are the subscription
@@ -2836,18 +2843,16 @@ class Client:
         rc = self._packet_handle()
 
         # Free data and reset values
-        self._in_packet = _InPacket(
-            {
-                "command": 0,
-                "have_remaining": 0,
-                "remaining_count": [],
-                "remaining_mult": 1,
-                "remaining_length": 0,
-                "packet": bytearray(b""),
-                "to_process": 0,
-                "pos": 0,
-            }
-        )
+        self._in_packet = {
+            "command": 0,
+            "have_remaining": 0,
+            "remaining_count": [],
+            "remaining_mult": 1,
+            "remaining_length": 0,
+            "packet": bytearray(b""),
+            "to_process": 0,
+            "pos": 0,
+        }
 
         with self._msgtime_mutex:
             self._last_msg_in = time_func()
@@ -3317,9 +3322,11 @@ class Client:
     def _send_subscribe(
         self,
         dup: int,
-        topics: typing.Sequence[tuple[bytes, typing.Union[SubscribeOptions, int]]],
+        topics: typing.Sequence[
+            typing.Tuple[bytes, typing.Union[SubscribeOptions, int]]
+        ],
         properties: typing.Optional[Properties] = None,
-    ) -> tuple[MQTTErrorCode, int]:
+    ) -> typing.Tuple[MQTTErrorCode, int]:
         remaining_length = 2
         if self._protocol == MQTTv5:
             if properties is None:
@@ -3359,9 +3366,9 @@ class Client:
     def _send_unsubscribe(
         self,
         dup: int,
-        topics: list[bytes],
+        topics: typing.List[bytes],
         properties: typing.Optional[Properties] = None,
-    ) -> tuple[MQTTErrorCode, int]:
+    ) -> typing.Tuple[MQTTErrorCode, int]:
         remaining_length = 2
         if self._protocol == MQTTv5:
             if properties is None:
@@ -3471,17 +3478,15 @@ class Client:
         qos: int,
         info: typing.Optional[MQTTMessageInfo] = None,
     ) -> MQTTErrorCode:
-        mpkt = _OutPacket(
-            {
-                "command": command,
-                "mid": mid,
-                "qos": qos,
-                "pos": 0,
-                "to_process": len(packet),
-                "packet": packet,
-                "info": info,
-            }
-        )
+        mpkt: "_OutPacket" = {
+            "command": command,
+            "mid": mid,
+            "qos": qos,
+            "pos": 0,
+            "to_process": len(packet),
+            "packet": packet,
+            "info": info,
+        }
 
         self._out_packet.append(mpkt)
 
@@ -3702,7 +3707,7 @@ class Client:
         else:
             return MQTTErrorCode.MQTT_ERR_PROTOCOL
 
-    def _handle_disconnect(self) -> typing.Literal[MQTTErrorCode.MQTT_ERR_SUCCESS]:
+    def _handle_disconnect(self) -> "Literal[MQTTErrorCode.MQTT_ERR_SUCCESS]":
         packet_type = DISCONNECT >> 4
         reasonCode = properties = None
         if self._in_packet["remaining_length"] > 2:
@@ -3719,7 +3724,7 @@ class Client:
 
         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
-    def _handle_suback(self) -> typing.Literal[MQTTErrorCode.MQTT_ERR_SUCCESS]:
+    def _handle_suback(self) -> "Literal[MQTTErrorCode.MQTT_ERR_SUCCESS]":
         self._easy_log(MQTT_LOG_DEBUG, "Received SUBACK")
         pack_format = f"!H{len(self._in_packet['packet']) - 2}s"
         (mid, packet) = struct.unpack(pack_format, self._in_packet["packet"])
@@ -3957,7 +3962,9 @@ class Client:
             for c in packet[props_len:]:
                 reasoncodes_list.append(ReasonCodes(UNSUBACK >> 4, identifier=c))
 
-            reasoncodes: typing.Union[ReasonCodes, list[ReasonCodes]] = reasoncodes_list
+            reasoncodes: typing.Union[
+                ReasonCodes, typing.List[ReasonCodes]
+            ] = reasoncodes_list
             if len(reasoncodes_list) == 1:
                 reasoncodes = reasoncodes_list[0]
 
@@ -4031,7 +4038,7 @@ class Client:
         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
     def _handle_pubackcomp(
-        self, cmd: typing.Union[typing.Literal["PUBACK"], typing.Literal["PUBCOMP"]]
+        self, cmd: typing.Union["Literal['PUBACK']", "Literal['PUBCOMP']"]
     ) -> MQTTErrorCode:
         if self._protocol == MQTTv5:
             if self._in_packet["remaining_length"] < 2:
@@ -4156,7 +4163,7 @@ class Client:
         else:
             return False
 
-    def _get_proxy(self) -> typing.Optional[dict[str, typing.Any]]:
+    def _get_proxy(self) -> typing.Optional[typing.Dict[str, typing.Any]]:
         if socks is None:
             return None
 

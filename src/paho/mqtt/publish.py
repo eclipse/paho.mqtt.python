@@ -28,35 +28,30 @@ from . import client as paho
 
 if typing.TYPE_CHECKING:
     try:
-        from typing import NotRequired, Required
+        from typing import NotRequired, Required, TypedDict  # type: ignore
     except ImportError:
-        from typing_extensions import NotRequired, Required
+        from typing_extensions import NotRequired, Required, TypedDict
 
+    class AuthParamater(TypedDict, total=False):
+        username: "Required[str]"
+        password: "NotRequired[str]"
 
-class AuthParamater(typing.TypedDict, total=False):
-    username: "Required[str]"
-    password: "NotRequired[str]"
+    class TLSParamater(TypedDict, total=False):
+        ca_certs: "Required[str]"
+        certfile: "NotRequired[str]"
+        keyfile: "NotRequired[str]"
+        tls_version: "NotRequired[int]"
+        ciphers: "NotRequired[str]"
+        insecure: "NotRequired[bool]"
 
+    class MessageDict(TypedDict, total=False):
+        topic: "Required[str]"
+        payload: "NotRequired[paho.PayloadType]"
+        qos: "NotRequired[int]"
+        retain: "NotRequired[bool]"
 
-class TLSParamater(typing.TypedDict, total=False):
-    ca_certs: "Required[str]"
-    certfile: "NotRequired[str]"
-    keyfile: "NotRequired[str]"
-    tls_version: "NotRequired[int]"
-    ciphers: "NotRequired[str]"
-    insecure: "NotRequired[bool]"
-
-
-class MessageDict(typing.TypedDict, total=False):
-    topic: "Required[str]"
-    payload: "NotRequired[paho.PayloadType]"
-    qos: "NotRequired[int]"
-    retain: "NotRequired[bool]"
-
-
-MessageTuple = typing.Tuple[str, paho.PayloadType, int, bool]
-
-MessagesList = list[typing.Union[MessageDict, MessageTuple]]
+    MessageTuple = typing.Tuple[str, paho.PayloadType, int, bool]
+    MessagesList = typing.List[typing.Union[MessageDict, MessageTuple]]
 
 
 def _do_publish(client: paho.Client):
@@ -83,13 +78,15 @@ def _on_connect(client, userdata, flags, rc):
         raise mqtt.MQTTException(paho.connack_string(rc))
 
 
-def _on_connect_v5(client: paho.Client, userdata: MessagesList, flags, rc, properties):
+def _on_connect_v5(
+    client: paho.Client, userdata: "MessagesList", flags, rc, properties
+):
     """Internal v5 callback"""
     _on_connect(client, userdata, flags, rc)
 
 
 def _on_publish(
-    client: paho.Client, userdata: collections.deque[MessagesList], mid: int
+    client: paho.Client, userdata: typing.Deque["MessagesList"], mid: int
 ) -> None:
     """Internal callback"""
     # pylint: disable=unused-argument
@@ -101,14 +98,14 @@ def _on_publish(
 
 
 def multiple(
-    msgs: MessagesList,
+    msgs: "MessagesList",
     hostname: str = "localhost",
     port: int = 1883,
     client_id: str = "",
     keepalive: int = 60,
-    will: typing.Optional[MessageDict] = None,
-    auth: typing.Optional[AuthParamater] = None,
-    tls: typing.Optional[TLSParamater] = None,
+    will: typing.Optional["MessageDict"] = None,
+    auth: typing.Optional["AuthParamater"] = None,
+    tls: typing.Optional["TLSParamater"] = None,
     protocol: int = paho.MQTTv311,
     transport: str = "tcp",
     proxy_args: typing.Optional[typing.Any] = None,
@@ -233,9 +230,9 @@ def single(
     port: int = 1883,
     client_id: str = "",
     keepalive: int = 60,
-    will: typing.Optional[MessageDict] = None,
-    auth: typing.Optional[AuthParamater] = None,
-    tls: typing.Optional[TLSParamater] = None,
+    will: typing.Optional["MessageDict"] = None,
+    auth: typing.Optional["AuthParamater"] = None,
+    tls: typing.Optional["TLSParamater"] = None,
     protocol: int = paho.MQTTv311,
     transport: str = "tcp",
     proxy_args: typing.Optional[typing.Any] = None,
@@ -295,9 +292,12 @@ def single(
     proxy_args: a dictionary that will be given to the client.
     """
 
-    msg = MessageDict(
-        {"topic": topic, "payload": payload, "qos": qos, "retain": retain}
-    )
+    msg: "MessageDict" = {
+        "topic": topic,
+        "payload": payload,
+        "qos": qos,
+        "retain": retain,
+    }
 
     multiple(
         [msg],
