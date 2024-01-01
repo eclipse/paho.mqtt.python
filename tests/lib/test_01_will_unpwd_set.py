@@ -10,8 +10,12 @@ import tests.paho_test as paho_test
 
 connect_packet = paho_test.gen_connect(
     "01-will-unpwd-set",
-    keepalive=60, username="oibvvwqw", password="#'^2hg9a&nm38*us",
-    will_topic="will-topic", will_qos=2, will_payload="will message",
+    keepalive=60,
+    username="oibvvwqw",
+    password="#'^2hg9a&nm38*us",
+    will_topic="will-topic",
+    will_qos=2,
+    will_payload="will message",
 )
 
 

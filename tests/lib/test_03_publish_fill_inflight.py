@@ -22,6 +22,7 @@ import tests.paho_test as paho_test
 def expected_payload(i: int) -> bytes:
     return f"message{i}"
 
+
 connect_packet = paho_test.gen_connect("publish-qos1-test", keepalive=60)
 connack_packet = paho_test.gen_connack(rc=0)
 
@@ -29,7 +30,10 @@ disconnect_packet = paho_test.gen_disconnect()
 
 first_connection_publishs = [
     paho_test.gen_publish(
-        "topic", qos=1, mid=i+1, payload=expected_payload(i),
+        "topic",
+        qos=1,
+        mid=i + 1,
+        payload=expected_payload(i),
     )
     for i in range(10)
 ]
@@ -39,14 +43,15 @@ second_connection_publishs = [
         # Currently on reconnection client will do two wrong thing:
         # * it sent more than max_inflight packet
         # * it re-send message both with mid = old_mid + 12 AND with mid = old_mid & dup=1
-        "topic", qos=1, mid=i+13, payload=expected_payload(i),
+        "topic",
+        qos=1,
+        mid=i + 13,
+        payload=expected_payload(i),
     )
     for i in range(12)
 ]
-second_connection_pubacks = [
-    paho_test.gen_puback(i+13)
-    for i  in range(12)
-]
+second_connection_pubacks = [paho_test.gen_puback(i + 13) for i in range(12)]
+
 
 @pytest.mark.xfail
 def test_03_publish_fill_inflight(server_socket, start_client):
@@ -87,4 +92,3 @@ def test_03_publish_fill_inflight(server_socket, start_client):
     paho_test.expect_packet(conn, "publish", second_connection_publishs[11])
 
     paho_test.expect_no_packet(conn, 0.5)
-

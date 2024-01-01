@@ -10,18 +10,20 @@ import tests.paho_test as paho_test
 from tests.testsupport.broker import fake_broker  # noqa: F401
 
 
-@pytest.mark.parametrize("proto_ver", [
-    (client.MQTTv31),
-    (client.MQTTv311),
-])
+@pytest.mark.parametrize(
+    "proto_ver",
+    [
+        (client.MQTTv31),
+        (client.MQTTv311),
+    ],
+)
 class Test_connect:
     """
     Tests on connect/disconnect behaviour of the client
     """
 
     def test_01_con_discon_success(self, proto_ver, fake_broker):
-        mqttc = client.Client(
-            "01-con-discon-success", protocol=proto_ver)
+        mqttc = client.Client("01-con-discon-success", protocol=proto_ver)
 
         def on_connect(mqttc, obj, flags, rc):
             assert rc == 0
@@ -36,8 +38,8 @@ class Test_connect:
             fake_broker.start()
 
             connect_packet = paho_test.gen_connect(
-                "01-con-discon-success", keepalive=60,
-                proto_ver=proto_ver)
+                "01-con-discon-success", keepalive=60, proto_ver=proto_ver
+            )
             packet_in = fake_broker.receive_packet(1000)
             assert packet_in  # Check connection was not closed
             assert packet_in == connect_packet
@@ -59,8 +61,7 @@ class Test_connect:
         assert not packet_in  # Check connection is closed
 
     def test_01_con_failure_rc(self, proto_ver, fake_broker):
-        mqttc = client.Client(
-            "01-con-failure-rc", protocol=proto_ver)
+        mqttc = client.Client("01-con-failure-rc", protocol=proto_ver)
 
         def on_connect(mqttc, obj, flags, rc):
             assert rc == 1
@@ -74,8 +75,8 @@ class Test_connect:
             fake_broker.start()
 
             connect_packet = paho_test.gen_connect(
-                "01-con-failure-rc", keepalive=60,
-                proto_ver=proto_ver)
+                "01-con-failure-rc", keepalive=60, proto_ver=proto_ver
+            )
             packet_in = fake_broker.receive_packet(1000)
             assert packet_in  # Check connection was not closed
             assert packet_in == connect_packet
@@ -93,7 +94,6 @@ class Test_connect:
 
 
 class TestPublishBroker2Client:
-
     def test_invalid_utf8_topic(self, fake_broker):
         mqttc = client.Client("client-id")
 
@@ -140,7 +140,7 @@ class TestPublishBroker2Client:
         mqttc = client.Client("client-id")
 
         # It should be non-ascii multi-bytes character
-        topic = unicodedata.lookup('SNOWMAN')
+        topic = unicodedata.lookup("SNOWMAN")
 
         def on_message(client, userdata, msg):
             assert msg.topic == topic
@@ -164,9 +164,7 @@ class TestPublishBroker2Client:
             assert count  # Check connection was not closed
             assert count == len(connack_packet)
 
-            publish_packet = paho_test.gen_publish(
-                topic.encode('utf-8'), qos=0
-            )
+            publish_packet = paho_test.gen_publish(topic.encode("utf-8"), qos=0)
             count = fake_broker.send_packet(publish_packet)
             assert count  # Check connection was not closed
             assert count == len(publish_packet)
@@ -186,7 +184,7 @@ class TestPublishBroker2Client:
         mqttc = client.Client("client-id")
 
         # It should be non-ascii multi-bytes character
-        topic = unicodedata.lookup('SNOWMAN')
+        topic = unicodedata.lookup("SNOWMAN")
 
         mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
@@ -208,9 +206,7 @@ class TestPublishBroker2Client:
             # Small sleep needed to avoid connection reset.
             time.sleep(0.3)
 
-            publish_packet = paho_test.gen_publish(
-                topic.encode('utf-8'), qos=0
-            )
+            publish_packet = paho_test.gen_publish(topic.encode("utf-8"), qos=0)
             packet_in = fake_broker.receive_packet(len(publish_packet))
             assert packet_in  # Check connection was not closed
             assert packet_in == publish_packet
@@ -231,27 +227,27 @@ class TestPublishBroker2Client:
     def test_message_callback(self, fake_broker):
         mqttc = client.Client("client-id")
         userdata = {
-            'on_message': 0,
-            'callback1': 0,
-            'callback2': 0,
+            "on_message": 0,
+            "callback1": 0,
+            "callback2": 0,
         }
         mqttc.user_data_set(userdata)
 
         def on_message(client, userdata, msg):
-            assert msg.topic == 'topic/value'
-            userdata['on_message'] += 1
+            assert msg.topic == "topic/value"
+            userdata["on_message"] += 1
 
         def callback1(client, userdata, msg):
-            assert msg.topic == 'topic/callback/1'
-            userdata['callback1'] += 1
+            assert msg.topic == "topic/callback/1"
+            userdata["callback1"] += 1
 
         def callback2(client, userdata, msg):
-            assert msg.topic in ('topic/callback/3', 'topic/callback/1')
-            userdata['callback2'] += 1
+            assert msg.topic in ("topic/callback/3", "topic/callback/1")
+            userdata["callback2"] += 1
 
         mqttc.on_message = on_message
-        mqttc.message_callback_add('topic/callback/1', callback1)
-        mqttc.message_callback_add('topic/callback/+', callback2)
+        mqttc.message_callback_add("topic/callback/1", callback1)
+        mqttc.message_callback_add("topic/callback/+", callback2)
 
         mqttc.connect_async("localhost", fake_broker.port)
         mqttc.loop_start()
@@ -284,7 +280,6 @@ class TestPublishBroker2Client:
             assert count  # Check connection was not closed
             assert count == len(publish_packet)
 
-
             puback_packet = paho_test.gen_puback(mid=1)
             packet_in = fake_broker.receive_packet(len(puback_packet))
             assert packet_in  # Check connection was not closed
@@ -313,6 +308,6 @@ class TestPublishBroker2Client:
         packet_in = fake_broker.receive_packet(1)
         assert not packet_in  # Check connection is closed
 
-        assert userdata['on_message'] == 1
-        assert userdata['callback1'] == 1
-        assert userdata['callback2'] == 2
+        assert userdata["on_message"] == 1
+        assert userdata["callback1"] == 1
+        assert userdata["callback2"] == 2

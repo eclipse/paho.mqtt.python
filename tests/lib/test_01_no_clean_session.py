@@ -6,7 +6,9 @@
 
 import tests.paho_test as paho_test
 
-connect_packet = paho_test.gen_connect("01-no-clean-session", clean_session=False, keepalive=60)
+connect_packet = paho_test.gen_connect(
+    "01-no-clean-session", clean_session=False, keepalive=60
+)
 
 
 def test_01_no_clean_session(server_socket, start_client):

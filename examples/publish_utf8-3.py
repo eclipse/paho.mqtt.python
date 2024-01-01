@@ -19,6 +19,6 @@ import context  # Ensures paho is in PYTHONPATH
 
 import paho.mqtt.publish as publish
 
-topic = u"paho/test/single/ô"
-payload = u'German umlauts like "ä" ü"ö" are not supported'
+topic = "paho/test/single/ô"
+payload = 'German umlauts like "ä" ü"ö" are not supported'
 publish.single(topic, payload, hostname="test.mosquitto.org")

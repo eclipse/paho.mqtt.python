@@ -28,32 +28,41 @@ PROP_WILDCARD_SUB_AVAILABLE = 40
 PROP_SUBSCRIPTION_ID_AVAILABLE = 41
 PROP_SHARED_SUB_AVAILABLE = 42
 
+
 def gen_byte_prop(identifier, byte):
-    prop = struct.pack('BB', identifier, byte)
+    prop = struct.pack("BB", identifier, byte)
     return prop
+
 
 def gen_uint16_prop(identifier, word):
-    prop = struct.pack('!BH', identifier, word)
+    prop = struct.pack("!BH", identifier, word)
     return prop
 
+
 def gen_uint32_prop(identifier, word):
-    prop = struct.pack('!BI', identifier, word)
+    prop = struct.pack("!BI", identifier, word)
     return prop
+
 
 def gen_string_prop(identifier, s):
     s = s.encode("utf-8")
-    prop = struct.pack(f'!BH{len(s)}s', identifier, len(s), s)
+    prop = struct.pack(f"!BH{len(s)}s", identifier, len(s), s)
     return prop
+
 
 def gen_string_pair_prop(identifier, s1, s2):
     s1 = s1.encode("utf-8")
     s2 = s2.encode("utf-8")
-    prop = struct.pack(f'!BH{len(s1)}sH{len(s2)}s', identifier, len(s1), s1, len(s2), s2)
+    prop = struct.pack(
+        f"!BH{len(s1)}sH{len(s2)}s", identifier, len(s1), s1, len(s2), s2
+    )
     return prop
+
 
 def gen_varint_prop(identifier, val):
     v = pack_varint(val)
     return struct.pack(f"!B{len(v)}s", identifier, v)
+
 
 def pack_varint(varint):
     s = b""
@@ -68,9 +77,9 @@ def pack_varint(varint):
         if varint == 0:
             return s
 
+
 def prop_finalise(props):
     if props is None:
         return pack_varint(0)
     else:
         return pack_varint(len(props)) + props
-

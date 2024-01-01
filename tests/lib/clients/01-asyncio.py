@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 
 from tests.paho_test import get_test_server_port
 
-client_id = 'asyncio-test'
+client_id = "asyncio-test"
 
 
 class AsyncioHelper:
@@ -80,10 +80,11 @@ async def main():
 
     _aioh = AsyncioHelper(loop, client)
 
-    client.connect('localhost', get_test_server_port(), 60)
+    client.connect("localhost", get_test_server_port(), 60)
     client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
     await disconnected
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())

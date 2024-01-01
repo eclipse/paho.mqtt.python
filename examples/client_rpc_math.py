@@ -36,12 +36,13 @@ corr_id = b"1"
 # This is sent in the message callback when we get the respone
 reply = None
 
+
 # The MQTTv5 callback takes the additional 'props' parameter.
 def on_connect(mqttc, userdata, flags, rc, props):
     global client_id, reply_to
 
-    print("Connected: '"+str(flags)+"', '"+str(rc)+"', '"+str(props))
-    if hasattr(props, 'AssignedClientIdentifier'):
+    print("Connected: '" + str(flags) + "', '" + str(rc) + "', '" + str(props))
+    if hasattr(props, "AssignedClientIdentifier"):
         client_id = props.AssignedClientIdentifier
     reply_to = "replies/math/" + client_id
     mqttc.subscribe(reply_to)
@@ -51,9 +52,9 @@ def on_connect(mqttc, userdata, flags, rc, props):
 def on_message(mqttc, userdata, msg):
     global reply
 
-    print(msg.topic+" "+str(msg.payload)+"  "+str(msg.properties))
+    print(msg.topic + " " + str(msg.payload) + "  " + str(msg.properties))
     props = msg.properties
-    if not hasattr(props, 'CorrelationData'):
+    if not hasattr(props, "CorrelationData"):
         print("No correlation ID")
 
     # Match the response to the request correlation ID.
@@ -69,7 +70,7 @@ mqttc = mqtt.Client(client_id="", protocol=mqtt.MQTTv5)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 
-mqttc.connect(host='localhost', clean_start=True)
+mqttc.connect(host="localhost", clean_start=True)
 mqttc.loop_start()
 
 # Wait for connection to set `client_id`, etc.
@@ -82,9 +83,9 @@ props.CorrelationData = corr_id
 props.ResponseTopic = reply_to
 
 # Uncomment to see what got set
-#print("Client ID: "+client_id)
-#print("Reply To: "+reply_to)
-#print(props)
+# print("Client ID: "+client_id)
+# print("Reply To: "+reply_to)
+# print(props)
 
 # The requested operation, 'add' or 'mult'
 func = sys.argv[1]
@@ -106,7 +107,6 @@ while reply is None:
 
 # Extract the response and print it.
 rsp = json.loads(reply)
-print("Response: "+str(rsp))
+print("Response: " + str(rsp))
 
 mqttc.loop_stop()
-

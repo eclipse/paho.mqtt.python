@@ -36,12 +36,12 @@ def _do_publish(client):
     elif isinstance(message, (tuple, list)):
         client.publish(*message)
     else:
-        raise TypeError('message must be a dict, tuple, or list')
+        raise TypeError("message must be a dict, tuple, or list")
 
 
 def _on_connect(client, userdata, flags, rc):
     """Internal callback"""
-    #pylint: disable=invalid-name, unused-argument
+    # pylint: disable=invalid-name, unused-argument
 
     if rc == 0:
         if len(userdata) > 0:
@@ -49,13 +49,15 @@ def _on_connect(client, userdata, flags, rc):
     else:
         raise mqtt.MQTTException(paho.connack_string(rc))
 
+
 def _on_connect_v5(client, userdata, flags, rc, properties):
     """Internal v5 callback"""
     _on_connect(client, userdata, flags, rc)
 
+
 def _on_publish(client, userdata, mid):
     """Internal callback"""
-    #pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
     if len(userdata) == 0:
         client.disconnect()
@@ -63,9 +65,19 @@ def _on_publish(client, userdata, mid):
         _do_publish(client)
 
 
-def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-             will=None, auth=None, tls=None, protocol=paho.MQTTv311,
-             transport="tcp", proxy_args=None):
+def multiple(
+    msgs,
+    hostname="localhost",
+    port=1883,
+    client_id="",
+    keepalive=60,
+    will=None,
+    auth=None,
+    tls=None,
+    protocol=paho.MQTTv311,
+    transport="tcp",
+    proxy_args=None,
+):
     """Publish multiple messages to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -129,11 +141,14 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     """
 
     if not isinstance(msgs, Iterable):
-        raise TypeError('msgs must be an iterable')
+        raise TypeError("msgs must be an iterable")
 
-
-    client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
-                         protocol=protocol, transport=transport)
+    client = paho.Client(
+        client_id=client_id,
+        userdata=collections.deque(msgs),
+        protocol=protocol,
+        transport=transport,
+    )
 
     client.on_publish = _on_publish
     if protocol == mqtt.client.MQTTv5:
@@ -145,20 +160,21 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
         client.proxy_set(**proxy_args)
 
     if auth:
-        username = auth.get('username')
+        username = auth.get("username")
         if username:
-            password = auth.get('password')
+            password = auth.get("password")
             client.username_pw_set(username, password)
         else:
-            raise KeyError("The 'username' key was not found, this is "
-                           "required for auth")
+            raise KeyError(
+                "The 'username' key was not found, this is " "required for auth"
+            )
 
     if will is not None:
         client.will_set(**will)
 
     if tls is not None:
         if isinstance(tls, dict):
-            insecure = tls.pop('insecure', False)
+            insecure = tls.pop("insecure", False)
             client.tls_set(**tls)
             if insecure:
                 # Must be set *after* the `client.tls_set()` call since it sets
@@ -172,9 +188,22 @@ def multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
     client.loop_forever()
 
 
-def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
-           port=1883, client_id="", keepalive=60, will=None, auth=None,
-           tls=None, protocol=paho.MQTTv311, transport="tcp", proxy_args=None):
+def single(
+    topic,
+    payload=None,
+    qos=0,
+    retain=False,
+    hostname="localhost",
+    port=1883,
+    client_id="",
+    keepalive=60,
+    will=None,
+    auth=None,
+    tls=None,
+    protocol=paho.MQTTv311,
+    transport="tcp",
+    proxy_args=None,
+):
     """Publish a single message to a broker, then disconnect cleanly.
 
     This function creates an MQTT client, connects to a broker and publishes a
@@ -230,7 +259,18 @@ def single(topic, payload=None, qos=0, retain=False, hostname="localhost",
     proxy_args: a dictionary that will be given to the client.
     """
 
-    msg = {'topic':topic, 'payload':payload, 'qos':qos, 'retain':retain}
+    msg = {"topic": topic, "payload": payload, "qos": qos, "retain": retain}
 
-    multiple([msg], hostname, port, client_id, keepalive, will, auth, tls,
-             protocol, transport, proxy_args)
+    multiple(
+        [msg],
+        hostname,
+        port,
+        client_id,
+        keepalive,
+        will,
+        auth,
+        tls,
+        protocol,
+        transport,
+        proxy_args,
+    )

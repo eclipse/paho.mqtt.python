@@ -55,7 +55,8 @@ def on_log(mqttc, userdata, level, string):
 
 def print_usage():
     print(
-        "mqtt_clear_retain.py [-d] [-h hostname] [-i clientid] [-k keepalive] [-p port] [-u username [-P password]] [-v] -t topic")
+        "mqtt_clear_retain.py [-d] [-h hostname] [-i clientid] [-k keepalive] [-p port] [-u username [-P password]] [-v] -t topic"
+    )
 
 
 def main(argv):
@@ -70,8 +71,20 @@ def main(argv):
     verbose = False
 
     try:
-        opts, args = getopt.getopt(argv, "dh:i:k:p:P:t:u:v",
-                                   ["debug", "id", "keepalive", "port", "password", "topic", "username", "verbose"])
+        opts, args = getopt.getopt(
+            argv,
+            "dh:i:k:p:P:t:u:v",
+            [
+                "debug",
+                "id",
+                "keepalive",
+                "port",
+                "password",
+                "topic",
+                "username",
+                "verbose",
+            ],
+        )
     except getopt.GetoptError:
         print_usage()
         sys.exit(2)

@@ -29,7 +29,7 @@ def on_connect(mqttc, obj, flags, rc):
         print("Second connection:")
     elif obj == 2:
         print("Third connection (with clean session=True):")
-    print("    Session present: " + str(flags['session present']))
+    print("    Session present: " + str(flags["session present"]))
     print("    Connection result: " + str(rc))
     mqttc.disconnect()
 

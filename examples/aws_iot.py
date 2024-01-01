@@ -10,7 +10,7 @@ from paho.mqtt.client import Client
 
 
 def get_amazon_auth_headers(access_key, secret_key, region, host, port, headers=None):
-    """ Get the amazon auth headers for working with the amazon websockets
+    """Get the amazon auth headers for working with the amazon websockets
     protocol
 
     Requires a lot of extra stuff:
@@ -47,8 +47,8 @@ def get_amazon_auth_headers(access_key, secret_key, region, host, port, headers=
     algorithm = "AWS4-HMAC-SHA256"
 
     t = datetime.datetime.utcnow()
-    amzdate = t.strftime('%Y%m%dT%H%M%SZ')
-    datestamp = t.strftime("%Y%m%d") # Date w/o time, used in credential scope
+    amzdate = t.strftime("%Y%m%dT%H%M%SZ")
+    datestamp = t.strftime("%Y%m%d")  # Date w/o time, used in credential scope
 
     if headers is None:
         headers = {
@@ -61,12 +61,16 @@ def get_amazon_auth_headers(access_key, secret_key, region, host, port, headers=
             "Sec-Websocket-Protocol": "mqtt",
         }
 
-    headers.update({
-        "X-Amz-Date": amzdate,
-    })
+    headers.update(
+        {
+            "X-Amz-Date": amzdate,
+        }
+    )
 
     # get into 'canonical' form - lowercase, sorted alphabetically
-    canonical_headers = "\n".join(sorted("{}:{}".format(i.lower(), j).strip() for i, j in headers.items()))
+    canonical_headers = "\n".join(
+        sorted("{}:{}".format(i.lower(), j).strip() for i, j in headers.items())
+    )
     # Headers to sign - alphabetical order
     signed_headers = ";".join(sorted(i.lower().strip() for i in headers.keys()))
 
@@ -88,14 +92,24 @@ def get_amazon_auth_headers(access_key, secret_key, region, host, port, headers=
     # now actually hash request and sign
     hashed_request = hashlib.sha256(canonical_request).hexdigest()
 
-    credential_scope = "{datestamp:s}/{region:s}/{service:s}/aws4_request".format(**locals())
-    string_to_sign = "{algorithm:s}\n{amzdate:s}\n{credential_scope:s}\n{hashed_request:s}".format(**locals())
+    credential_scope = "{datestamp:s}/{region:s}/{service:s}/aws4_request".format(
+        **locals()
+    )
+    string_to_sign = (
+        "{algorithm:s}\n{amzdate:s}\n{credential_scope:s}\n{hashed_request:s}".format(
+            **locals()
+        )
+    )
 
     signing_key = getSignatureKey(secret_key, datestamp, region, service)
-    signature = hmac.new(signing_key, (string_to_sign).encode('utf-8'), hashlib.sha256).hexdigest()
+    signature = hmac.new(
+        signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256
+    ).hexdigest()
 
     # create auth header
-    authorization_header = "{algorithm:s} Credential={access_key:s}/{credential_scope:s}, SignedHeaders={signed_headers:s}, Signature={signature:s}".format(**locals())
+    authorization_header = "{algorithm:s} Credential={access_key:s}/{credential_scope:s}, SignedHeaders={signed_headers:s}, Signature={signature:s}".format(
+        **locals()
+    )
 
     # get final header string
     headers["Authorization"] = authorization_header

@@ -7,7 +7,7 @@ import trio
 
 import paho.mqtt.client as mqtt
 
-client_id = 'paho-mqtt-python/issue72/' + str(uuid.uuid4())
+client_id = "paho-mqtt-python/issue72/" + str(uuid.uuid4())
 topic = client_id
 print("Using client_id / topic: " + client_id)
 
@@ -45,7 +45,7 @@ class TrioAsyncHelper:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
     def on_socket_register_write(self, client, userdata, sock):
-        print('large write request')
+        print("large write request")
         self._event_large_write.set()
 
     def on_socket_unregister_write(self, client, userdata, sock):
@@ -62,13 +62,13 @@ class TrioAsyncMqttExample:
         print("Got response with {} bytes".format(len(msg.payload)))
 
     def on_disconnect(self, client, userdata, rc):
-        print('Disconnect result {}'.format(rc))
+        print("Disconnect result {}".format(rc))
 
     async def test_write(self, cancel_scope: trio.CancelScope):
         for c in range(3):
             await trio.sleep(5)
             print("Publishing")
-            self.client.publish(topic, b'Hello' * 40000, qos=1)
+            self.client.publish(topic, b"Hello" * 40000, qos=1)
         cancel_scope.cancel()
 
     async def main(self):
@@ -79,7 +79,7 @@ class TrioAsyncMqttExample:
 
         trio_helper = TrioAsyncHelper(self.client)
 
-        self.client.connect('mqtt.eclipseprojects.io', 1883, 60)
+        self.client.connect("mqtt.eclipseprojects.io", 1883, 60)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(trio_helper.read_loop)

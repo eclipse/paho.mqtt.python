@@ -7,7 +7,7 @@ from time import time
 
 import paho.mqtt.client as mqtt
 
-client_id = 'paho-mqtt-python/issue72/' + str(uuid.uuid4())
+client_id = "paho-mqtt-python/issue72/" + str(uuid.uuid4())
 topic = client_id
 print("Using client_id / topic: " + client_id)
 
@@ -37,13 +37,11 @@ class SelectMqttExample:
         if not sock:
             raise Exception("Socket is gone")
 
-        print("Selecting for reading" + (" and writing" if self.client.want_write() else ""))
-        r, w, e = select(
-            [sock],
-            [sock] if self.client.want_write() else [],
-            [],
-            1
+        print(
+            "Selecting for reading"
+            + (" and writing" if self.client.want_write() else "")
         )
+        r, w, e = select([sock], [sock] if self.client.want_write() else [], [], 1)
 
         if sock in r:
             print("Socket is readable, calling loop_read")
@@ -65,7 +63,7 @@ class SelectMqttExample:
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
 
-        self.client.connect('mqtt.eclipseprojects.io', 1883, 60)
+        self.client.connect("mqtt.eclipseprojects.io", 1883, 60)
         print("Socket opened")
         self.client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
@@ -75,7 +73,7 @@ class SelectMqttExample:
             if self.state in {0, 2, 4}:
                 if time() - self.t >= 5:
                     print("Publishing")
-                    self.client.publish(topic, b'Hello' * 40000)
+                    self.client.publish(topic, b"Hello" * 40000)
                     self.state += 1
 
             if self.state == 6:

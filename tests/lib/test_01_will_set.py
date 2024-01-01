@@ -9,8 +9,13 @@
 import tests.paho_test as paho_test
 
 connect_packet = paho_test.gen_connect(
-    "01-will-set", keepalive=60, will_topic="topic/on/unexpected/disconnect",
-    will_qos=1, will_retain=True, will_payload="will message")
+    "01-will-set",
+    keepalive=60,
+    will_topic="topic/on/unexpected/disconnect",
+    will_qos=1,
+    will_retain=True,
+    will_payload="will message",
+)
 
 
 def test_01_will_set(server_socket, start_client):

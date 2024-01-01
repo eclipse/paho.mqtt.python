@@ -19,6 +19,6 @@ import context  # Ensures paho is in PYTHONPATH
 
 import paho.mqtt.publish as publish
 
-topic = u"paho/test/single/ô"
-payload = u"bôô"
+topic = "paho/test/single/ô"
+payload = "bôô"
 publish.single(topic, payload, hostname="mqtt.eclipseprojects.io")

@@ -26,11 +26,13 @@ from paho.mqtt.packettypes import PacketTypes
 
 # The math functions exported
 
+
 def add(nums):
     sum = 0
     for x in nums:
         sum += x
     return sum
+
 
 def mult(nums):
     prod = 1
@@ -38,12 +40,14 @@ def mult(nums):
         prod *= x
     return prod
 
+
 # Remember that the MQTTv5 callback takes the additional 'props' parameter.
 def on_connect(mqttc, userdata, flags, rc, props):
-    print("Connected: '"+str(flags)+"', '"+str(rc)+"', '"+str(props))
+    print("Connected: '" + str(flags) + "', '" + str(rc) + "', '" + str(props))
     if not flags["session present"]:
         print("Subscribing to math requests")
         mqttc.subscribe("requests/math/#")
+
 
 # Each incoming message should be an RPC request on the
 # 'requests/math/#' topic.
@@ -52,7 +56,7 @@ def on_message(mqttc, userdata, msg):
 
     # Get the response properties, abort if they're not given
     props = msg.properties
-    if not hasattr(props, 'ResponseTopic') or not hasattr(props, 'CorrelationData'):
+    if not hasattr(props, "ResponseTopic") or not hasattr(props, "CorrelationData"):
         print("No reply requested")
         return
 
@@ -71,12 +75,13 @@ def on_message(mqttc, userdata, msg):
 
     # Now we have the result, res, so send it back on the 'reply_to'
     # topic using the same correlation ID as the request.
-    print("Sending response "+str(res)+" on '"+reply_to+"': "+str(corr_id))
+    print("Sending response " + str(res) + " on '" + reply_to + "': " + str(corr_id))
     props = mqtt.Properties(PacketTypes.PUBLISH)
     props.CorrelationData = corr_id
 
     payload = json.dumps(res)
     mqttc.publish(reply_to, payload, qos=1, properties=props)
+
 
 def on_log(mqttc, obj, level, string):
     print(string)
@@ -90,8 +95,8 @@ mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 
 # Uncomment to enable debug messages
-#mqttc.on_log = on_log
+# mqttc.on_log = on_log
 
-#mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
+# mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.connect(host="localhost", clean_start=False)
 mqttc.loop_forever()

@@ -4,7 +4,9 @@
 import tests.paho_test as paho_test
 
 connect_packet = paho_test.gen_connect(
-    "publish-qos1-test", keepalive=60, clean_session=False,
+    "publish-qos1-test",
+    keepalive=60,
+    clean_session=False,
 )
 connack_packet = paho_test.gen_connack(rc=0)
 
@@ -12,9 +14,11 @@ disconnect_packet = paho_test.gen_disconnect()
 
 mid = 1
 publish_packet = paho_test.gen_publish(
-    "pub/qos1/test", qos=1, mid=mid, payload="message")
+    "pub/qos1/test", qos=1, mid=mid, payload="message"
+)
 publish_packet_dup = paho_test.gen_publish(
-    "pub/qos1/test", qos=1, mid=mid, payload="message", dup=True)
+    "pub/qos1/test", qos=1, mid=mid, payload="message", dup=True
+)
 puback_packet = paho_test.gen_puback(mid)
 
 
