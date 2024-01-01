@@ -2412,6 +2412,10 @@ class Client:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return MQTT_ERR_CONN_LOST
+            except TimeoutError as err:
+                self._easy_log(
+                    MQTT_LOG_ERR, 'timeout on socket: %s', err)
+                return MQTT_ERR_CONN_LOST
             else:
                 if len(command) == 0:
                     return MQTT_ERR_CONN_LOST
