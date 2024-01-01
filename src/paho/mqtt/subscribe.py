@@ -284,7 +284,7 @@ def simple(
                     when it disconnects. If False, the client is a persistent
                     client and subscription information and queued messages
                     will be retained when the client disconnects.
-                    Defaults to True. If protocoll is MQTTv50, clean_session
+                    Defaults to True. If protocol is MQTTv50, clean_session
                     is ignored.
 
     proxy_args: a dictionary that will be given to the client.

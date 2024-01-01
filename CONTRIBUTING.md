@@ -28,7 +28,7 @@ Please read the [Eclipse Foundation policy on accepting contributions via Git](h
    cherry-picked to the release branch.
 
    The only changes that goes directly to the release branch (``1.4``,
-   ``1.5``, ...) are bug fixe that does not apply to ``master`` (e.g. because
+   ``1.5``, ...) are bug fixes that does not apply to ``master`` (e.g. because
    there are fixed on master by a refactoring, or any other huge change we do
    not want to cherry-pick to the release branch).
 4. Create a new branch from the latest ```master``` branch

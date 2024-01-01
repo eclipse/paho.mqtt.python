@@ -44,6 +44,9 @@ proxy = [
 [project.urls]
 Homepage = "http://eclipse.org/paho"
 
+[tool.codespell]
+skip = "*.key"
+
 [tool.hatch.version]
 path = "src/paho/mqtt/__init__.py"
 

@@ -524,7 +524,7 @@ class Client:
         Normally, when a message is received, the library automatically
         acknowledges after on_message callback returns.  manual_ack=True allows the application to
         acknowledge receipt after it has completed processing of a message
-        using a the ack() method. This addresses vulnerabilty to message loss
+        using a the ack() method. This addresses vulnerability to message loss
         if applications fails while processing a message, or while it pending
         locally.
 
@@ -1245,7 +1245,7 @@ class Client:
             # Clear sockpairR - only ever a single byte written.
             try:
                 # Read many bytes at once - this allows up to 10000 calls to
-                # publish() inbetween calls to loop().
+                # publish() in between calls to loop().
                 self._sockpairR.recv(10000)
             except BlockingIOError:
                 pass
