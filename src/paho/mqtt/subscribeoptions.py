@@ -41,7 +41,13 @@ class SubscribeOptions:
     RETAIN_SEND_ON_SUBSCRIBE, RETAIN_SEND_IF_NEW_SUB, RETAIN_DO_NOT_SEND = range(
         0, 3)
 
-    def __init__(self, qos=0, noLocal=False, retainAsPublished=False, retainHandling=RETAIN_SEND_ON_SUBSCRIBE):
+    def __init__(
+        self,
+        qos: int = 0,
+        noLocal: bool = False,
+        retainAsPublished: bool = False,
+        retainHandling: int = RETAIN_SEND_ON_SUBSCRIBE,
+    ):
         """
         qos:                0, 1 or 2.  0 is the default.
         noLocal:            True or False. False is the default and corresponds to MQTT v3.1.1 behavior.
