@@ -857,6 +857,8 @@ class Client(object):
         proxy_addr: IP address or DNS name of proxy server
 
         (Optional)
+        proxy_port: (int) port number of the proxy server. If not provided, 
+            the PySocks package default value will be utilized, which differs by proxy_type.
         proxy_rdns: boolean indicating whether proxy lookup should be performed
             remotely (True, default) or locally (False)
         proxy_username: username for SOCKS5 proxy, or userid for SOCKS4 proxy
