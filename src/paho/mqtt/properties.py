@@ -97,7 +97,7 @@ class VariableByteIntegers:  # Variable Byte Integer
     def encode(x):
         """
           Convert an integer 0 <= x <= 268435455 into multi-byte format.
-          Returns the buffer convered from the integer.
+          Returns the buffer converted from the integer.
         """
         if not 0 <= x <= 268435455:
             raise ValueError(f"Value {x!r} must be in range 0-268435455")

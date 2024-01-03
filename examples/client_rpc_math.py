@@ -33,7 +33,7 @@ reply_to = ""
 # This correlates the outbound request with the returned reply
 corr_id = b"1"
 
-# This is sent in the message callback when we get the respone
+# This is sent in the message callback when we get the response
 reply = None
 
 # The MQTTv5 callback takes the additional 'props' parameter.

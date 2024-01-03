@@ -117,3 +117,10 @@ exclude_also = [
     "raise AssertionError",
     "raise NotImplementedError",
 ]
+
+[tool.typos.default.extend-words]
+Mosquitto = "Mosquitto"
+
+[tool.typos.type.sh.extend-words]
+# gen.sh use the openssl option pass(word) in
+passin = "passin"
