@@ -75,6 +75,7 @@ testpaths = "tests src"
 exclude = ["test/lib/python/*"]
 extend-select = [
     "B",
+    "COM",
     "E9",
     "F63",
     "F7",
@@ -85,12 +86,17 @@ extend-select = [
     "UP",
     "W",
 ]
-ignore = []
+# COM812: as recommended by ruff-format
+ignore = ["COM812"]
 line-length = 167
+
+[tool.ruff.format]
+exclude = ["examples/**/*.py"]
 
 [tool.ruff.per-file-ignores]
 "examples/**/*.py" = [
     "B",
+    "COM",
     "E402",
     "E711",
     "E741",
