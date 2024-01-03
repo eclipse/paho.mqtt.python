@@ -32,6 +32,7 @@ repos:
     rev: v0.1.9
     hooks:
       - id: ruff  # See pyproject.toml for args
+      - id: ruff-format
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.15

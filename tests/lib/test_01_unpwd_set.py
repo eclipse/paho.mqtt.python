@@ -6,8 +6,7 @@
 
 import tests.paho_test as paho_test
 
-connect_packet = paho_test.gen_connect(
-    "01-unpwd-set", keepalive=60, username="uname", password=";'[08gn=#")
+connect_packet = paho_test.gen_connect("01-unpwd-set", keepalive=60, username="uname", password=";'[08gn=#")
 
 
 def test_01_unpwd_set(server_socket, start_client):

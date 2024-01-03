@@ -22,9 +22,11 @@ def on_connect(mqttc, obj, flags, rc):
     for i in range(12):
         mqttc.publish("topic", expected_payload(i), qos=1)
 
+
 def on_disconnect(mqttc, rc, properties):
     logging.info("disconnected")
     mqttc.reconnect()
+
 
 logging.basicConfig(level=logging.DEBUG)
 logging.info(str(mqtt))

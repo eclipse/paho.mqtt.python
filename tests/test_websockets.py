@@ -6,10 +6,10 @@ from paho.mqtt.client import WebsocketConnectionError, WebsocketWrapper
 
 
 class TestHeaders:
-    """ Make sure headers are used correctly """
+    """Make sure headers are used correctly"""
 
     def test_normal_headers(self):
-        """ Normal headers as specified in RFC 6455 """
+        """Normal headers as specified in RFC 6455"""
 
         response = [
             "HTTP/1.1 101 Switching Protocols",
@@ -54,15 +54,18 @@ class TestHeaders:
         # error
         assert str(exc.value) == "WebSocket handshake error, invalid secret key"
 
-        expected_sent = [i.format(**wargs) for i in [
-            "GET {path:s} HTTP/1.1",
-            "Host: {host:s}",
-            "Upgrade: websocket",
-            "Connection: Upgrade",
-            "Sec-Websocket-Protocol: mqtt",
-            "Sec-Websocket-Version: 13",
-            "Origin: https://{host:s}:{port:d}",
-        ]]
+        expected_sent = [
+            i.format(**wargs)
+            for i in [
+                "GET {path:s} HTTP/1.1",
+                "Host: {host:s}",
+                "Upgrade: websocket",
+                "Connection: Upgrade",
+                "Sec-Websocket-Protocol: mqtt",
+                "Sec-Websocket-Version: 13",
+                "Origin: https://{host:s}:{port:d}",
+            ]
+        ]
 
         # Only sends the header once
         assert mocksock.send.call_count == 1

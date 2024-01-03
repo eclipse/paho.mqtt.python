@@ -7,8 +7,7 @@ mid = 16
 connect_packet = paho_test.gen_connect("retain-qos0-test", keepalive=60)
 connack_packet = paho_test.gen_connack(rc=0)
 
-publish_packet = paho_test.gen_publish(
-    "retain/qos0/test", qos=0, payload="retained message", retain=True)
+publish_packet = paho_test.gen_publish("retain/qos0/test", qos=0, payload="retained message", retain=True)
 
 
 def test_04_retain_qos0(server_socket, start_client):
