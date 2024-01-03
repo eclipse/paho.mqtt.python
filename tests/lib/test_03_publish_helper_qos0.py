@@ -14,13 +14,12 @@
 import tests.paho_test as paho_test
 
 connect_packet = paho_test.gen_connect(
-    "publish-helper-qos0-test", keepalive=60,
+    "publish-helper-qos0-test",
+    keepalive=60,
 )
 connack_packet = paho_test.gen_connack(rc=0)
 
-publish_packet = paho_test.gen_publish(
-    "pub/qos0/test", qos=0, payload="message"
-)
+publish_packet = paho_test.gen_publish("pub/qos0/test", qos=0, payload="message")
 
 disconnect_packet = paho_test.gen_disconnect()
 
