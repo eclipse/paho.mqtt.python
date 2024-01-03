@@ -6,29 +6,30 @@ import sys
 import pytest
 
 from tests.consts import ssl_path, tests_path
-from tests.paho_test import create_server_socket, create_server_socket_ssl
+from tests.paho_test import create_server_socket, create_server_socket_ssl, ssl
 
 clients_path = tests_path / "lib" / "clients"
 
 
-@pytest.fixture()
-def server_socket(monkeypatch):
-    sock, port = create_server_socket()
+def _yield_server(monkeypatch, sockport):
+    sock, port = sockport
     monkeypatch.setenv("PAHO_SERVER_PORT", str(port))
     try:
         yield sock
     finally:
         sock.close()
+
+
+@pytest.fixture()
+def server_socket(monkeypatch):
+    yield from _yield_server(monkeypatch, create_server_socket())
 
 
 @pytest.fixture()
 def ssl_server_socket(monkeypatch):
-    sock, port = create_server_socket_ssl()
-    monkeypatch.setenv("PAHO_SERVER_PORT", str(port))
-    try:
-        yield sock
-    finally:
-        sock.close()
+    if ssl is None:
+        pytest.skip("no ssl module")
+    yield from _yield_server(monkeypatch, create_server_socket_ssl())
 
 
 def stop_process(proc: subprocess.Popen) -> None:
