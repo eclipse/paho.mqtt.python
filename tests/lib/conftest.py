@@ -32,6 +32,15 @@ def ssl_server_socket(monkeypatch):
     yield from _yield_server(monkeypatch, create_server_socket_ssl())
 
 
+@pytest.fixture()
+def alpn_ssl_server_socket(monkeypatch):
+    if ssl is None:
+        pytest.skip("no ssl module")
+    if not getattr(ssl, "HAS_ALPN", False):
+        pytest.skip("ALPN not supported in this version of Python")
+    yield from _yield_server(monkeypatch, create_server_socket_ssl(alpn_protocols=["paho-test-protocol"]))
+
+
 def stop_process(proc: subprocess.Popen) -> None:
     if sys.platform == "win32":
         proc.send_signal(signal.CTRL_C_EVENT)

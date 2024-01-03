@@ -32,7 +32,7 @@ def create_server_socket():
     return (sock, port)
 
 
-def create_server_socket_ssl(*, verify_mode=None):
+def create_server_socket_ssl(*, verify_mode=None, alpn_protocols=None):
     assert ssl, "SSL not available"
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,6 +45,9 @@ def create_server_socket_ssl(*, verify_mode=None):
     )
     if verify_mode:
         context.verify_mode = verify_mode
+
+    if alpn_protocols is not None:
+        context.set_alpn_protocols(alpn_protocols)
 
     ssock = context.wrap_socket(sock, server_side=True)
     ssock.settimeout(10)

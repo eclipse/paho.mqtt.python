@@ -866,6 +866,7 @@ class Client:
         tls_version: int | None = None,
         ciphers: str | None = None,
         keyfile_password: str | None = None,
+        alpn_protocols: list[str] | None = None,
     ) -> None:
         """Configure network encryption and authentication options. Enables SSL/TLS support.
 
@@ -944,6 +945,11 @@ class Client:
             context.load_verify_locations(ca_certs)
         else:
             context.load_default_certs()
+
+        if alpn_protocols is not None:
+            if not getattr(ssl, "HAS_ALPN", None):
+                raise ValueError("SSL library has no support for ALPN")
+            context.set_alpn_protocols(alpn_protocols)
 
         self.tls_set_context(context)
 
