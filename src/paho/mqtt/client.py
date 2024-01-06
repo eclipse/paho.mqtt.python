@@ -719,12 +719,8 @@ class Client:
         locally.
 
         """
-
-        if transport.lower() not in ('websockets', 'tcp'):
-            raise ValueError(
-                f'transport must be "websockets" or "tcp", not {transport}')
         self._manual_ack = manual_ack
-        self._transport = transport.lower()
+        self.transport = transport
         self._protocol = protocol
         self._userdata = userdata
         self._sock: SocketLike | None = None
@@ -749,6 +745,8 @@ class Client:
             )
         if self._callback_api_version not in CallbackAPIVersion:
             raise ValueError("Unsupported callback API version")
+
+        self._clean_start: int = MQTT_CLEAN_START_FIRST_ONLY
 
         if protocol == MQTTv5:
             if clean_session is not None:
@@ -852,10 +850,198 @@ class Client:
     def __del__(self) -> None:
         self._reset_sockets()
 
+    @property
+    def host(self) -> str:
+        "Host we try to connect to. If don't yet called connect() return empty string"
+        return self._host
+
+    @host.setter
+    def host(self, value: str) -> None:
+        """
+        Update host. This will only be used on future (re)connection. You should probably
+        use reconnect() to update the connection if established.
+        """
+        if value is None or len(value) == 0:
+            raise ValueError("Invalid host.")
+        self._host = value
+
+    @property
+    def port(self) -> int:
+        "TCP port we try to connect to."
+        return self._port
+
+    @port.setter
+    def port(self, value: int) -> None:
+        """
+        Update post. This will only be used on future (re)connection. You should probably
+        use reconnect() to update the connection if established.
+        """
+        if value <= 0:
+            raise ValueError("Invalid port number.")
+        self._port = value
+
+    @property
+    def keepalive(self) -> int:
+        "Keepalive in seconds used by the client "
+        return self._keepalive
+
+    @keepalive.setter
+    def keepalive(self, value: int) -> None:
+        "Update keepalive. It's behavior is undefined if the connection is already open"
+        if self._sock is not None:
+            # The issue here is that the previous value of keepalive matter to possibly
+            # sent ping packet.
+            warnings.warn(
+                "updating keepalive on established connection is not supported",
+                stacklevel=2,
+            )
+            self._sock.settimeout(value)
+
+        if value < 0:
+            raise ValueError("Keepalive must be >=0.")
+
+        self._keepalive = value
+
+    @property
+    def transport(self) -> str:
+        'Transport used for the connection, could be "tcp" or  "websockets".'
+        return self._transport
+
+    @transport.setter
+    def transport(self, value: str) -> None:
+        """
+        Update transport which should be "tcp" or "websockets".
+        This will only be used on future (re)connection. You should probably
+        use reconnect() to update the connection if established.
+        """
+        if value.lower() not in ("websockets", "tcp"):
+            raise ValueError(
+                f'transport must be "websockets" or "tcp", not {value}')
+
+        self._transport = value.lower()
+
+    @property
+    def protocol(self) -> int:
+        "Protocol version used (MQTT v3, MQTT v3.11, MQTTv5)"
+        return self.protocol
+
+    @property
+    def connect_timeout(self) -> float:
+        "Timeout used to establish the TCP (& TLS / websocket if enabled) in seconds"
+        return self._connect_timeout
+
+    @connect_timeout.setter
+    def connect_timeout(self, value: float):
+        "Change connect_timeout for future (re)connection"
+        if value <= 0.0:
+            raise ValueError("timeout must be a positive number")
+
+        self._connect_timeout = value
+
+    @property
+    def username(self) -> str | None:
+        "Return the username use to connect to MQTT broken or None if not credenials are used."
+        if self._username is None:
+            return None
+        return self._username.decode("utf-8")
+
+    @username.setter
+    def username(self, value: str | None) -> None:
+        """
+        Update username. This will only be used on future (re)connection. You should probably
+        use reconnect() to update the connection if established.
+        """
+        if value is None:
+            self._username = None
+        else:
+            self._username = value.encode("utf-8")
+
+    @property
+    def password(self) -> str | None:
+        "Return the password use to connect to MQTT broken or None if not password are used."
+        if self._password is None:
+            return None
+        return self._password.decode("utf-8")
+
+    @password.setter
+    def password(self, value: str | None) -> None:
+        """
+        Update password. This will only be used on future (re)connection. You should probably
+        use reconnect() to update the connection if established.
+        """
+        if value is None:
+            self._password = None
+        else:
+            self._password = value.encode("utf-8")
+
+    @property
+    def max_inflight_messages(self) -> int:
+        "Maximum number of message with QoS > 0 that can be part way through their network flow at once"
+        return self._max_inflight_messages
+
+    @max_inflight_messages.setter
+    def max_inflight_messages(self, value: int) -> None:
+        "Update max_inflight_messages. It's behavior is undefined if the connection is already open"
+        if self._sock is not None:
+            # Not tested. Some doubt that everything is okay when max_inflight change between 0
+            # and > 0 value because _update_inflight is skipped when _max_inflight_messages == 0
+            warnings.warn(
+                "updating max_inflight_messages on established connection is not supported",
+                stacklevel=2,
+            )
+
+        if value < 0:
+            raise ValueError("Invalid inflight.")
+
+        self._max_inflight_messages = value
+
+    @property
+    def max_queued_messages(self) -> int:
+        "Maximum number of message with QoS > 0 that can be part way through their network flow at once"
+        return self._max_queued_messages
+
+    @max_queued_messages.setter
+    def max_queued_messages(self, value: int) -> None:
+        "Update max_queued_messages. It's behavior is undefined if the connection is already open"
+        if self._sock is not None:
+            # Not tested.
+            warnings.warn(
+                "updating max_queued_messages on established connection is not supported",
+                stacklevel=2,
+            )
+
+        if value < 0:
+            raise ValueError("Invalid queue size.")
+
+        self._max_queued_messages = value
+
+    @property
+    def will_topic(self) -> str | None:
+        "Return the topic will is sent to on unexpected disconnect, or None if will isn't set"
+        if self._will_topic is None:
+            return None
+
+        return self._will_topic.decode("utf-8")
+
+    @property
+    def will_payload(self) -> bytes | None:
+        "Return the payload will send on unexpected disconnect, or None if will isn't set"
+        if self._will_topic is None:
+            return None
+
+        return self._will_topic.decode("utf-8")
+
+    @property
+    def logger(self) -> logging.Logger | None:
+        return self._logger
+
+    @logger.setter
+    def logger(self, value: logging.Logger) -> None:
+        self._logger = value
+
     def _sock_recv(self, bufsize: int) -> bytes:
         if self._sock is None:
             raise ConnectionError("self._sock is None")
-
         try:
             return self._sock.recv(bufsize)
         except ssl.SSLWantReadError as err:
@@ -1130,7 +1316,7 @@ class Client:
                 # Do not replace existing logger
                 return
             logger = logging.getLogger(__name__)
-        self._logger = logger
+        self.logger = logger
 
     def disable_logger(self) -> None:
         self._logger = None
@@ -1251,18 +1437,12 @@ class Client:
         properties: (MQTT v5.0 only) the MQTT v5.0 properties to be sent in the
         MQTT connect packet.  Use the Properties class.
         """
-        if host is None or len(host) == 0:
-            raise ValueError('Invalid host.')
-        if port <= 0:
-            raise ValueError('Invalid port number.')
-        if keepalive < 0:
-            raise ValueError('Keepalive must be >=0.')
         if bind_port < 0:
             raise ValueError('Invalid bind port number.')
 
-        self._host = host
-        self._port = port
-        self._keepalive = keepalive
+        self.host = host
+        self.port = port
+        self.keepalive = keepalive
         self._bind_address = bind_address
         self._bind_port = bind_port
         self._clean_start = clean_start
@@ -1901,18 +2081,14 @@ class Client:
     def max_inflight_messages_set(self, inflight: int) -> None:
         """Set the maximum number of messages with QoS>0 that can be part way
         through their network flow at once. Defaults to 20."""
-        if inflight < 0:
-            raise ValueError('Invalid inflight.')
-        self._max_inflight_messages = inflight
+        self.max_inflight_messages = inflight
 
     def max_queued_messages_set(self, queue_size: int) -> Client:
         """Set the maximum number of messages in the outgoing message queue.
         0 means unlimited."""
-        if queue_size < 0:
-            raise ValueError('Invalid queue size.')
         if not isinstance(queue_size, int):
             raise ValueError('Invalid type of queue size.')
-        self._max_queued_messages = queue_size
+        self.max_queued_messages = queue_size
         return self
 
     def user_data_set(self, userdata: Any) -> None:

@@ -44,6 +44,7 @@ v2.0.0 - 2023-xx-xx
 - Raise error on `subscribe()` when `topic` is an empty list. Closes #690.
 - Raise error on `publish.multiple()` when `msgs` is an empty list. Closes #684.
 - Don't add port to Host: header for websockets connections when the port if the default port. Closes #666.
+- Add properties to access most Client attribute. Closes #764.
 
 
 v1.6.1 - 2021-10-21
