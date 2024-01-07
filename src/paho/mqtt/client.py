@@ -455,6 +455,9 @@ class MQTTMessageInfo:
         with self._condition:
             while not self._published and not timed_out():
                 self._condition.wait(timeout_tenth)
+        
+        if self.rc > 0:
+            raise RuntimeError(f'Message publish failed: {error_string(self.rc)}')
 
     def is_published(self) -> bool:
         """Returns True if the message associated with this object has been
@@ -1193,7 +1196,15 @@ class Client:
             "pos": 0,
         }
 
+        # Before dropping all out_packet, ensure any QoS == 0 message info get
+        # marked as MQTT_ERR_CONN_LOST or the wait_for_publish() could hang forever
+        old_queue = self._out_packet
         self._out_packet = collections.deque()
+
+        for pkt in old_queue:
+            if pkt["command"] & 0xF0 == PUBLISH and pkt["qos"] == 0:
+                pkt["info"].rc = MQTT_ERR_CONN_LOST
+                pkt["info"]._set_as_published()
 
         with self._msgtime_mutex:
             self._last_msg_in = time_func()
