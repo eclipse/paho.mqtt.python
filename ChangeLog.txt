@@ -23,6 +23,10 @@ v2.0.0 - 2023-xx-xx
 - Fix loading too weak TLS CA file but setting allowed ciphers before loading CA. Closes #676.
 - Allow to manually ack QoS > 0 messages. Closes #753 & #348.
 - Improve tests & linters. Modernize build (drop setup.py, use pyproject.toml)
+- Fix is_connected property to correctly return False when connection is lost
+  and loop_start/loop_forever isn't used. Closes #525.
+
+
 
 v1.6.1 - 2021-10-21
 ===================

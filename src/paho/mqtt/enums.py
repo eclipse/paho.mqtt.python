@@ -68,6 +68,7 @@ class ConnectionState(enum.IntEnum):
     MQTT_CS_CONNECTED = 1
     MQTT_CS_DISCONNECTING = 2
     MQTT_CS_CONNECT_ASYNC = 3
+    MQTT_CS_CONNECTION_LOST = 4
 
 
 class MessageState(enum.IntEnum):
