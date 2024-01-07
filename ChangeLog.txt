@@ -27,6 +27,8 @@ v2.0.0 - 2023-xx-xx
   and loop_start/loop_forever isn't used. Closes #525.
 - Fix wait_for_publish that could hang with QoS == 0 message on reconnection
   or publish during connection. Closes #549.
+- Correctly mark connection as broken on SSL error and don't crash loop_forever.
+  Closes #750.
 
 
 v1.6.1 - 2021-10-21

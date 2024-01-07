@@ -239,7 +239,7 @@ CallbackOnUnsubscribe = Union[
 _socket = socket
 
 
-class WebsocketConnectionError(ValueError):
+class WebsocketConnectionError(ConnectionError):
     pass
 
 
@@ -1909,7 +1909,7 @@ class Client:
             if self._state == mqtt_cs_connect_async:
                 try:
                     self.reconnect()
-                except (OSError, WebsocketConnectionError):
+                except OSError:
                     self._handle_on_connect_fail()
                     if not retry_first_connection:
                         raise
@@ -1950,7 +1950,7 @@ class Client:
                 else:
                     try:
                         self.reconnect()
-                    except (OSError, WebsocketConnectionError):
+                    except OSError:
                         self._handle_on_connect_fail()
                         self._easy_log(
                             MQTT_LOG_DEBUG, "Connection failed, retrying")
@@ -2617,13 +2617,13 @@ class Client:
                 command = self._sock_recv(1)
             except BlockingIOError:
                 return MQTTErrorCode.MQTT_ERR_AGAIN
-            except ConnectionError as err:
-                self._easy_log(
-                    MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
-                return MQTTErrorCode.MQTT_ERR_CONN_LOST
             except TimeoutError as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'timeout on socket: %s', err)
+                return MQTTErrorCode.MQTT_ERR_CONN_LOST
+            except OSError as err:
+                self._easy_log(
+                    MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return MQTTErrorCode.MQTT_ERR_CONN_LOST
             else:
                 if len(command) == 0:
@@ -2639,7 +2639,7 @@ class Client:
                     byte = self._sock_recv(1)
                 except BlockingIOError:
                     return MQTTErrorCode.MQTT_ERR_AGAIN
-                except ConnectionError as err:
+                except OSError as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                     return MQTTErrorCode.MQTT_ERR_CONN_LOST
@@ -2669,7 +2669,7 @@ class Client:
                 data = self._sock_recv(self._in_packet['to_process'])
             except BlockingIOError:
                 return MQTTErrorCode.MQTT_ERR_AGAIN
-            except ConnectionError as err:
+            except OSError as err:
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
                 return MQTTErrorCode.MQTT_ERR_CONN_LOST
@@ -2720,7 +2720,7 @@ class Client:
             except BlockingIOError:
                 self._out_packet.appendleft(packet)
                 return MQTTErrorCode.MQTT_ERR_AGAIN
-            except ConnectionError as err:
+            except OSError as err:
                 self._out_packet.appendleft(packet)
                 self._easy_log(
                     MQTT_LOG_ERR, 'failed to receive on socket: %s', err)
@@ -4313,7 +4313,7 @@ class WebsocketWrapper:
             else:
                 raise BlockingIOError
 
-        except ConnectionError:
+        except OSError:
             self.connected = False
             return b''
 
