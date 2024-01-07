@@ -21,12 +21,10 @@ repos:
       # - id: mixed-line-ending
       # - id: trailing-whitespace
 
-  #- repo: https://github.com/codespell-project/codespell
-  #  rev: v2.2.6
-  #  hooks:
-  #    - id: codespell  # See pyproject.toml for args
-  #      additional_dependencies:
-  #        - tomli
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.17.0
+    hooks:
+      - id: typos
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.1.9
