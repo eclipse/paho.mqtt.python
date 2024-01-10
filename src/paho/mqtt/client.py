@@ -891,11 +891,7 @@ class Client:
         if self._sock is not None:
             # The issue here is that the previous value of keepalive matter to possibly
             # sent ping packet.
-            warnings.warn(
-                "updating keepalive on established connection is not supported",
-                stacklevel=2,
-            )
-            self._sock.settimeout(value)
+            raise RuntimeError("updating keepalive on established connection is not supported")
 
         if value < 0:
             raise ValueError("Keepalive must be >=0.")
@@ -985,10 +981,7 @@ class Client:
         if self._sock is not None:
             # Not tested. Some doubt that everything is okay when max_inflight change between 0
             # and > 0 value because _update_inflight is skipped when _max_inflight_messages == 0
-            warnings.warn(
-                "updating max_inflight_messages on established connection is not supported",
-                stacklevel=2,
-            )
+            raise RuntimeError("updating max_inflight_messages on established connection is not supported")
 
         if value < 0:
             raise ValueError("Invalid inflight.")
@@ -1005,10 +998,7 @@ class Client:
         "Update max_queued_messages. It's behavior is undefined if the connection is already open"
         if self._sock is not None:
             # Not tested.
-            warnings.warn(
-                "updating max_queued_messages on established connection is not supported",
-                stacklevel=2,
-            )
+            raise RuntimeError("updating max_queued_messages on established connection is not supported")
 
         if value < 0:
             raise ValueError("Invalid queue size.")
