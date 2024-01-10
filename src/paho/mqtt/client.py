@@ -990,7 +990,7 @@ class Client:
 
     @property
     def max_queued_messages(self) -> int:
-        "Maximum number of message with QoS > 0 that can be part way through their network flow at once"
+        """Maximum number of message in the outgoing message queue, 0 means unlimited"""
         return self._max_queued_messages
 
     @max_queued_messages.setter
@@ -1016,17 +1016,14 @@ class Client:
     @property
     def will_payload(self) -> bytes | None:
         """The payload for the will message that is sent when disconnecting unexpectedly. None if a will shall not be sent."""
-        if self._will_topic is None:
-            return None
-
-        return self._will_topic.decode("utf-8")
+        return self._will_payload
 
     @property
     def logger(self) -> logging.Logger | None:
         return self._logger
 
     @logger.setter
-    def logger(self, value: logging.Logger) -> None:
+    def logger(self, value: logging.Logger | None) -> None:
         self._logger = value
 
     def _sock_recv(self, bufsize: int) -> bytes:
