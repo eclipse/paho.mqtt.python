@@ -852,7 +852,7 @@ class Client:
 
     @property
     def host(self) -> str:
-        "Host we try to connect to. If don't yet called connect() return empty string"
+        """Host to connect to. If `connect()` hasn't been called yet, returns an empty string."""
         return self._host
 
     @host.setter
@@ -861,19 +861,19 @@ class Client:
         Update host. This will only be used on future (re)connection. You should probably
         use reconnect() to update the connection if established.
         """
-        if value is None or len(value) == 0:
+        if not value:
             raise ValueError("Invalid host.")
         self._host = value
 
     @property
     def port(self) -> int:
-        "TCP port we try to connect to."
+        """Broker TCP port to connect to."""
         return self._port
 
     @port.setter
     def port(self, value: int) -> None:
         """
-        Update post. This will only be used on future (re)connection. You should probably
+        Update port. This will only be used on future (re)connection. You should probably
         use reconnect() to update the connection if established.
         """
         if value <= 0:
@@ -882,12 +882,12 @@ class Client:
 
     @property
     def keepalive(self) -> int:
-        "Keepalive in seconds used by the client "
+        """Client keepalive interval (in seconds)."""
         return self._keepalive
 
     @keepalive.setter
     def keepalive(self, value: int) -> None:
-        "Update keepalive. It's behavior is undefined if the connection is already open"
+        """Update the client keepalive interval. This may not be called if the connection is already open."""
         if self._sock is not None:
             # The issue here is that the previous value of keepalive matter to possibly
             # sent ping packet.
@@ -904,7 +904,7 @@ class Client:
 
     @property
     def transport(self) -> str:
-        'Transport used for the connection, could be "tcp" or  "websockets".'
+        """Transport method used for the connection."""
         return self._transport
 
     @transport.setter
@@ -922,12 +922,12 @@ class Client:
 
     @property
     def protocol(self) -> int:
-        "Protocol version used (MQTT v3, MQTT v3.11, MQTTv5)"
+        """Protocol version used (MQTT v3, MQTT v3.11, MQTTv5)"""
         return self.protocol
 
     @property
     def connect_timeout(self) -> float:
-        "Timeout used to establish the TCP (& TLS / websocket if enabled) in seconds"
+        """Connection establishment timeout in seconds"""
         return self._connect_timeout
 
     @connect_timeout.setter
@@ -940,7 +940,7 @@ class Client:
 
     @property
     def username(self) -> str | None:
-        "Return the username use to connect to MQTT broken or None if not credenials are used."
+        """The username used to connect to the MQTT broker, or None if no username is used."""
         if self._username is None:
             return None
         return self._username.decode("utf-8")
@@ -958,7 +958,7 @@ class Client:
 
     @property
     def password(self) -> str | None:
-        "Return the password use to connect to MQTT broken or None if not password are used."
+        """The password used to connect to the MQTT broker, or None if no password is used."""
         if self._password is None:
             return None
         return self._password.decode("utf-8")
@@ -976,7 +976,7 @@ class Client:
 
     @property
     def max_inflight_messages(self) -> int:
-        "Maximum number of message with QoS > 0 that can be part way through their network flow at once"
+        """Maximum number of messages with QoS > 0 that can be partway through the network flow at once"""
         return self._max_inflight_messages
 
     @max_inflight_messages.setter
@@ -1017,7 +1017,7 @@ class Client:
 
     @property
     def will_topic(self) -> str | None:
-        "Return the topic will is sent to on unexpected disconnect, or None if will isn't set"
+        """The topic name a will message is sent to when disconnecting unexpectedly. None if a will shall not be sent."""
         if self._will_topic is None:
             return None
 
@@ -1025,7 +1025,7 @@ class Client:
 
     @property
     def will_payload(self) -> bytes | None:
-        "Return the payload will send on unexpected disconnect, or None if will isn't set"
+        """The payload for the will message that is sent when disconnecting unexpectedly. None if a will shall not be sent."""
         if self._will_topic is None:
             return None
 
