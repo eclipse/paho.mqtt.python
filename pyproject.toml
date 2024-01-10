@@ -67,6 +67,15 @@ include = [
     "src/paho",
 ]
 
+[tool.mypy]
+
+[[tool.mypy.overrides]]
+module = "paho.mqtt.client"
+# check_untyped_defs = true
+# disallow_untyped_calls = true
+# disallow_incomplete_defs = true
+disallow_untyped_defs = true
+
 [tool.pytest.ini_options]
 addopts = ["-r", "xs"]
 testpaths = "tests src"

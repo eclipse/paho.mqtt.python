@@ -3,6 +3,16 @@ v2.0.0 - 2023-xx-xx
 
 - **BREAKING** Drop support for Python 2.7, Python 3.5 and Python 3.6
   Minimum tested version is Python 3.7
+- **BREAKING** connect_srv changed it signature to take an additional bind_port parameter.
+  This is a breaking change, but in previous version connect_srv was broken anyway.
+  Closes #493.
+- Add types to Client class, which caused few change which should be compatible.
+  Known risk of breaking changes:
+  - Use enum for returned error code (like MQTT_ERR_SUCCESS). It use an IntEnum
+    which should be a drop-in replacement. Excepted if someone is doing "rc is 0" instead of "rc == 0".
+  - reason in on_connect callback when using MQTTv5 is now always a ReasonCode object. It used to possibly be
+    an integer with the value 132.
+  - MQTTMessage field "dup" and "retain" used to be integer with value 0 and 1. They are now boolean.
 - Add on_pre_connect() callback, which is called immediately before a
   connection attempt is made.
 
