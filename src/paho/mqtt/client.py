@@ -669,7 +669,7 @@ class Client:
         clean_session: bool | None = None,
         userdata: Any = None,
         protocol: int = MQTTv311,
-        transport: str = "tcp",
+        transport: Literal["tcp", "websockets"] = "tcp",
         reconnect_on_failure: bool = True,
         manual_ack: bool = False,
     ) -> None:
@@ -719,8 +719,13 @@ class Client:
         locally.
 
         """
+        transport = transport.lower()  # type: ignore
+        if transport not in ("websockets", "tcp"):
+            raise ValueError(
+                f'transport must be "websockets" or "tcp", not {transport}')
+
         self._manual_ack = manual_ack
-        self.transport = transport
+        self._transport = transport
         self._protocol = protocol
         self._userdata = userdata
         self._sock: SocketLike | None = None
@@ -899,25 +904,21 @@ class Client:
         self._keepalive = value
 
     @property
-    def transport(self) -> str:
+    def transport(self) -> Literal["tcp", "websockets"]:
         """Transport method used for the connection."""
         return self._transport
 
     @transport.setter
-    def transport(self, value: str) -> None:
+    def transport(self, value: Literal["tcp", "websockets"]) -> None:
         """
         Update transport which should be "tcp" or "websockets".
         This will only be used on future (re)connection. You should probably
         use reconnect() to update the connection if established.
         """
-        if value.lower() not in ("websockets", "tcp"):
-            raise ValueError(
-                f'transport must be "websockets" or "tcp", not {value}')
-
-        self._transport = value.lower()
+        self._transport = value
 
     @property
-    def protocol(self) -> int:
+    def protocol(self) -> MQTTProtocolVersion:
         """Protocol version used (MQTT v3, MQTT v3.11, MQTTv5)"""
         return self.protocol
 
@@ -927,7 +928,7 @@ class Client:
         return self._connect_timeout
 
     @connect_timeout.setter
-    def connect_timeout(self, value: float):
+    def connect_timeout(self, value: float) -> None:
         "Change connect_timeout for future (re)connection"
         if value <= 0.0:
             raise ValueError("timeout must be a positive number")
