@@ -25,3 +25,6 @@ jobs:
             setup.py
       - run: pip install tox
       - run: tox -e py
+      - uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
