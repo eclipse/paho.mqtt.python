@@ -99,7 +99,7 @@ The following part of the client session is lost:
   It also means that the broker may have the Qos2 message in the session. Since the client starts
   with an empty session it don't know it and will reuse the mid. This is not yet fixed.
 
-Also, when ``clean_session`` is True, this library will republish QoS > 0 message accross network
+Also, when ``clean_session`` is True, this library will republish QoS > 0 message across network
 reconnection. This means that QoS > 0 message won't be lost. But the standard says that
 we should discard any message for which the publish packet was sent. Our choice means that
 we are not compliant with the standard and it's possible for QoS 2 to be received twice.
