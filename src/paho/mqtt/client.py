@@ -1778,7 +1778,6 @@ class Client:
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
             else:
                 self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
-                self._easy_log(MQTT_LOG_DEBUG, "... 2")
                 rc = MQTTErrorCode.MQTT_ERR_KEEPALIVE
 
             self._do_on_disconnect(rc)
@@ -2592,7 +2591,6 @@ class Client:
             self._do_on_disconnect(rc, properties)
 
         if rc == MQTT_ERR_CONN_LOST:
-            self._easy_log(MQTT_LOG_DEBUG, "... 3")
             self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
 
         return rc
