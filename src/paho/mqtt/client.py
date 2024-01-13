@@ -4313,7 +4313,7 @@ class WebsocketWrapper:
             else:
                 raise BlockingIOError
 
-        except OSError:
+        except ConnectionError:
             self.connected = False
             return b''
 
