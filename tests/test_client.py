@@ -210,44 +210,40 @@ class TestConnectionLost:
         mqttc.on_connect = on_connect
         mqttc.on_disconnect = on_disconnect
 
+        mqttc.connect("localhost", fake_broker.port)
 
-        try:
-            mqttc.connect("localhost", fake_broker.port)
+        fake_broker.start()
 
-            fake_broker.start()
+        # not yet connected, packet are not yet processed by loop()
+        assert not mqttc.is_connected()
 
-            # not yet connected, packet are not yet processed by loop()
-            assert not mqttc.is_connected()
+        # connect packet is sent during connect() call
+        connect_packet = paho_test.gen_connect(
+            "test_with_loop", keepalive=60,
+            proto_ver=MQTTProtocolVersion.MQTTv311)
+        packet_in = fake_broker.receive_packet(1000)
+        assert packet_in  # Check connection was not closed
+        assert packet_in == connect_packet
 
-            # connect packet is sent during connect() call
-            connect_packet = paho_test.gen_connect(
-                "test_with_loop", keepalive=60,
-                proto_ver=MQTTProtocolVersion.MQTTv311)
-            packet_in = fake_broker.receive_packet(1000)
-            assert packet_in  # Check connection was not closed
-            assert packet_in == connect_packet
+        connack_packet = paho_test.gen_connack(rc=0)
+        count = fake_broker.send_packet(connack_packet)
+        assert count  # Check connection was not closed
+        assert count == len(connack_packet)
 
-            connack_packet = paho_test.gen_connack(rc=0)
-            count = fake_broker.send_packet(connack_packet)
-            assert count  # Check connection was not closed
-            assert count == len(connack_packet)
+        # call loop() to process the connack packet
+        assert mqttc.loop(timeout=1) == MQTTErrorCode.MQTT_ERR_SUCCESS
 
-            # call loop() to process the connack packet
-            assert mqttc.loop(timeout=1) == MQTTErrorCode.MQTT_ERR_SUCCESS
+        assert on_connect_reached.wait(1)
+        assert mqttc.is_connected()
 
-            assert on_connect_reached.wait(1)
-            assert mqttc.is_connected()
+        fake_broker.finish()
 
-            fake_broker.finish()
+        # call loop() to detect the connection lost
+        assert mqttc.loop(timeout=1) == MQTTErrorCode.MQTT_ERR_CONN_LOST
 
-            # call loop() to detect the connection lost
-            assert mqttc.loop(timeout=1) == MQTTErrorCode.MQTT_ERR_CONN_LOST
+        assert on_disconnect_reached.wait(1)
+        assert not mqttc.is_connected()
 
-            assert on_disconnect_reached.wait(1)
-            assert not mqttc.is_connected()
-
-        finally:
-            mqttc.loop_stop()
 
 class TestPublishBroker2Client:
 
