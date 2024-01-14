@@ -16,10 +16,12 @@
 *******************************************************************
 """
 
+import functools
 
 from .packettypes import PacketTypes
 
 
+@functools.total_ordering
 class ReasonCodes:
     """MQTT version 5.0 reason codes class.
 
@@ -173,10 +175,17 @@ class ReasonCodes:
         if isinstance(other, int):
             return self.value == other
         if isinstance(other, str):
-            return self.value == str(self)
+            return other == str(self)
         if isinstance(other, ReasonCodes):
             return self.value == other.value
         return False
+
+    def __lt__(self, other):
+        if isinstance(other, int):
+            return self.value < other
+        if isinstance(other, ReasonCodes):
+            return self.value < other.value
+        return NotImplemented
 
     def __str__(self):
         return self.getName()
