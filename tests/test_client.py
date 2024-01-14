@@ -565,3 +565,127 @@ class TestCompatibility:
         # This might probably not be done: User might use rc as number in
         # operation
         assert rc_ok + 1 == 1
+
+    def test_callback_v1_mqtt3(self, fake_broker):
+        callback_called = []
+        mqttc = client.Client(
+            "client-id",
+            userdata=callback_called,
+        )
+
+        def on_connect(cl, userdata, flags, rc):
+            assert isinstance(cl, client.Client)
+            assert isinstance(flags, dict)
+            assert isinstance(flags["session present"], int)
+            assert isinstance(rc, int)
+            userdata.append("on_connect")
+            cl.subscribe([("topic", 0)])
+
+        def on_subscribe(cl, userdata, mid, granted_qos):
+            assert isinstance(cl, client.Client)
+            assert isinstance(mid, int)
+            assert isinstance(granted_qos, tuple)
+            assert isinstance(granted_qos[0], int)
+            userdata.append("on_subscribe")
+            cl.publish("topic", "payload", 2)
+
+        def on_publish(cl, userdata, mid):
+            assert isinstance(cl, client.Client)
+            assert isinstance(mid, int)
+            userdata.append("on_publish")
+
+        def on_message(cl, userdata, message):
+            assert isinstance(cl, client.Client)
+            assert isinstance(message, client.MQTTMessage)
+            userdata.append("on_message")
+            cl.unsubscribe("topic")
+
+        def on_unsubscribe(cl, userdata, mid):
+            assert isinstance(cl, client.Client)
+            assert isinstance(mid, int)
+            userdata.append("on_unsubscribe")
+            cl.disconnect()
+
+        def on_disconnect(cl, userdata, rc):
+            assert isinstance(cl, client.Client)
+            assert isinstance(rc, int)
+            userdata.append("on_disconnect")
+
+        mqttc.on_connect = on_connect
+        mqttc.on_subscribe = on_subscribe
+        mqttc.on_publish = on_publish
+        mqttc.on_message = on_message
+        mqttc.on_unsubscribe = on_unsubscribe
+        mqttc.on_disconnect = on_disconnect
+
+        mqttc.enable_logger()
+        mqttc.connect_async("localhost", fake_broker.port)
+        mqttc.loop_start()
+
+        try:
+            fake_broker.start()
+
+            connect_packet = paho_test.gen_connect(
+                "client-id", keepalive=60)
+            fake_broker.expect_packet("connect", connect_packet)
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            subscribe_packet = paho_test.gen_subscribe(1, "topic", 0)
+            fake_broker.expect_packet("subscribe", subscribe_packet)
+
+            suback_packet = paho_test.gen_suback(1, 0)
+            count = fake_broker.send_packet(suback_packet)
+            assert count  # Check connection was not closed
+            assert count == len(suback_packet)
+
+            publish_packet = paho_test.gen_publish("topic", 2, "payload", mid=2)
+            fake_broker.expect_packet("publish", publish_packet)
+
+            pubrec_packet = paho_test.gen_pubrec(mid=2)
+            count = fake_broker.send_packet(pubrec_packet)
+            assert count  # Check connection was not closed
+            assert count == len(pubrec_packet)
+
+            pubrel_packet = paho_test.gen_pubrel(mid=2)
+            fake_broker.expect_packet("pubrel", pubrel_packet)
+
+            pubcomp_packet = paho_test.gen_pubcomp(mid=2)
+            count = fake_broker.send_packet(pubcomp_packet)
+            assert count  # Check connection was not closed
+            assert count == len(pubcomp_packet)
+
+            publish_from_broker_packet = paho_test.gen_publish("topic", qos=0, payload="payload", mid=99)
+            count = fake_broker.send_packet(publish_from_broker_packet)
+            assert count  # Check connection was not closed
+            assert count == len(publish_from_broker_packet)
+
+            unsubscribe_packet = paho_test.gen_unsubscribe(mid=3, topic="topic")
+            fake_broker.expect_packet("unsubscribe", unsubscribe_packet)
+
+            suback_packet = paho_test.gen_unsuback(mid=3)
+            count = fake_broker.send_packet(suback_packet)
+            assert count  # Check connection was not closed
+            assert count == len(suback_packet)
+
+            disconnect_packet = paho_test.gen_disconnect()
+            fake_broker.expect_packet("disconnect", disconnect_packet)
+
+            assert callback_called == [
+                "on_connect",
+                "on_subscribe",
+                "on_publish",
+                "on_message",
+                "on_unsubscribe",
+                "on_disconnect",
+            ]
+
+        finally:
+            mqttc.disconnect()
+            mqttc.loop_stop()
+
+        packet_in = fake_broker.receive_packet(1)
+        assert not packet_in  # Check connection is closed
