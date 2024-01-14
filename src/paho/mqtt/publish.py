@@ -24,6 +24,10 @@ import collections
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, List, Tuple, Union
 
+from paho.mqtt.enums import CallbackAPIVersion
+from paho.mqtt.properties import Properties
+from paho.mqtt.reasoncodes import ReasonCodes
+
 from .. import mqtt
 from . import client as paho
 
@@ -72,22 +76,17 @@ def _do_publish(client: paho.Client):
         raise TypeError('message must be a dict, tuple, or list')
 
 
-def _on_connect(client, userdata, flags, rc):
-    """Internal callback"""
-    #pylint: disable=invalid-name, unused-argument
-
-    if rc == 0:
+def _on_connect(client: paho.Client, userdata: MessagesList, flags, reason_code, properties):
+    """Internal v5 callback"""
+    if reason_code == 0:
         if len(userdata) > 0:
             _do_publish(client)
     else:
-        raise mqtt.MQTTException(paho.connack_string(rc))
+        raise mqtt.MQTTException(paho.connack_string(reason_code))
 
-def _on_connect_v5(client: paho.Client, userdata: MessagesList, flags, rc, properties):
-    """Internal v5 callback"""
-    _on_connect(client, userdata, flags, rc)
 
 def _on_publish(
-    client: paho.Client, userdata: collections.deque[MessagesList], mid: int
+    client: paho.Client, userdata: collections.deque[MessagesList], mid: int, reason_codes: ReasonCodes, properties: Properties,
 ) -> None:
     """Internal callback"""
     #pylint: disable=unused-argument
@@ -176,15 +175,16 @@ def multiple(
     if not isinstance(msgs, Iterable):
         raise TypeError('msgs must be an iterable')
 
-
-    client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),
-                         protocol=protocol, transport=transport)
+    client = paho.Client(
+        CallbackAPIVersion.VERSION2,
+        client_id=client_id,
+        userdata=collections.deque(msgs),
+        protocol=protocol,
+        transport=transport,
+    )
 
     client.on_publish = _on_publish
-    if protocol == mqtt.client.MQTTv5:
-        client.on_connect = _on_connect_v5  # type: ignore
-    else:
-        client.on_connect = _on_connect  # type: ignore
+    client.on_connect = _on_connect  # type: ignore
 
     if proxy_args is not None:
         client.proxy_set(**proxy_args)

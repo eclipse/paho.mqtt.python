@@ -12,7 +12,7 @@ def on_subscribe(mqttc, obj, mid, granted_qos):
     mqttc.disconnect()
 
 
-mqttc = mqtt.Client("subscribe-qos2-test", clean_session=True)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "subscribe-qos2-test", clean_session=True)
 mqttc.on_connect = on_connect
 mqttc.on_subscribe = on_subscribe
 

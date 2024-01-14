@@ -48,6 +48,7 @@ class TestInvalidWebsocketResponse:
         """ Server responds with a valid code, but it's not what the client expected """
 
         mqttc = client.Client(
+            client.CallbackAPIVersion.VERSION1,
             "test_unexpected_response",
             protocol=proto_ver,
             transport="websockets"
@@ -92,6 +93,7 @@ class TestBadWebsocketHeaders:
         """ Server doesn't respond with 'connection: upgrade' """
 
         mqttc = client.Client(
+            client.CallbackAPIVersion.VERSION1,
             "test_no_upgrade",
             protocol=proto_ver,
             transport="websockets"
@@ -110,6 +112,7 @@ class TestBadWebsocketHeaders:
         """ Server doesn't give anything after connection: upgrade """
 
         mqttc = client.Client(
+            client.CallbackAPIVersion.VERSION1,
             "test_bad_secret_key",
             protocol=proto_ver,
             transport="websockets"
@@ -168,6 +171,7 @@ class TestValidHeaders:
         """ Connect successfully, on correct path """
 
         mqttc = client.Client(
+            client.CallbackAPIVersion.VERSION1,
             "test_successful_connection",
             protocol=proto_ver,
             transport="websockets"
@@ -190,6 +194,7 @@ class TestValidHeaders:
         """ Make sure it can connect on user specified paths """
 
         mqttc = client.Client(
+            client.CallbackAPIVersion.VERSION1,
             "test_correct_path",
             protocol=proto_ver,
             transport="websockets"
@@ -225,6 +230,7 @@ class TestValidHeaders:
         """ Make sure it sends the right auth headers """
 
         mqttc = client.Client(
+            client.CallbackAPIVersion.VERSION1,
             "test_correct_path",
             protocol=proto_ver,
             transport="websockets"

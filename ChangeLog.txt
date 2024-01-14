@@ -1,12 +1,18 @@
 v2.0.0 - 2023-xx-xx
 ===================
 
+- **BREAKING** Added callback_api_version. This break *ALL* users of paho-mqtt Client class.
+  See migrations.md for details on how to upgrade.
+  tl; dr; add CallbackAPIVersion.VERSION1 to first argument of Client()
 - **BREAKING** Drop support for Python 2.7, Python 3.5 and Python 3.6
   Minimum tested version is Python 3.7
   Python version up to Python 3.12 are tested.
 - **BREAKING** connect_srv changed it signature to take an additional bind_port parameter.
   This is a breaking change, but in previous version connect_srv was broken anyway.
   Closes #493.
+- Add version 2 of user-callback which allow to access MQTTv5 reason code & properties that were
+  missing from on_publish callback. Also it's more consistent in parameter order or between
+  MQTTv3 and MQTTv5.
 - Add types to Client class, which caused few change which should be compatible.
   Known risk of breaking changes:
   - Use enum for returned error code (like MQTT_ERR_SUCCESS). It use an IntEnum

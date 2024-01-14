@@ -12,7 +12,7 @@ def on_unsubscribe(mqttc, obj, mid):
     mqttc.disconnect()
 
 
-mqttc = mqtt.Client("unsubscribe-test", clean_session=True)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "unsubscribe-test", clean_session=True)
 mqttc.on_connect = on_connect
 mqttc.on_unsubscribe = on_unsubscribe
 

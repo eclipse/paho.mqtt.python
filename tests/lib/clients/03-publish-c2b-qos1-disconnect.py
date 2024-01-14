@@ -24,7 +24,7 @@ def on_publish(mqttc, obj, mid):
     mqttc.disconnect()
 
 
-mqttc = mqtt.Client("publish-qos1-test", clean_session=False)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "publish-qos1-test", clean_session=False)
 mqttc.on_connect = on_connect
 mqttc.on_disconnect = on_disconnect
 mqttc.on_publish = on_publish

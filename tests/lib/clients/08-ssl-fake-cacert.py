@@ -10,7 +10,7 @@ def on_connect(mqttc, obj, flags, rc):
     raise RuntimeError("Connection should have failed!")
 
 
-mqttc = mqtt.Client("08-ssl-fake-cacert")
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "08-ssl-fake-cacert")
 mqttc.tls_set(
     os.path.join(os.environ["PAHO_SSL_PATH"], "test-fake-root-ca.crt"),
     os.path.join(os.environ["PAHO_SSL_PATH"], "client.crt"),

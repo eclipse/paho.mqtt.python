@@ -17,7 +17,7 @@ def on_connect(mqttc, obj, flags, rc):
     assert rc == 0, f"Connect failed ({rc})"
 
 
-mqttc = mqtt.Client("publish-qos2-test", clean_session=True)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "publish-qos2-test", clean_session=True)
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 
