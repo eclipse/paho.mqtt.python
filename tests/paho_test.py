@@ -101,7 +101,22 @@ def packet_matches(name, recvd, expected):
         return True
 
 
-def gen_connect(client_id, clean_session=True, keepalive=60, username=None, password=None, will_topic=None, will_qos=0, will_retain=False, will_payload=b"", proto_ver=4, connect_reserved=False, properties=b"", will_properties=b"", session_expiry=-1):
+def gen_connect(
+    client_id,
+    clean_session=True,
+    keepalive=60,
+    username=None,
+    password=None,
+    will_topic=None,
+    will_qos=0,
+    will_retain=False,
+    will_payload=b"",
+    proto_ver=4,
+    connect_reserved=False,
+    properties=b"",
+    will_properties=b"",
+    session_expiry=-1,
+):
     if (proto_ver&0x7F) == 3 or proto_ver == 0:
         remaining_length = 12
     elif (proto_ver&0x7F) == 4 or proto_ver == 5:

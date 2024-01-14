@@ -3516,9 +3516,10 @@ class Client:
         if self._protocol == MQTTv5:
             properties = Properties(SUBACK >> 4)
             props, props_len = properties.unpack(packet)
-            reasoncodes = []
-            for c in packet[props_len:]:
-                reasoncodes.append(ReasonCodes(SUBACK >> 4, identifier=c))
+            reasoncodes = [
+                ReasonCodes(SUBACK >> 4, identifier=c)
+                for c in packet[props_len:]
+            ]
         else:
             pack_format = f"!{'B' * len(packet)}"
             granted_qos = struct.unpack(pack_format, packet)
@@ -3735,9 +3736,10 @@ class Client:
             packet = self._in_packet['packet'][2:]
             properties = Properties(UNSUBACK >> 4)
             props, props_len = properties.unpack(packet)
-            reasoncodes_list = []
-            for c in packet[props_len:]:
-                reasoncodes_list.append(ReasonCodes(UNSUBACK >> 4, identifier=c))
+            reasoncodes_list = [
+                ReasonCodes(UNSUBACK >> 4, identifier=c)
+                for c in packet[props_len:]
+            ]
 
             reasoncodes: ReasonCodes | list[ReasonCodes] = reasoncodes_list
             if len(reasoncodes_list) == 1:
@@ -3849,8 +3851,7 @@ class Client:
         on_message_callbacks = []
         with self._callback_mutex:
             if topic is not None:
-                for callback in self._on_message_filtered.iter_match(message.topic):
-                    on_message_callbacks.append(callback)
+                on_message_callbacks = list(self._on_message_filtered.iter_match(message.topic))
 
             if len(on_message_callbacks) == 0:
                 on_message = self.on_message
@@ -3923,7 +3924,7 @@ class Client:
     def _proxy_is_valid(p) -> bool:  # type: ignore[no-untyped-def]
         def check(t, a) -> bool:  # type: ignore[no-untyped-def]
             return (socks is not None and
-                    t in set([socks.HTTP, socks.SOCKS4, socks.SOCKS5]) and a)
+                    t in {socks.HTTP, socks.SOCKS4, socks.SOCKS5} and a)
 
         if isinstance(p, dict):
             return check(p.get("proxy_type"), p.get("proxy_addr"))

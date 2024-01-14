@@ -930,7 +930,7 @@ class Test(unittest.TestCase):
 
         self.waitfor(lbcallback.messages, 1, 3)
         self.assertEqual(len(lbcallback.messages), 1, lbcallback.messages)
-        expected_subsids = set([2, 3])
+        expected_subsids = {2, 3}
         received_subsids = set(
             lbcallback.messages[0]["message"].properties.SubscriptionIdentifier)
         self.assertEqual(received_subsids, expected_subsids, received_subsids)

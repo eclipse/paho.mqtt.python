@@ -95,14 +95,19 @@ testpaths = "tests src"
 exclude = ["test/lib/python/*"]
 extend-select = [
     "B",
+    "C4",
+    "E",
     "E9",
     "F63",
     "F7",
     "F82",
     "FLY",  # flynt
     "I",
+    "ISC",
+    "PERF",
     "S", # Bandit
     "UP",
+    "RUF",
     "W",
 ]
 ignore = []
@@ -118,11 +123,13 @@ line-length = 167
     "F811",
     "F841",
     "I",
+    "PERF",
     "S",
     "UP",
 ]
 "tests/**/*.py" = [
     "F811",
+    "PERF203",
     "S101",
     "S105",
     "S106",
