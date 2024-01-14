@@ -34,7 +34,7 @@ import time
 import urllib.parse
 import urllib.request
 import uuid
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, NamedTuple, Sequence, Tuple, Union, cast
 
 from .enums import ConnackCode, ConnectionState, LogLevel, MessageState, MessageType, MQTTErrorCode, MQTTProtocolVersion, PahoClientMode
 from .matcher import MQTTMatcher
@@ -208,32 +208,42 @@ SocketLike = Union[socket.socket, "ssl.SSLSocket", "WebsocketWrapper"]
 CleanStartOption = Union[bool, Literal[3]]
 
 
-CallbackOnConnect = Union[
-    Callable[["Client", Any, ReasonCodes, Properties], None],
-    Callable[["Client", Any, MQTTErrorCode], None],
-]
+class ConnectFlags(NamedTuple):
+    session_present: bool
+
+
+class DisconnectFlags(NamedTuple):
+    is_disconnect_packet_from_server: bool
+
+
+CallbackOnConnect_v1_mqtt3 = Callable[["Client", Any, Dict[str, Any], MQTTErrorCode], None]
+CallbackOnConnect_v1_mqtt5 = Callable[["Client", Any, Dict[str, Any], ReasonCodes, Union[Properties, None]], None]
+CallbackOnConnect_v1 = Union[CallbackOnConnect_v1_mqtt5, CallbackOnConnect_v1_mqtt3]
+CallbackOnConnect_v2 = Callable[["Client", Any, ConnectFlags, ReasonCodes, Union[Properties, None]], None]
+CallbackOnConnect = Union[CallbackOnConnect_v1, CallbackOnConnect_v2]
 CallbackOnConnectFail = Callable[["Client", Any], None]
-CallbackOnDisconnect = Union[
-    Callable[
-        ["Client", Any, Dict[str, Any], ReasonCodes, Properties], None
-    ],
-    Callable[["Client", Any, Dict[str, Any], MQTTErrorCode], None],
-]
+CallbackOnDisconnect_v1_mqtt3 = Callable[["Client", Any, MQTTErrorCode], None]
+CallbackOnDisconnect_v1_mqtt5 = Callable[["Client", Any, Union[ReasonCodes, int, None], Union[Properties, None]], None]
+CallbackOnDisconnect_v1 = Union[CallbackOnDisconnect_v1_mqtt3, CallbackOnDisconnect_v1_mqtt5]
+CallbackOnDisconnect_v2 = Callable[["Client", Any, DisconnectFlags, ReasonCodes, Union[Properties, None]], None]
+CallbackOnDisconnect = Union[CallbackOnDisconnect_v1, CallbackOnDisconnect_v2]
 CallbackOnLog = Callable[["Client", Any, int, str], None]
 CallbackOnMessage = Callable[["Client", Any, "MQTTMessage"], None]
 CallbackOnPreConnect = Callable[["Client", Any], None]
-CallbackOnPublish = Callable[["Client", Any, int], None]
+CallbackOnPublish_v1 = Callable[["Client", Any, int], None]
+CallbackOnPublish_v2 = Callable[["Client", Any, int, ReasonCodes, Properties], None]
+CallbackOnPublish = Union[CallbackOnPublish_v1, CallbackOnPublish_v2]
 CallbackOnSocket = Callable[["Client", Any, SocketLike], None]
-CallbackOnSubscribe = Union[
-    Callable[
-        ["Client", Any, Properties, List[ReasonCodes], Properties], None
-    ],
-    Callable[["Client", Any, int, Tuple[int, ...]], None],
-]
-CallbackOnUnsubscribe = Union[
-    Callable[["Client", Any, Properties, ReasonCodes], None],
-    Callable[["Client", Any, int], None],
-]
+CallbackOnSubscribe_v1_mqtt3 = Callable[["Client", Any, int, Tuple[int, ...]], None]
+CallbackOnSubscribe_v1_mqtt5 = Callable[["Client", Any, int, List[ReasonCodes], Properties], None]
+CallbackOnSubscribe_v1 = Union[CallbackOnSubscribe_v1_mqtt3, CallbackOnSubscribe_v1_mqtt5]
+CallbackOnSubscribe_v2 = Callable[["Client", Any, int, List[ReasonCodes], Union[Properties, None]], None]
+CallbackOnSubscribe = Union[CallbackOnSubscribe_v1, CallbackOnSubscribe_v2]
+CallbackOnUnsubscribe_v1_mqtt3 = Callable[["Client", Any, int], None]
+CallbackOnUnsubscribe_v1_mqtt5 = Callable[["Client", Any, int, Properties, Union[ReasonCodes, List[ReasonCodes]]], None]
+CallbackOnUnsubscribe_v1 = Union[CallbackOnUnsubscribe_v1_mqtt3, CallbackOnUnsubscribe_v1_mqtt5]
+CallbackOnUnsubscribe_v2 = Callable[["Client", Any, int, List[ReasonCodes], Union[Properties, None]], None]
+CallbackOnUnsubscribe = Union[CallbackOnUnsubscribe_v1, CallbackOnUnsubscribe_v2]
 
 # This is needed for typing because class Client redefined the name "socket"
 _socket = socket
@@ -2736,6 +2746,8 @@ class Client:
                             on_publish = self.on_publish
 
                         if on_publish:
+                            # For now only v1 is implemented
+                            on_publish = cast(CallbackOnPublish_v1, on_publish)
                             with self._in_callback_mutex:
                                 try:
                                     on_publish(
@@ -3427,11 +3439,15 @@ class Client:
             with self._in_callback_mutex:
                 try:
                     if self._protocol == MQTTv5:
+                        on_connect = cast(CallbackOnConnect_v1_mqtt5, on_connect)
+
                         on_connect(self, self._userdata,
-                                        flags_dict, reason, properties)  # type: ignore
+                                        flags_dict, reason, properties)
                     else:
+                        on_connect = cast(CallbackOnConnect_v1_mqtt3, on_connect)
+
                         on_connect(
-                            self, self._userdata, flags_dict, result)  # type: ignore
+                            self, self._userdata, flags_dict, result)
                 except Exception as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'Caught exception in on_connect: %s', err)
@@ -3547,11 +3563,15 @@ class Client:
             with self._in_callback_mutex:  # Don't call loop_write after _send_publish()
                 try:
                     if self._protocol == MQTTv5:
+                        on_subscribe = cast(CallbackOnSubscribe_v1_mqtt5, on_subscribe)
+
                         on_subscribe(
-                            self, self._userdata, mid, reasoncodes, properties)  # type: ignore
+                            self, self._userdata, mid, reasoncodes, properties)
                     else:
+                        on_subscribe = cast(CallbackOnSubscribe_v1_mqtt3, on_subscribe)
+
                         on_subscribe(
-                            self, self._userdata, mid, granted_qos)  # type: ignore
+                            self, self._userdata, mid, granted_qos)
                 except Exception as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'Caught exception in on_subscribe: %s', err)
@@ -3769,10 +3789,14 @@ class Client:
             with self._in_callback_mutex:
                 try:
                     if self._protocol == MQTTv5:
+                        on_unsubscribe = cast(CallbackOnUnsubscribe_v1_mqtt5, on_unsubscribe)
+
                         on_unsubscribe(
-                            self, self._userdata, mid, properties, reasoncodes)  # type: ignore
+                            self, self._userdata, mid, properties, reasoncodes)
                     else:
-                        on_unsubscribe(self, self._userdata, mid)  # type: ignore
+                        on_unsubscribe = cast(CallbackOnUnsubscribe_v1_mqtt3, on_unsubscribe)
+
+                        on_unsubscribe(self, self._userdata, mid)
                 except Exception as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'Caught exception in on_unsubscribe: %s', err)
@@ -3793,10 +3817,16 @@ class Client:
             with self._in_callback_mutex:
                 try:
                     if self._protocol == MQTTv5:
+                        on_disconnect = cast(CallbackOnDisconnect_v1_mqtt5, on_disconnect)
+
                         on_disconnect(
-                            self, self._userdata, rc, properties)  # type: ignore
+                            self, self._userdata, rc, properties)
                     else:
-                        on_disconnect(self, self._userdata, rc)  # type: ignore
+                        on_disconnect = cast(CallbackOnDisconnect_v1_mqtt3, on_disconnect)
+                        # rc could be a ReasonCode only in handle_disconnect with MQTTv5
+                        rc = cast(MQTTErrorCode, rc)
+
+                        on_disconnect(self, self._userdata, rc)
                 except Exception as err:
                     self._easy_log(
                         MQTT_LOG_ERR, 'Caught exception in on_disconnect: %s', err)
@@ -3808,6 +3838,9 @@ class Client:
             on_publish = self.on_publish
 
         if on_publish:
+            # For now only v1 is implemented
+            on_publish = cast(CallbackOnPublish_v1, on_publish)
+
             with self._in_callback_mutex:
                 try:
                     on_publish(self, self._userdata, mid)
