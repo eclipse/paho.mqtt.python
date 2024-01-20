@@ -1290,10 +1290,19 @@ class Client:
             socklist = select.select(rlist, wlist, [], timeout)
         except TypeError:
             # Socket isn't correct type, in likelihood connection is lost
+            # ... or we called disconnect(). In that case the socket will
+            # be closed but some loop (like loop_forever) will continue to
+            # call _loop(). We still want to break that loop by returning an
+            # rc != MQTT_ERR_SUCCESS and we don't want state to change from
+            # mqtt_cs_disconnecting.
+            if self._state != ConnectionState.MQTT_CS_DISCONNECTING:
+                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except ValueError:
             # Can occur if we just reconnected but rlist/wlist contain a -1 for
             # some reason.
+            if self._state != ConnectionState.MQTT_CS_DISCONNECTING:
+                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except Exception:
             # Note that KeyboardInterrupt, etc. can still terminate since they
@@ -1768,6 +1777,7 @@ class Client:
             if self._state == mqtt_cs_disconnecting:
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
             else:
+                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
                 rc = MQTTErrorCode.MQTT_ERR_KEEPALIVE
 
             self._do_on_disconnect(rc)
@@ -2579,6 +2589,9 @@ class Client:
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
 
             self._do_on_disconnect(rc, properties)
+
+        if rc == MQTT_ERR_CONN_LOST:
+            self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
 
         return rc
 
