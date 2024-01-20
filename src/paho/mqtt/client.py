@@ -857,9 +857,11 @@ class Client:
     @host.setter
     def host(self, value: str) -> None:
         """
-        Update host. This will only be used on future (re)connection. You should probably
-        use reconnect() to update the connection if established.
+        Update host. This may not be called if the connection is already open.
         """
+        if not self._connection_closed():
+            raise RuntimeError("updating host on established connection is not supported")
+
         if not value:
             raise ValueError("Invalid host.")
         self._host = value
@@ -872,9 +874,11 @@ class Client:
     @port.setter
     def port(self, value: int) -> None:
         """
-        Update port. This will only be used on future (re)connection. You should probably
-        use reconnect() to update the connection if established.
+        Update port. This may not be called if the connection is already open.
         """
+        if not self._connection_closed():
+            raise RuntimeError("updating port on established connection is not supported")
+
         if value <= 0:
             raise ValueError("Invalid port number.")
         self._port = value
@@ -887,7 +891,7 @@ class Client:
     @keepalive.setter
     def keepalive(self, value: int) -> None:
         """Update the client keepalive interval. This may not be called if the connection is already open."""
-        if self._sock is not None:
+        if not self._connection_closed():
             # The issue here is that the previous value of keepalive matter to possibly
             # sent ping packet.
             raise RuntimeError("updating keepalive on established connection is not supported")
@@ -906,9 +910,11 @@ class Client:
     def transport(self, value: Literal["tcp", "websockets"]) -> None:
         """
         Update transport which should be "tcp" or "websockets".
-        This will only be used on future (re)connection. You should probably
-        use reconnect() to update the connection if established.
+        This may not be called if the connection is already open.
         """
+        if not self._connection_closed():
+            raise RuntimeError("updating transport on established connection is not supported")
+
         self._transport = value
 
     @property
@@ -923,7 +929,10 @@ class Client:
 
     @connect_timeout.setter
     def connect_timeout(self, value: float) -> None:
-        "Change connect_timeout for future (re)connection"
+        "Change connect_timeout. This may not be called if the connection is already open."
+        if not self._connection_closed():
+            raise RuntimeError("updating connect_timeout on established connection is not supported")
+
         if value <= 0.0:
             raise ValueError("timeout must be a positive number")
 
@@ -939,9 +948,11 @@ class Client:
     @username.setter
     def username(self, value: str | None) -> None:
         """
-        Update username. This will only be used on future (re)connection. You should probably
-        use reconnect() to update the connection if established.
+        Update username. This may not be called if the connection is already open.
         """
+        if not self._connection_closed():
+            raise RuntimeError("updating username on established connection is not supported")
+
         if value is None:
             self._username = None
         else:
@@ -957,9 +968,11 @@ class Client:
     @password.setter
     def password(self, value: str | None) -> None:
         """
-        Update password. This will only be used on future (re)connection. You should probably
-        use reconnect() to update the connection if established.
+        Update password. This may not be called if the connection is already open.
         """
+        if not self._connection_closed():
+            raise RuntimeError("updating password on established connection is not supported")
+
         if value is None:
             self._password = None
         else:
@@ -972,8 +985,8 @@ class Client:
 
     @max_inflight_messages.setter
     def max_inflight_messages(self, value: int) -> None:
-        "Update max_inflight_messages. It's behavior is undefined if the connection is already open"
-        if self._sock is not None:
+        "Update max_inflight_messages. This may not be called if the connection is already open."
+        if not self._connection_closed():
             # Not tested. Some doubt that everything is okay when max_inflight change between 0
             # and > 0 value because _update_inflight is skipped when _max_inflight_messages == 0
             raise RuntimeError("updating max_inflight_messages on established connection is not supported")
@@ -990,8 +1003,8 @@ class Client:
 
     @max_queued_messages.setter
     def max_queued_messages(self, value: int) -> None:
-        "Update max_queued_messages. It's behavior is undefined if the connection is already open"
-        if self._sock is not None:
+        "Update max_queued_messages. This may not be called if the connection is already open."
+        if not self._connection_closed():
             # Not tested.
             raise RuntimeError("updating max_queued_messages on established connection is not supported")
 
@@ -1405,6 +1418,8 @@ class Client:
         connect call that can be used with loop_start() to provide very quick
         start.
 
+        Any already established connection will be terminated immediately.
+
         host is the hostname or IP address of the remote broker.
         port is the network port of the server host to connect to. Defaults to
         1883. Note that the default port for MQTT over SSL/TLS is 8883 so if you
@@ -1421,6 +1436,10 @@ class Client:
         """
         if bind_port < 0:
             raise ValueError('Invalid bind port number.')
+
+        # Switch to state NEW to allow update of host, port & co.
+        self._sock_close()
+        self._state = ConnectionState.MQTT_CS_NEW
 
         self.host = host
         self.port = port
@@ -1755,6 +1774,14 @@ class Client:
         be used to create a bridge between multiple broker.
         """
         self._client_mode = MQTT_BRIDGE
+
+    def _connection_closed(self) -> bool:
+        """
+        Return true if the connection is closed (and not trying to be opened).
+        """
+        return (
+            self._state == ConnectionState.MQTT_CS_NEW
+            or (self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED) and self._sock is None))
 
     def is_connected(self) -> bool:
         """Returns the current status of the connection
