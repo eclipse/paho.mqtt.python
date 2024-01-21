@@ -13,6 +13,7 @@ The list of breaking change (detailed below) are:
 * Dropped some deprecated and no used argument or method. If you used them, you can just drop them.
 * Improved typing which resulted in few type change. It might no affect you, see below for detail.
 * Fixed connect_srv, which changed its signature.
+* Added new properties, which could conflict with sub-class
 
 ### Versioned the user callbacks
 
@@ -218,3 +219,23 @@ for with both paho-mqtt 1.x and 2.0).
 
 connect_srv() didn't took the same argument as connect(). Fixed this, which means the signaure
 changed. But since connect_srv was broken in previous version, this should not have any negative impact.
+
+### Added new properties
+
+The Client class added few new properties. If you are using a sub-class of Client and also defined a
+attribute, method or properties with the same name, it will conflict.
+
+The added properties are:
+* host
+* port
+* keepalive
+* transport
+* protocol
+* connect_timeout
+* username
+* password
+* max_inflight_messages
+* max_queued_messages
+* will_topic
+* will_payload
+* logger
