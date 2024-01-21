@@ -92,6 +92,10 @@ Making a release
 The process to make a release is the following:
 * Update the Changelog with the release version and date. Ensure it's up-to-date with latest fixes & PRs merged.
 * Make sure test pass, check that Github actions are green.
+* Make a dry-run of build:
+   * Build using hatch: ``python -m hatch build``
+   * Check with twine for common errors: ``python -m twine check dist/*``
+   * Try uploading it to testpypi: ``python3 -m twine upload --repository testpypi dist/*``
 * Bump the version number in ``paho/mqtt/__init__.py``, commit the change.
 * Do a GPG signed tag (assuming your GPG is correctly configured, it's ``git tag -s -m "Version 1.2.3" v1.2.3``)
 * Push the commit and it's tag to Github
@@ -100,7 +104,7 @@ The process to make a release is the following:
 * You can also get the latest build from Github action. It should be identical to your local build:
   https://github.com/eclipse/paho.mqtt.python/actions/workflows/build.yml?query=branch%3Amaster
 * Then upload the dist file, you can follow instruction on https://packaging.python.org/en/latest/tutorials/packaging-projects/#uploading-the-distribution-archives
-  It should mostly be ``python3 -m twine upload dist/*``
+  It should mostly be ``python -m twine upload dist/*``
 * Create a release on Github, copy-pasting the release note from Changelog.
 * Announce the release on the Mailing list.
 * To allow installing from a git clone, update the version in ``paho/mqtt/__init__.py`` to next number WITH .dev0 (example ``1.2.3.dev0``)

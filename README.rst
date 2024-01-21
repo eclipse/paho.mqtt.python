@@ -1277,7 +1277,7 @@ tls
 
 protocol
     choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
-    ``MQTTv311``, or ``MQTTv5`.
+    ``MQTTv311``, or ``MQTTv5``.
 
 transport
     set to "websockets" to send MQTT over WebSockets. Leave at the default of
