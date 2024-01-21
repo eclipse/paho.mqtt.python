@@ -1,4 +1,4 @@
-v2.0.0rc1 - 2024-01-21
+v2.0.0rc2 - 2024-01-21
 ======================
 
 This release include breaking change. See migrations.md for more details on how to upgrade.
