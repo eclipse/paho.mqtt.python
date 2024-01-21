@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [master]
   push:
-  workflow_dispatch:
+    branches: [master]
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
