@@ -11,6 +11,7 @@ The MQTT protocol is a machine-to-machine (M2M)/"Internet of Things" connectivit
 
 Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ project.
 
+Warning: the README currently cover version 1.x of the library. For the 2.0 (currently in release candidate) look at PR #804 which will be merged before final release of 2.0.
 
 Contents
 --------

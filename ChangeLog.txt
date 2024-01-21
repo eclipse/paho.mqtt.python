@@ -1,5 +1,7 @@
-v2.0.0 - 2023-xx-xx
-===================
+v2.0.0rc1 - 2024-01-21
+======================
+
+This release include breaking change. See migrations.md for more details on how to upgrade.
 
 - **BREAKING** Added callback_api_version. This break *ALL* users of paho-mqtt Client class.
   See migrations.md for details on how to upgrade.
