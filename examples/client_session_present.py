@@ -22,19 +22,19 @@ import context  # Ensures paho is in PYTHONPATH
 import paho.mqtt.client as mqtt
 
 
-def on_connect(mqttc, obj, flags, rc):
+def on_connect(mqttc, obj, flags, reason_code, properties):
     if obj == 0:
         print("First connection:")
     elif obj == 1:
         print("Second connection:")
     elif obj == 2:
         print("Third connection (with clean session=True):")
-    print("    Session present: " + str(flags['session present']))
-    print("    Connection result: " + str(rc))
+    print("    Session present: " + str(flags.session_present))
+    print("    Connection result: " + str(reason_code))
     mqttc.disconnect()
 
 
-def on_disconnect(mqttc, obj, rc):
+def on_disconnect(mqttc, obj, flags, reason_code, properties):
     mqttc.user_data_set(obj + 1)
     if obj == 0:
         mqttc.reconnect()
@@ -44,7 +44,7 @@ def on_log(mqttc, obj, level, string):
     print(string)
 
 
-mqttc = mqtt.Client(client_id="asdfj", clean_session=False)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="asdfj", clean_session=False)
 mqttc.on_connect = on_connect
 mqttc.on_disconnect = on_disconnect
 # Uncomment to enable debug messages
@@ -55,7 +55,7 @@ mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 mqttc.loop_forever()
 
 # Clear session
-mqttc = mqtt.Client(client_id="asdfj", clean_session=True)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="asdfj", clean_session=True)
 mqttc.on_connect = on_connect
 mqttc.user_data_set(2)
 mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)

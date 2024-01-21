@@ -27,9 +27,9 @@ import paho.mqtt.client as mqtt
 final_mid = 0
 
 
-def on_connect(mqttc, userdata, flags, rc):
+def on_connect(mqttc, userdata, flags, reason_code, properties):
     if userdata:
-        print("rc: " + str(rc))
+        print(f"reason_code: {reason_code}")
 
 
 def on_message(mqttc, userdata, msg):
@@ -43,7 +43,7 @@ def on_message(mqttc, userdata, msg):
         (rc, final_mid) = mqttc.publish(msg.topic, None, 1, True)
 
 
-def on_publish(mqttc, userdata, mid):
+def on_publish(mqttc, userdata, mid, reason_code, properties):
     global final_mid
     if mid == final_mid:
         sys.exit()
@@ -101,7 +101,7 @@ def main(argv):
         print_usage()
         sys.exit(2)
 
-    mqttc = mqtt.Client(client_id)
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id)
     mqttc._userdata = verbose
     mqttc.on_message = on_message
     mqttc.on_publish = on_publish

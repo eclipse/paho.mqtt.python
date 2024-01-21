@@ -64,7 +64,7 @@ class AsyncMqttExample:
     def __init__(self, loop):
         self.loop = loop
 
-    def on_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, userdata, flags, reason_code, properties):
         print("Subscribing")
         client.subscribe(topic)
 
@@ -74,14 +74,14 @@ class AsyncMqttExample:
         else:
             self.got_message.set_result(msg.payload)
 
-    def on_disconnect(self, client, userdata, rc):
-        self.disconnected.set_result(rc)
+    def on_disconnect(self, client, userdata, flags, reason_code, properties):
+        self.disconnected.set_result(reason_code)
 
     async def main(self):
         self.disconnected = self.loop.create_future()
         self.got_message = None
 
-        self.client = mqtt.Client(client_id=client_id)
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
