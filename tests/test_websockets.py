@@ -10,9 +10,29 @@ class TestHeaders:
 
     @pytest.mark.parametrize("wargs,expected_sent", [
         (
+            # HTTPS on non-default port
             {
                 "host": "testhost.com",
                 "port": 1234,
+                "path": "/mqtt",
+                "extra_headers": None,
+                "is_ssl": True,
+            },
+            [
+                "GET /mqtt HTTP/1.1",
+                "Host: testhost.com:1234",
+                "Upgrade: websocket",
+                "Connection: Upgrade",
+                "Sec-Websocket-Protocol: mqtt",
+                "Sec-Websocket-Version: 13",
+                "Origin: https://testhost.com:1234",
+            ],
+        ),
+        (
+            # HTTPS on default port
+            {
+                "host": "testhost.com",
+                "port": 443,
                 "path": "/mqtt",
                 "extra_headers": None,
                 "is_ssl": True,
@@ -24,7 +44,45 @@ class TestHeaders:
                 "Connection: Upgrade",
                 "Sec-Websocket-Protocol: mqtt",
                 "Sec-Websocket-Version: 13",
-                "Origin: https://testhost.com:1234",
+                "Origin: https://testhost.com",
+            ],
+        ),
+        (
+            # HTTP on default port
+            {
+                "host": "testhost.com",
+                "port": 80,
+                "path": "/mqtt",
+                "extra_headers": None,
+                "is_ssl": False,
+            },
+            [
+                "GET /mqtt HTTP/1.1",
+                "Host: testhost.com",
+                "Upgrade: websocket",
+                "Connection: Upgrade",
+                "Sec-Websocket-Protocol: mqtt",
+                "Sec-Websocket-Version: 13",
+                "Origin: http://testhost.com",
+            ],
+        ),
+        (
+            # HTTP on non-default port
+            {
+                "host": "testhost.com",
+                "port": 443,  # This isn't the default *HTTP* port. It's on purpose to use httpS port
+                "path": "/mqtt",
+                "extra_headers": None,
+                "is_ssl": False,
+            },
+            [
+                "GET /mqtt HTTP/1.1",
+                "Host: testhost.com:443",
+                "Upgrade: websocket",
+                "Connection: Upgrade",
+                "Sec-Websocket-Protocol: mqtt",
+                "Sec-Websocket-Version: 13",
+                "Origin: http://testhost.com:443",
             ],
         ),
     ])

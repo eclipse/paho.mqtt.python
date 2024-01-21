@@ -4112,11 +4112,23 @@ class WebsocketWrapper:
         sec_websocket_key = uuid.uuid4().bytes
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
+        if self._ssl:
+            default_port = 443
+            http_schema = "https"
+        else:
+            default_port = 80
+            http_schema = "http"
+
+        if default_port == self._port:
+            host_port = f"{self._host}"
+        else:
+            host_port = f"{self._host}:{self._port}"
+
         websocket_headers = {
-            "Host": f"{self._host}",
+            "Host": host_port,
             "Upgrade": "websocket",
             "Connection": "Upgrade",
-            "Origin": f"https://{self._host}:{self._port}",
+            "Origin": f"{http_schema}://{host_port}",
             "Sec-WebSocket-Key": sec_websocket_key.decode("utf8"),
             "Sec-Websocket-Version": "13",
             "Sec-Websocket-Protocol": "mqtt",
