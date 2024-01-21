@@ -29,6 +29,11 @@ v2.0.0 - 2023-xx-xx
   or publish during connection. Closes #549.
 - Correctly mark connection as broken on SSL error and don't crash loop_forever.
   Closes #750.
+- Fix handling of MQTT v5.0 PUBREL messages with remaining length not equal to
+  2. Closes #696.
+- Raise error on `subscribe()` when `topic` is an empty list. Closes #690.
+- Raise error on `publish.multiple()` when `msgs` is an empty list. Closes #684.
+- Don't add port to Host: header for websockets connections. Closes #666.
 
 
 v1.6.1 - 2021-10-21

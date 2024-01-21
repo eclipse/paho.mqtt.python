@@ -175,6 +175,8 @@ def multiple(
 
     if not isinstance(msgs, Iterable):
         raise TypeError('msgs must be an iterable')
+    if len(msgs) == 0:
+        raise ValueError('msgs is empty')
 
 
     client = paho.Client(client_id=client_id, userdata=collections.deque(msgs),

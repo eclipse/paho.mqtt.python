@@ -1633,6 +1633,8 @@ class Client:
                     raise ValueError('Invalid topic.')
                 topic_qos_list = [(topic.encode('utf-8'), qos)]  # type: ignore
         elif isinstance(topic, list):
+            if len(topic) == 0:
+                raise ValueError('Empty topic list')
             topic_qos_list = []
             if self._protocol == MQTTv5:
                 for t, o in topic:
@@ -3661,7 +3663,15 @@ class Client:
         elif self._in_packet['remaining_length'] != 2:
             return MQTTErrorCode.MQTT_ERR_PROTOCOL
 
-        mid, = struct.unpack("!H", self._in_packet['packet'])
+        mid, = struct.unpack("!H", self._in_packet['packet'][:2])
+        if self._protocol == MQTTv5:
+            if self._in_packet['remaining_length'] > 2:
+                reasonCode = ReasonCodes(PUBREL >> 4)
+                reasonCode.unpack(self._in_packet['packet'][2:])
+                if self._in_packet['remaining_length'] > 3:
+                    properties = Properties(PUBREL >> 4)
+                    props, props_len = properties.unpack(
+                        self._in_packet['packet'][3:])
         self._easy_log(MQTT_LOG_DEBUG, "Received PUBREL (Mid: %d)", mid)
 
         with self._in_message_mutex:
@@ -4103,7 +4113,7 @@ class WebsocketWrapper:
         sec_websocket_key = base64.b64encode(sec_websocket_key)
 
         websocket_headers = {
-            "Host": f"{self._host}:{self._port}",
+            "Host": f"{self._host}",
             "Upgrade": "websocket",
             "Connection": "Upgrade",
             "Origin": f"https://{self._host}:{self._port}",
