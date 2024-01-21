@@ -5,6 +5,8 @@ import threading
 
 import pytest
 
+from tests import paho_test
+
 
 class FakeBroker:
     def __init__(self):
@@ -12,7 +14,7 @@ class FakeBroker:
         # http://docs.python.org/howto/sockets.html#ipc
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.settimeout(30)
+        sock.settimeout(5)
         sock.bind(("localhost", 0))
         self.port = sock.getsockname()[1]
         sock.listen(1)
@@ -25,7 +27,7 @@ class FakeBroker:
             raise ValueError('Socket is not open')
 
         (conn, address) = self._sock.accept()
-        conn.settimeout(10)
+        conn.settimeout(5)
         self._conn = conn
 
     def finish(self):
@@ -50,6 +52,12 @@ class FakeBroker:
 
         count = self._conn.send(packet_out)
         return count
+
+    def expect_packet(self, name, packet):
+        if self._conn is None:
+            raise ValueError('Connection is not open')
+
+        paho_test.expect_packet(self._conn, name, packet)
 
 
 @pytest.fixture

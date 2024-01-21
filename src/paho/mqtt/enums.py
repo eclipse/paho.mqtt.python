@@ -28,6 +28,11 @@ class MQTTProtocolVersion(enum.IntEnum):
     MQTTv5 = 5
 
 
+class CallbackAPIVersion(enum.Enum):
+    VERSION1 = 1
+    VERSION2 = 2
+
+
 class MessageType(enum.IntEnum):
     CONNECT = 0x10
     CONNACK = 0x20

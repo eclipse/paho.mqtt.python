@@ -23,20 +23,16 @@ from .. import mqtt
 from . import client as paho
 
 
-def _on_connect_v5(client, userdata, flags, rc, properties):
+def _on_connect(client, userdata, flags, reason_code, properties):
     """Internal callback"""
-    if rc != 0:
-        raise mqtt.MQTTException(paho.connack_string(rc))
+    if reason_code != 0:
+        raise mqtt.MQTTException(paho.connack_string(reason_code))
 
     if isinstance(userdata['topics'], list):
         for topic in userdata['topics']:
             client.subscribe(topic, userdata['qos'])
     else:
         client.subscribe(userdata['topics'], userdata['qos'])
-
-def _on_connect(client, userdata, flags, rc):
-    """Internal v5 callback"""
-    _on_connect_v5(client, userdata, flags, rc, None)
 
 
 def _on_message_callback(client, userdata, message):
@@ -142,14 +138,17 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         'qos':qos,
         'userdata':userdata}
 
-    client = paho.Client(client_id=client_id, userdata=callback_userdata,
-                         protocol=protocol, transport=transport,
-                         clean_session=clean_session)
+    client = paho.Client(
+        paho.CallbackAPIVersion.VERSION2,
+        client_id=client_id,
+        userdata=callback_userdata,
+        protocol=protocol,
+        transport=transport,
+        clean_session=clean_session,
+    )
+
     client.on_message = _on_message_callback
-    if protocol == mqtt.client.MQTTv5:
-        client.on_connect = _on_connect_v5
-    else:
-        client.on_connect = _on_connect
+    client.on_connect = _on_connect
 
     if proxy_args is not None:
         client.proxy_set(**proxy_args)

@@ -12,7 +12,7 @@ def on_disconnect(mqttc, obj, rc):
     mqttc.loop()
 
 
-mqttc = mqtt.Client("", clean_session=True, protocol=mqtt.MQTTv311)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "", clean_session=True, protocol=mqtt.MQTTv311)
 mqttc.on_connect = on_connect
 mqttc.on_disconnect = on_disconnect
 

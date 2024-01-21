@@ -10,7 +10,7 @@ def on_connect(mqttc, obj, flags, rc):
     mqttc.disconnect()
 
 
-mqttc = mqtt.Client("08-ssl-connect-no-auth")
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "08-ssl-connect-no-auth")
 mqttc.tls_set(os.path.join(os.environ["PAHO_SSL_PATH"], "all-ca.crt"))
 mqttc.on_connect = on_connect
 

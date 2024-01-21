@@ -8,7 +8,7 @@ def on_connect(mqttc, obj, flags, rc):
     mqttc.publish("retain/qos0/test", "retained message", 0, True)
 
 
-mqttc = mqtt.Client("retain-qos0-test", clean_session=True)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "retain-qos0-test", clean_session=True)
 mqttc.on_connect = on_connect
 
 mqttc.connect("localhost", get_test_server_port())

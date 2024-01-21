@@ -90,6 +90,9 @@ disallow_untyped_defs = true
 [tool.pytest.ini_options]
 addopts = ["-r", "xs"]
 testpaths = "tests src"
+filterwarnings = [
+    "ignore:Callback API version 1 is deprecated, update to latest version"
+]
 
 [tool.ruff]
 exclude = ["test/lib/python/*"]

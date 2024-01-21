@@ -70,7 +70,7 @@ async def main():
 
     disconnected = loop.create_future()
 
-    client = mqtt.Client(client_id=client_id)
+    client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1, client_id=client_id)
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_publish = on_publish

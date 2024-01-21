@@ -28,7 +28,7 @@ def on_disconnect(mqttc, rc, properties):
 
 logging.basicConfig(level=logging.DEBUG)
 logging.info(str(mqtt))
-mqttc = mqtt.Client("publish-qos1-test")
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "publish-qos1-test")
 mqttc.max_inflight_messages_set(10)
 mqttc.on_connect = on_connect
 mqttc.on_disconnect = on_disconnect
