@@ -37,6 +37,12 @@ if TYPE_CHECKING:
     except ImportError:
         from typing_extensions import NotRequired, Required, TypedDict
 
+    try:
+        from typing import Literal
+    except ImportError:
+        from typing_extensions import Literal  # type: ignore
+
+
 
     class AuthParameter(TypedDict, total=False):
         username: Required[str]
@@ -107,7 +113,7 @@ def multiple(
     auth: AuthParameter | None = None,
     tls: TLSParameter | None = None,
     protocol: int = paho.MQTTv311,
-    transport: str = "tcp",
+    transport: Literal["tcp", "websockets"] = "tcp",
     proxy_args: Any | None = None,
 ) -> None:
     """Publish multiple messages to a broker, then disconnect cleanly.
@@ -233,7 +239,7 @@ def single(
     auth: AuthParameter | None = None,
     tls: TLSParameter | None = None,
     protocol: int = paho.MQTTv311,
-    transport: str = "tcp",
+    transport: Literal["tcp", "websockets"] = "tcp",
     proxy_args: Any | None = None,
 ) -> None:
     """Publish a single message to a broker, then disconnect cleanly.

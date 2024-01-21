@@ -106,6 +106,110 @@ class Test_connect:
         finally:
             mqttc.loop_stop()
 
+    def test_connection_properties(self, proto_ver, callback_version, fake_broker):
+        mqttc = client.Client(CallbackAPIVersion.VERSION2, "client-id", protocol=proto_ver)
+        mqttc.enable_logger()
+
+        is_connected = threading.Event()
+        is_disconnected = threading.Event()
+
+        def on_connect(mqttc, obj, flags, rc, properties):
+            assert rc == 0
+            is_connected.set()
+
+        def on_disconnect(*args):
+            import logging
+            logging.info("disco")
+            is_disconnected.set()
+
+        mqttc.on_connect = on_connect
+        mqttc.on_disconnect = on_disconnect
+
+        mqttc.host = "localhost"
+        mqttc.connect_timeout = 7
+        mqttc.port = fake_broker.port
+        mqttc.keepalive = 7
+        mqttc.max_inflight_messages = 7
+        mqttc.max_queued_messages = 7
+        mqttc.transport = "tcp"
+        mqttc.username = "username"
+        mqttc.password = "password"
+
+        mqttc.reconnect()
+
+        # As soon as connection try to be established, no longer accept updates
+        with pytest.raises(RuntimeError):
+            mqttc.host = "localhost"
+
+        mqttc.loop_start()
+
+        try:
+            fake_broker.start()
+
+            connect_packet = paho_test.gen_connect(
+                "client-id",
+                keepalive=7,
+                username="username",
+                password="password",
+                proto_ver=proto_ver,
+            )
+            packet_in = fake_broker.receive_packet(1000)
+            assert packet_in  # Check connection was not closed
+            assert packet_in == connect_packet
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            is_connected.wait()
+
+            # Check that all connections related properties can't be updated
+            with pytest.raises(RuntimeError):
+                mqttc.host = "localhost"
+
+            with pytest.raises(RuntimeError):
+                mqttc.connect_timeout = 7
+
+            with pytest.raises(RuntimeError):
+                mqttc.port = fake_broker.port
+
+            with pytest.raises(RuntimeError):
+                mqttc.keepalive = 7
+
+            with pytest.raises(RuntimeError):
+                mqttc.max_inflight_messages = 7
+
+            with pytest.raises(RuntimeError):
+                mqttc.max_queued_messages = 7
+
+            with pytest.raises(RuntimeError):
+                mqttc.transport = "tcp"
+
+            with pytest.raises(RuntimeError):
+                mqttc.username = "username"
+
+            with pytest.raises(RuntimeError):
+                mqttc.password = "password"
+
+            # close the connection, but from broker
+            fake_broker.finish()
+
+            is_disconnected.wait()
+            assert not mqttc.is_connected()
+
+            # still not allowed to update, because client try to reconnect in background
+            with pytest.raises(RuntimeError):
+                mqttc.host = "localhost"
+
+            mqttc.disconnect()
+
+            # Now it's allowed, connection is closing AND not trying to reconnect
+            mqttc.host = "localhost"
+
+        finally:
+            mqttc.loop_stop()
+
 
 class Test_connect_v5:
     """

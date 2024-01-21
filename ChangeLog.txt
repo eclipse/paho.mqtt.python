@@ -14,6 +14,9 @@ v2.0.0 - 2023-xx-xx
   * `max_packets` argument in loop(), loop_write() and loop_forever() is removed
   * `force` argument in loop_stop() is removed
   * method `message_retry_set()` is removed
+- Possible breaking change: Add properties to access most Client attribute. Closes #764.
+  Since this add new properties like `logger`, if a sub-class defined `logger`, the two `logger`
+  will conflict.
 - Add version 2 of user-callback which allow to access MQTTv5 reason code & properties that were
   missing from on_publish callback. Also it's more consistent in parameter order or between
   MQTTv3 and MQTTv5.

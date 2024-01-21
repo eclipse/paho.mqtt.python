@@ -148,12 +148,6 @@ CONNACK_REFUSED_SERVER_UNAVAILABLE = ConnackCode.CONNACK_REFUSED_SERVER_UNAVAILA
 CONNACK_REFUSED_BAD_USERNAME_PASSWORD = ConnackCode.CONNACK_REFUSED_BAD_USERNAME_PASSWORD
 CONNACK_REFUSED_NOT_AUTHORIZED = ConnackCode.CONNACK_REFUSED_NOT_AUTHORIZED
 
-# Connection state
-mqtt_cs_new = ConnectionState.MQTT_CS_NEW
-mqtt_cs_connected = ConnectionState.MQTT_CS_CONNECTED
-mqtt_cs_disconnecting = ConnectionState.MQTT_CS_DISCONNECTING
-mqtt_cs_connect_async = ConnectionState.MQTT_CS_CONNECT_ASYNC
-
 # Message state
 mqtt_ms_invalid = MessageState.MQTT_MS_INVALID
 mqtt_ms_publish = MessageState.MQTT_MS_PUBLISH
@@ -669,7 +663,7 @@ class Client:
         clean_session: bool | None = None,
         userdata: Any = None,
         protocol: int = MQTTv311,
-        transport: str = "tcp",
+        transport: Literal["tcp", "websockets"] = "tcp",
         reconnect_on_failure: bool = True,
         manual_ack: bool = False,
     ) -> None:
@@ -719,12 +713,13 @@ class Client:
         locally.
 
         """
-
-        if transport.lower() not in ('websockets', 'tcp'):
+        transport = transport.lower()  # type: ignore
+        if transport not in ("websockets", "tcp"):
             raise ValueError(
                 f'transport must be "websockets" or "tcp", not {transport}')
+
         self._manual_ack = manual_ack
-        self._transport = transport.lower()
+        self._transport = transport
         self._protocol = protocol
         self._userdata = userdata
         self._sock: SocketLike | None = None
@@ -749,6 +744,8 @@ class Client:
             )
         if self._callback_api_version not in CallbackAPIVersion:
             raise ValueError("Unsupported callback API version")
+
+        self._clean_start: int = MQTT_CLEAN_START_FIRST_ONLY
 
         if protocol == MQTTv5:
             if clean_session is not None:
@@ -791,7 +788,7 @@ class Client:
         self._reconnect_on_failure = reconnect_on_failure
         self._ping_t = 0.0
         self._last_mid = 0
-        self._state = mqtt_cs_new
+        self._state = ConnectionState.MQTT_CS_NEW
         self._out_messages: collections.OrderedDict[
             int, MQTTMessage
         ] = collections.OrderedDict()
@@ -852,10 +849,194 @@ class Client:
     def __del__(self) -> None:
         self._reset_sockets()
 
+    @property
+    def host(self) -> str:
+        """Host to connect to. If `connect()` hasn't been called yet, returns an empty string."""
+        return self._host
+
+    @host.setter
+    def host(self, value: str) -> None:
+        """
+        Update host. This may not be called if the connection is already open.
+        """
+        if not self._connection_closed():
+            raise RuntimeError("updating host on established connection is not supported")
+
+        if not value:
+            raise ValueError("Invalid host.")
+        self._host = value
+
+    @property
+    def port(self) -> int:
+        """Broker TCP port to connect to."""
+        return self._port
+
+    @port.setter
+    def port(self, value: int) -> None:
+        """
+        Update port. This may not be called if the connection is already open.
+        """
+        if not self._connection_closed():
+            raise RuntimeError("updating port on established connection is not supported")
+
+        if value <= 0:
+            raise ValueError("Invalid port number.")
+        self._port = value
+
+    @property
+    def keepalive(self) -> int:
+        """Client keepalive interval (in seconds)."""
+        return self._keepalive
+
+    @keepalive.setter
+    def keepalive(self, value: int) -> None:
+        """Update the client keepalive interval. This may not be called if the connection is already open."""
+        if not self._connection_closed():
+            # The issue here is that the previous value of keepalive matter to possibly
+            # sent ping packet.
+            raise RuntimeError("updating keepalive on established connection is not supported")
+
+        if value < 0:
+            raise ValueError("Keepalive must be >=0.")
+
+        self._keepalive = value
+
+    @property
+    def transport(self) -> Literal["tcp", "websockets"]:
+        """Transport method used for the connection."""
+        return self._transport
+
+    @transport.setter
+    def transport(self, value: Literal["tcp", "websockets"]) -> None:
+        """
+        Update transport which should be "tcp" or "websockets".
+        This may not be called if the connection is already open.
+        """
+        if not self._connection_closed():
+            raise RuntimeError("updating transport on established connection is not supported")
+
+        self._transport = value
+
+    @property
+    def protocol(self) -> MQTTProtocolVersion:
+        """Protocol version used (MQTT v3, MQTT v3.11, MQTTv5)"""
+        return self.protocol
+
+    @property
+    def connect_timeout(self) -> float:
+        """Connection establishment timeout in seconds"""
+        return self._connect_timeout
+
+    @connect_timeout.setter
+    def connect_timeout(self, value: float) -> None:
+        "Change connect_timeout. This may not be called if the connection is already open."
+        if not self._connection_closed():
+            raise RuntimeError("updating connect_timeout on established connection is not supported")
+
+        if value <= 0.0:
+            raise ValueError("timeout must be a positive number")
+
+        self._connect_timeout = value
+
+    @property
+    def username(self) -> str | None:
+        """The username used to connect to the MQTT broker, or None if no username is used."""
+        if self._username is None:
+            return None
+        return self._username.decode("utf-8")
+
+    @username.setter
+    def username(self, value: str | None) -> None:
+        """
+        Update username. This may not be called if the connection is already open.
+        """
+        if not self._connection_closed():
+            raise RuntimeError("updating username on established connection is not supported")
+
+        if value is None:
+            self._username = None
+        else:
+            self._username = value.encode("utf-8")
+
+    @property
+    def password(self) -> str | None:
+        """The password used to connect to the MQTT broker, or None if no password is used."""
+        if self._password is None:
+            return None
+        return self._password.decode("utf-8")
+
+    @password.setter
+    def password(self, value: str | None) -> None:
+        """
+        Update password. This may not be called if the connection is already open.
+        """
+        if not self._connection_closed():
+            raise RuntimeError("updating password on established connection is not supported")
+
+        if value is None:
+            self._password = None
+        else:
+            self._password = value.encode("utf-8")
+
+    @property
+    def max_inflight_messages(self) -> int:
+        """Maximum number of messages with QoS > 0 that can be partway through the network flow at once"""
+        return self._max_inflight_messages
+
+    @max_inflight_messages.setter
+    def max_inflight_messages(self, value: int) -> None:
+        "Update max_inflight_messages. This may not be called if the connection is already open."
+        if not self._connection_closed():
+            # Not tested. Some doubt that everything is okay when max_inflight change between 0
+            # and > 0 value because _update_inflight is skipped when _max_inflight_messages == 0
+            raise RuntimeError("updating max_inflight_messages on established connection is not supported")
+
+        if value < 0:
+            raise ValueError("Invalid inflight.")
+
+        self._max_inflight_messages = value
+
+    @property
+    def max_queued_messages(self) -> int:
+        """Maximum number of message in the outgoing message queue, 0 means unlimited"""
+        return self._max_queued_messages
+
+    @max_queued_messages.setter
+    def max_queued_messages(self, value: int) -> None:
+        "Update max_queued_messages. This may not be called if the connection is already open."
+        if not self._connection_closed():
+            # Not tested.
+            raise RuntimeError("updating max_queued_messages on established connection is not supported")
+
+        if value < 0:
+            raise ValueError("Invalid queue size.")
+
+        self._max_queued_messages = value
+
+    @property
+    def will_topic(self) -> str | None:
+        """The topic name a will message is sent to when disconnecting unexpectedly. None if a will shall not be sent."""
+        if self._will_topic is None:
+            return None
+
+        return self._will_topic.decode("utf-8")
+
+    @property
+    def will_payload(self) -> bytes | None:
+        """The payload for the will message that is sent when disconnecting unexpectedly. None if a will shall not be sent."""
+        return self._will_payload
+
+    @property
+    def logger(self) -> logging.Logger | None:
+        return self._logger
+
+    @logger.setter
+    def logger(self, value: logging.Logger | None) -> None:
+        self._logger = value
+
     def _sock_recv(self, bufsize: int) -> bytes:
         if self._sock is None:
             raise ConnectionError("self._sock is None")
-
         try:
             return self._sock.recv(bufsize)
         except ssl.SSLWantReadError as err:
@@ -1130,7 +1311,7 @@ class Client:
                 # Do not replace existing logger
                 return
             logger = logging.getLogger(__name__)
-        self._logger = logger
+        self.logger = logger
 
     def disable_logger(self) -> None:
         self._logger = None
@@ -1237,6 +1418,8 @@ class Client:
         connect call that can be used with loop_start() to provide very quick
         start.
 
+        Any already established connection will be terminated immediately.
+
         host is the hostname or IP address of the remote broker.
         port is the network port of the server host to connect to. Defaults to
         1883. Note that the default port for MQTT over SSL/TLS is 8883 so if you
@@ -1251,23 +1434,21 @@ class Client:
         properties: (MQTT v5.0 only) the MQTT v5.0 properties to be sent in the
         MQTT connect packet.  Use the Properties class.
         """
-        if host is None or len(host) == 0:
-            raise ValueError('Invalid host.')
-        if port <= 0:
-            raise ValueError('Invalid port number.')
-        if keepalive < 0:
-            raise ValueError('Keepalive must be >=0.')
         if bind_port < 0:
             raise ValueError('Invalid bind port number.')
 
-        self._host = host
-        self._port = port
-        self._keepalive = keepalive
+        # Switch to state NEW to allow update of host, port & co.
+        self._sock_close()
+        self._state = ConnectionState.MQTT_CS_NEW
+
+        self.host = host
+        self.port = port
+        self.keepalive = keepalive
         self._bind_address = bind_address
         self._bind_port = bind_port
         self._clean_start = clean_start
         self._connect_properties = properties
-        self._state = mqtt_cs_connect_async
+        self._state = ConnectionState.MQTT_CS_CONNECT_ASYNC
 
     def reconnect_delay_set(self, min_delay: int = 1, max_delay: int = 120) -> None:
         """ Configure the exponential reconnect delay
@@ -1302,7 +1483,7 @@ class Client:
         }
 
         self._ping_t = 0.0
-        self._state = mqtt_cs_new
+        self._state = ConnectionState.MQTT_CS_CONNECTING
 
         self._sock_close()
 
@@ -1407,13 +1588,13 @@ class Client:
             # call _loop(). We still want to break that loop by returning an
             # rc != MQTT_ERR_SUCCESS and we don't want state to change from
             # mqtt_cs_disconnecting.
-            if self._state != ConnectionState.MQTT_CS_DISCONNECTING:
+            if self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
                 self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except ValueError:
             # Can occur if we just reconnected but rlist/wlist contain a -1 for
             # some reason.
-            if self._state != ConnectionState.MQTT_CS_DISCONNECTING:
+            if self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
                 self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except Exception:
@@ -1594,13 +1775,21 @@ class Client:
         """
         self._client_mode = MQTT_BRIDGE
 
+    def _connection_closed(self) -> bool:
+        """
+        Return true if the connection is closed (and not trying to be opened).
+        """
+        return (
+            self._state == ConnectionState.MQTT_CS_NEW
+            or (self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED) and self._sock is None))
+
     def is_connected(self) -> bool:
         """Returns the current status of the connection
 
         True if connection exists
         False if connection is closed
         """
-        return self._state == mqtt_cs_connected
+        return self._state == ConnectionState.MQTT_CS_CONNECTED
 
     def disconnect(
         self,
@@ -1614,10 +1803,11 @@ class Client:
         properties: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
         to be included. Optional - if not set, no properties are sent.
         """
-        self._state = mqtt_cs_disconnecting
-
         if self._sock is None:
+            self._state = ConnectionState.MQTT_CS_DISCONNECTED
             return MQTT_ERR_NO_CONN
+        else:
+            self._state = ConnectionState.MQTT_CS_DISCONNECTING
 
         return self._send_disconnect(reasoncode, properties)
 
@@ -1883,7 +2073,8 @@ class Client:
             # This hasn't happened in the keepalive time so we should disconnect.
             self._sock_close()
 
-            if self._state == mqtt_cs_disconnecting:
+            if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = ConnectionState.MQTT_CS_DISCONNECTED
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
             else:
                 self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
@@ -1901,18 +2092,14 @@ class Client:
     def max_inflight_messages_set(self, inflight: int) -> None:
         """Set the maximum number of messages with QoS>0 that can be part way
         through their network flow at once. Defaults to 20."""
-        if inflight < 0:
-            raise ValueError('Invalid inflight.')
-        self._max_inflight_messages = inflight
+        self.max_inflight_messages = inflight
 
     def max_queued_messages_set(self, queue_size: int) -> Client:
         """Set the maximum number of messages in the outgoing message queue.
         0 means unlimited."""
-        if queue_size < 0:
-            raise ValueError('Invalid queue size.')
         if not isinstance(queue_size, int):
             raise ValueError('Invalid type of queue size.')
-        self._max_queued_messages = queue_size
+        self.max_queued_messages = queue_size
         return self
 
     def user_data_set(self, userdata: Any) -> None:
@@ -2009,7 +2196,7 @@ class Client:
             if self._thread_terminate is True:
                 break
 
-            if self._state == mqtt_cs_connect_async:
+            if self._state == ConnectionState.MQTT_CS_CONNECT_ASYNC:
                 try:
                     self.reconnect()
                 except OSError:
@@ -2038,7 +2225,7 @@ class Client:
 
             def should_exit() -> bool:
                 return (
-                    self._state == mqtt_cs_disconnecting or
+                    self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED) or
                     run is False or  # noqa: B023 (uses the run variable from the outer scope on purpose)
                     self._thread_terminate is True
                 )
@@ -2753,7 +2940,8 @@ class Client:
         if rc:
             self._sock_close()
 
-            if self._state == mqtt_cs_disconnecting:
+            if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = ConnectionState.MQTT_CS_DISCONNECTED
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
 
             self._do_on_disconnect(packet_from_broker=False, v1_rc=rc)
@@ -2940,6 +3128,11 @@ class Client:
                             v1_rc=MQTTErrorCode.MQTT_ERR_SUCCESS,
                         )
                         self._sock_close()
+                        # Only change to disconnected if the disconnection was wanted
+                        # by the client (== state was disconnecting). If the broker disconnected
+                        # use unilaterally don't change the state and client may reconnect.
+                        if self._state == ConnectionState.MQTT_CS_DISCONNECTING:
+                            self._state = ConnectionState.MQTT_CS_DISCONNECTED
                         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
                 else:
@@ -2976,7 +3169,7 @@ class Client:
             last_msg_in = self._last_msg_in
 
         if self._sock is not None and (now - last_msg_out >= self._keepalive or now - last_msg_in >= self._keepalive):
-            if self._state == mqtt_cs_connected and self._ping_t == 0:
+            if self._state == ConnectionState.MQTT_CS_CONNECTED and self._ping_t == 0:
                 try:
                     self._send_pingreq()
                 except Exception:
@@ -2992,7 +3185,8 @@ class Client:
             else:
                 self._sock_close()
 
-                if self._state == mqtt_cs_disconnecting:
+                if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
+                    self._state = ConnectionState.MQTT_CS_DISCONNECTED
                     rc = MQTTErrorCode.MQTT_ERR_SUCCESS
                 else:
                     rc = MQTTErrorCode.MQTT_ERR_KEEPALIVE
@@ -3595,7 +3789,7 @@ class Client:
                 return self.reconnect()
 
         if result == 0:
-            self._state = mqtt_cs_connected
+            self._state = ConnectionState.MQTT_CS_CONNECTED
             self._reconnect_delay = None
 
         if self._protocol == MQTTv5:
@@ -4242,7 +4436,7 @@ class Client:
             target_time = now + self._reconnect_delay
 
         remaining = target_time - now
-        while (self._state != mqtt_cs_disconnecting
+        while (self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED)
                 and not self._thread_terminate
                 and remaining > 0):
 
