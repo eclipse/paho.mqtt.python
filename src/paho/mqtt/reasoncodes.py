@@ -198,6 +198,10 @@ class ReasonCode:
     def pack(self):
         return bytearray([self.value])
 
+    @property
+    def is_failure(self) -> bool:
+        return self.value >= 0x80
+
 
 class _CompatibilityIsInstance(type):
     def __instancecheck__(self, other: Any) -> bool:
