@@ -146,6 +146,7 @@ def callback(callback, topics, qos=0, userdata=None, hostname="localhost",
         transport=transport,
         clean_session=clean_session,
     )
+    client.enable_logger()
 
     client.on_message = _on_message_callback
     client.on_connect = _on_connect

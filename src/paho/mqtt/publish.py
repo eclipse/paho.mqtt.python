@@ -191,6 +191,7 @@ def multiple(
         transport=transport,
     )
 
+    client.enable_logger()
     client.on_publish = _on_publish
     client.on_connect = _on_connect  # type: ignore
 
