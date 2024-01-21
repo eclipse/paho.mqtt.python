@@ -2,13 +2,17 @@
 
 ## Change between version 1.x and 2.0
 
-### Improved typing
+Most breaking change should break loudly and should not be missed. The
+most significant one which affect everyone is the versioned user callbacks.
+Other breaking change might not effect your usage of paho-mqtt.
 
-Version 2.0 improved typing, but this would be compatible with existing code.
-The most likely issue are some integer that are now better type, like `dup` on MQTTMessage.
-
-That means that code that used `if msg.dup == 1:` will need to be change to `if msg.dup:` (the later version
-for with both paho-mqtt 1.x and 2.0).
+The list of breaking change (detailed below) are:
+* Add version to user callbacks (on_publish, on_connect...).
+  tl; dr: add `mqtt.CallbackAPIVersion.VERSION1` as first argument to `Client()`
+* Drop support for older Python.
+* Dropped some deprecated and no used argument or method. If you used them, you can just drop them.
+* Improved typing which resulted in few type change. It might no affect you, see below for detail.
+* Fixed connect_srv, which changed its signature.
 
 ### Versioned the user callbacks
 
@@ -187,3 +191,30 @@ No change for this callback.
 def on_message(client, userdata, message):
     # ...
 ```
+
+### Drop support for older Python
+
+paho-mqtt support Python 3.7 to 3.12. If you are using an older Python version, including
+Python 2.x you will need to kept running the 1.x version of paho-mqtt.
+
+### Drop deprecated argument and method
+
+The following is dropped:
+* `max_packets` argument in loop(), loop_write() and loop_forever() is removed
+* `force` argument in loop_stop() is removed
+* method `message_retry_set()` is removed
+
+They were not used in previous version, so you can just remove them if you used them.
+
+### Improved typing
+
+Version 2.0 improved typing, but this would be compatible with existing code.
+The most likely issue are some integer that are now better type, like `dup` on MQTTMessage.
+
+That means that code that used `if msg.dup == 1:` will need to be change to `if msg.dup:` (the later version
+for with both paho-mqtt 1.x and 2.0).
+
+### Fix connect_srv
+
+connect_srv() didn't took the same argument as connect(). Fixed this, which means the signaure
+changed. But since connect_srv was broken in previous version, this should not have any negative impact.

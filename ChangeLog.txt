@@ -10,6 +10,10 @@ v2.0.0 - 2023-xx-xx
 - **BREAKING** connect_srv changed it signature to take an additional bind_port parameter.
   This is a breaking change, but in previous version connect_srv was broken anyway.
   Closes #493.
+- **BREAKING** Remove some deprecated argument and method:
+  * `max_packets` argument in loop(), loop_write() and loop_forever() is removed
+  * `force` argument in loop_stop() is removed
+  * method `message_retry_set()` is removed
 - Add version 2 of user-callback which allow to access MQTTv5 reason code & properties that were
   missing from on_publish callback. Also it's more consistent in parameter order or between
   MQTTv3 and MQTTv5.

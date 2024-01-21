@@ -1342,7 +1342,7 @@ class Client:
 
         return self._send_connect(self._keepalive)
 
-    def loop(self, timeout: float = 1.0, max_packets: int = 1) -> MQTTErrorCode:
+    def loop(self, timeout: float = 1.0) -> MQTTErrorCode:
         """Process network events.
 
         It is strongly recommended that you use loop_start(), or
@@ -1361,7 +1361,6 @@ class Client:
 
         timeout: The time in seconds to wait for incoming/outgoing network
             traffic before timing out and returning.
-        max_packets: Not currently used.
 
         Returns MQTT_ERR_SUCCESS on success.
         Returns >0 on error.
@@ -1835,7 +1834,7 @@ class Client:
                 return MQTTErrorCode.MQTT_ERR_SUCCESS
         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
-    def loop_write(self, max_packets: int = 1) -> MQTTErrorCode:
+    def loop_write(self) -> MQTTErrorCode:
         """Process write network events. Use in place of calling loop() if you
         wish to handle your client writes as part of your own application.
 
@@ -1916,10 +1915,6 @@ class Client:
         self._max_queued_messages = queue_size
         return self
 
-    def message_retry_set(self, retry):  # type: ignore
-        """No longer used, remove in version 2.0"""
-        pass
-
     def user_data_set(self, userdata: Any) -> None:
         """Set the user data variable passed to callbacks. May be any data type."""
         self._userdata = userdata
@@ -1989,7 +1984,6 @@ class Client:
     def loop_forever(
         self,
         timeout: float = 1.0,
-        max_packets: int = 1,
         retry_first_connection: bool = False,
     ) -> MQTTErrorCode:
         """This function calls the network loop functions for you in an
@@ -2003,7 +1997,6 @@ class Client:
 
         timeout: The time in seconds to wait for incoming/outgoing network
           traffic before timing out and returning.
-        max_packets: Not currently used.
         retry_first_connection: Should the first connection attempt be retried on failure.
           This is independent of the reconnect_on_failure setting.
 
@@ -2083,12 +2076,10 @@ class Client:
 
         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
-    def loop_stop(self, force: bool = False) -> MQTTErrorCode:
+    def loop_stop(self) -> MQTTErrorCode:
         """This is part of the threaded client interface. Call this once to
         stop the network thread previously created with loop_start(). This call
         will block until the network thread finishes.
-
-        The force parameter is currently ignored.
         """
         if self._thread is None:
             return MQTTErrorCode.MQTT_ERR_INVAL
