@@ -1322,7 +1322,12 @@ class Client:
             self._proxy = proxy_args
 
     def enable_logger(self, logger: logging.Logger | None = None) -> None:
-        """ Enables a logger to send log messages to """
+        """
+        Enables a logger to send log messages to
+
+        If `logger` is specified, then that `logging.Logger` object will be used, otherwise
+        one will be created automatically.
+        """
         if logger is None:
             if self._logger is not None:
                 # Do not replace existing logger
@@ -1331,6 +1336,9 @@ class Client:
         self.logger = logger
 
     def disable_logger(self) -> None:
+        """
+        Disable logging using standard python logging package. This has no effect on the `on_log` callback.
+        """
         self._logger = None
 
     def connect(
@@ -1345,6 +1353,8 @@ class Client:
     ) -> MQTTErrorCode:
         """Connect to a remote broker. This is a blocking call that establishes
         the underlying connection and transmits a CONNECT packet.
+        Note that the connection status will not be updated until a CONNACK is received and
+        processed (this requires a `loop*()` function).
 
         host is the hostname or IP address of the remote broker.
         port is the network port of the server host to connect to. Defaults to
