@@ -67,5 +67,13 @@ class TestHeaders:
         # Only sends the header once
         assert mocksock.send.call_count == 1
 
-        for i in expected_sent:
-            assert i in mocksock.send.call_args[0][0].decode("utf8")
+        got_lines = mocksock.send.call_args[0][0].decode("utf8").splitlines()
+
+        # First line must be the GET line
+        # 2nd line is required to be Host (rfc9110 said that it SHOULD be first header)
+        assert expected_sent[0] == got_lines[0]
+        assert expected_sent[1] == got_lines[1]
+
+        # Other line order don't matter
+        for line in expected_sent:
+            assert line in got_lines
