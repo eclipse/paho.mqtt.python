@@ -233,30 +233,33 @@ be simply printing received message or much more complex behaviour.
 
 Callbacks API is versioned, and the selected version is the `CallbackAPIVersion` you provided to `Client`
 constructor. Currently two version are supported:
-* `CallbackAPIVersion.VERSION1`: it's the historical version used in paho-mqtt before version 2.0.
+
+* ``CallbackAPIVersion.VERSION1``: it's the historical version used in paho-mqtt before version 2.0.
   It's the API used before the introduction of `CallbackAPIVersion`.
   This version is deprecated and will be removed in paho-mqtt version 3.0.
-* `CallbackAPIVersion.VERSION2`: This version is more consistent between protocol MQTT 3.x and MQTT 5.x. It's also
+* ``CallbackAPIVersion.VERSION2``: This version is more consistent between protocol MQTT 3.x and MQTT 5.x. It's also
   much more usable with MQTT 5.x since reason code and properties are always provided when available.
   It's recommended for all user to upgrade to this version. It's highly recommended for MQTT 5.x user.
 
 The following callbacks exists:
-* on_connect(): called when the CONNACK from the broker is received. The call could be for a refused connection,
+
+* ``on_connect()``: called when the CONNACK from the broker is received. The call could be for a refused connection,
   check the reason_code to see if the connection is successful or rejected.
-* on_connect_fail(): called by loop_forever() and loop_start() when the TCP connection failed to establish.
-  This callback is not called when using `connect()` or `reconnect()` directly. It's only called following
-  an automatic (re)connection made by `loop_start()` and `loop_forever()`
-* on_disconnect(): called when the connection is closed.
-* on_message(): called when a MQTT message is received from the broker.
-* on_publish(): called when an MQTT message was sent to the broker. Depending on QoS level the callback is called
+* ``on_connect_fail()``: called by ``loop_forever()`` and ``loop_start()`` when the TCP connection failed to establish.
+  This callback is not called when using ``connect()`` or ``reconnect()`` directly. It's only called following
+  an automatic (re)connection made by ``loop_start()`` and ``loop_forever()``
+* ``on_disconnect()``: called when the connection is closed.
+* ``on_message()``: called when a MQTT message is received from the broker.
+* ``on_publish()``: called when an MQTT message was sent to the broker. Depending on QoS level the callback is called
   at different moment:
+
   * For QoS == 0, it's called as soon as the message is sent over the network. This could be before the corresponding `publish()` return.
   * For QoS == 1, it's called when the corresponding PUBACK is received from the broker
   * For QoS == 2, it's called when the corresponding PUBCOMP is received from the broker
-* on_subscribe(): called when the SUBACK is received from the broker
-* on_unsubscribe(): called when the UNSUBACK is received from the broker
-* on_log(): called when the library log a message
-* on_socket_open, on_socket_close, on_socket_register_write, on_socket_unregister_write: callbacks used for external loop support. See below for details.
+* ``on_subscribe()``: called when the SUBACK is received from the broker
+* ``on_unsubscribe()``: called when the UNSUBACK is received from the broker
+* ``on_log()``: called when the library log a message
+* ``on_socket_open``, ``on_socket_close``, ``on_socket_register_write``, ``on_socket_unregister_write``: callbacks used for external loop support. See below for details.
 
 For the signature of each callback, see the **pydoc** documentation.
 
@@ -450,11 +453,11 @@ In pseudo code, it give the following:
 The tricky part is implementing the update of need_read / need_write and wait for condition change. To support
 this, the following method exists:
 
-* socket(): which return the socket object when the TCP connection is open.
+* ``socket()``: which return the socket object when the TCP connection is open.
   This call is particularly useful for select_ based loops. See ``examples/loop_select.py``.
-* want_write(): return true if there is data  waiting to be written. This is close to the
+* ``want_write()``: return true if there is data  waiting to be written. This is close to the
   `need_write` of above pseudo-code, but you should also check whether the socket is ready for writing.
-* callbacks `on_socket_*`:
+* callbacks ``on_socket_*``:
     * on_socket_open: called when the socket is opened.
     * on_socket_close: called when the socket is about to be closed.
     * on_socket_register_write: called when there is data the client want to write on the socket
