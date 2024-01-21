@@ -8,7 +8,27 @@ from paho.mqtt.client import WebsocketConnectionError, WebsocketWrapper
 class TestHeaders:
     """ Make sure headers are used correctly """
 
-    def test_normal_headers(self):
+    @pytest.mark.parametrize("wargs,expected_sent", [
+        (
+            {
+                "host": "testhost.com",
+                "port": 1234,
+                "path": "/mqtt",
+                "extra_headers": None,
+                "is_ssl": True,
+            },
+            [
+                "GET /mqtt HTTP/1.1",
+                "Host: testhost.com",
+                "Upgrade: websocket",
+                "Connection: Upgrade",
+                "Sec-Websocket-Protocol: mqtt",
+                "Sec-Websocket-Version: 13",
+                "Origin: https://testhost.com:1234",
+            ],
+        ),
+    ])
+    def test_normal_headers(self, wargs, expected_sent):
         """ Normal headers as specified in RFC 6455 """
 
         response = [
@@ -38,31 +58,16 @@ class TestHeaders:
             send=Mock(),
         )
 
-        wargs = {
-            "host": "testhost.com",
-            "port": 1234,
-            "path": "/mqtt",
-            "extra_headers": None,
-            "is_ssl": True,
-            "socket": mocksock,
-        }
+        # Do a copy to avoid modifying input
+        wargs_with_socket = dict(wargs)
+        wargs_with_socket["socket"] = mocksock
 
         with pytest.raises(WebsocketConnectionError) as exc:
-            WebsocketWrapper(**wargs)
+            WebsocketWrapper(**wargs_with_socket)
 
         # We're not creating the response hash properly so it should raise this
         # error
         assert str(exc.value) == "WebSocket handshake error, invalid secret key"
-
-        expected_sent = [i.format(**wargs) for i in [
-            "GET {path:s} HTTP/1.1",
-            "Host: {host:s}",
-            "Upgrade: websocket",
-            "Connection: Upgrade",
-            "Sec-Websocket-Protocol: mqtt",
-            "Sec-Websocket-Version: 13",
-            "Origin: https://{host:s}:{port:d}",
-        ]]
 
         # Only sends the header once
         assert mocksock.send.call_count == 1
