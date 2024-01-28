@@ -56,6 +56,11 @@ if TYPE_CHECKING:
     except ImportError:
         from typing_extensions import TypedDict
 
+    try:
+        from typing import Protocol  # type: ignore
+    except ImportError:
+        from typing_extensions import Protocol  # type: ignore
+
     class _InPacket(TypedDict):
         command: int
         have_remaining: int
@@ -75,6 +80,18 @@ if TYPE_CHECKING:
         to_process: int
         packet: bytes
         info: MQTTMessageInfo | None
+
+    class SocketLike(Protocol):
+        def recv(self, buffer_size: int) -> bytes:
+            ...
+        def send(self, buffer: bytes) -> int:
+            ...
+        def close(self) -> None:
+            ...
+        def fileno(self) -> int:
+            ...
+        def setblocking(self, flag: bool) -> None:
+            ...
 
 
 try:
@@ -200,8 +217,6 @@ PayloadType = Union[str, bytes, bytearray, int, float, None]
 HTTPHeader = Dict[str, str]
 WebSocketHeaders = Union[Callable[[HTTPHeader], HTTPHeader], HTTPHeader]
 
-SocketLike = Union[socket.socket, "ssl.SSLSocket", "WebsocketWrapper"]
-
 CleanStartOption = Union[bool, Literal[3]]
 
 
@@ -247,7 +262,7 @@ CallbackOnPreConnect = Callable[["Client", Any], None]
 CallbackOnPublish_v1 = Callable[["Client", Any, int], None]
 CallbackOnPublish_v2 = Callable[["Client", Any, int, ReasonCodes, Properties], None]
 CallbackOnPublish = Union[CallbackOnPublish_v1, CallbackOnPublish_v2]
-CallbackOnSocket = Callable[["Client", Any, SocketLike], None]
+CallbackOnSocket = Callable[["Client", Any, "SocketLike"], None]
 CallbackOnSubscribe_v1_mqtt3 = Callable[["Client", Any, int, Tuple[int, ...]], None]
 CallbackOnSubscribe_v1_mqtt5 = Callable[["Client", Any, int, List[ReasonCodes], Properties], None]
 CallbackOnSubscribe_v1 = Union[CallbackOnSubscribe_v1_mqtt3, CallbackOnSubscribe_v1_mqtt5]
@@ -377,7 +392,7 @@ def convert_disconnect_error_code_to_reason_code(rc: MQTTErrorCode) -> ReasonCod
     return ReasonCodes(PacketTypes.DISCONNECT, "Unspecified error")
 
 
-def base62(
+def _base62(
     num: int,
     base: str = string.digits + string.ascii_letters,
     padding: int = 1,
@@ -761,7 +776,7 @@ class Client:
         # [MQTT-3.1.3-4] Client Id must be UTF-8 encoded string.
         if client_id == "" or client_id is None:
             if protocol == MQTTv31:
-                self._client_id = base62(uuid.uuid4().int, padding=22).encode("utf8")
+                self._client_id = _base62(uuid.uuid4().int, padding=22).encode("utf8")
             else:
                 self._client_id = b""
         else:
@@ -3785,7 +3800,7 @@ class Client:
                     "Received CONNACK (%s, %s), attempting to use non-empty CID",
                     flags, result,
                 )
-                self._client_id = base62(uuid.uuid4().int, padding=22).encode("utf8")
+                self._client_id = _base62(uuid.uuid4().int, padding=22).encode("utf8")
                 return self.reconnect()
 
         if result == 0:
@@ -4506,7 +4521,7 @@ class Client:
 
         if self._transport == "websockets":
             sock.settimeout(self._keepalive)
-            return WebsocketWrapper(
+            return _WebsocketWrapper(
                 socket=sock,
                 host=self._host,
                 port=self._port,
@@ -4566,7 +4581,7 @@ class Client:
 
         return ssl_sock
 
-class WebsocketWrapper:
+class _WebsocketWrapper:
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1
     OPCODE_BINARY = 0x2
@@ -4814,19 +4829,19 @@ class WebsocketWrapper:
                 self._payload_head = 0
 
                 # respond to non-binary opcodes, their arrival is not guaranteed because of non-blocking sockets
-                if opcode == WebsocketWrapper.OPCODE_CONNCLOSE:
+                if opcode == _WebsocketWrapper.OPCODE_CONNCLOSE:
                     frame = self._create_frame(
-                        WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)
+                        _WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)
                     self._socket.send(frame)
 
-                if opcode == WebsocketWrapper.OPCODE_PING:
+                if opcode == _WebsocketWrapper.OPCODE_PING:
                     frame = self._create_frame(
-                        WebsocketWrapper.OPCODE_PONG, payload, 0)
+                        _WebsocketWrapper.OPCODE_PONG, payload, 0)
                     self._socket.send(frame)
 
             # This isn't *proper* handling of continuation frames, but given
             # that we only support binary frames, it is *probably* good enough.
-            if (opcode == WebsocketWrapper.OPCODE_BINARY or opcode == WebsocketWrapper.OPCODE_CONTINUATION) \
+            if (opcode == _WebsocketWrapper.OPCODE_BINARY or opcode == _WebsocketWrapper.OPCODE_CONTINUATION) \
                     and payload_length > 0:
                 return result
             else:
@@ -4842,7 +4857,7 @@ class WebsocketWrapper:
         if len(self._sendbuffer) == 0:
             # create websocket frame
             frame = self._create_frame(
-                WebsocketWrapper.OPCODE_BINARY, bytearray(data))
+                _WebsocketWrapper.OPCODE_BINARY, bytearray(data))
             self._sendbuffer.extend(frame)
             self._requested_size = len(data)
 

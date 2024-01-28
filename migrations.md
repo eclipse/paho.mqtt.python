@@ -11,6 +11,7 @@ The list of breaking change (detailed below) are:
   tl; dr: add `mqtt.CallbackAPIVersion.VERSION1` as first argument to `Client()`
 * Drop support for older Python.
 * Dropped some deprecated and no used argument or method. If you used them, you can just drop them.
+* Removed from public interface few function/class
 * Improved typing which resulted in few type change. It might no affect you, see below for detail.
 * Fixed connect_srv, which changed its signature.
 * Added new properties, which could conflict with sub-class
@@ -206,6 +207,12 @@ The following is dropped:
 * method `message_retry_set()` is removed
 
 They were not used in previous version, so you can just remove them if you used them.
+
+### Stop exposing private function/class
+
+Some private function or class are not longer exposed. The removed functions are:
+* base62
+* WebsocketWrapper
 
 ### Improved typing
 
