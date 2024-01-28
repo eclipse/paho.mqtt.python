@@ -58,7 +58,10 @@ tests/ssl/signingCA
 *.log
 
 # Sphinx documentation
-docs/_build/
+docs/_build/*
+# Before we found a place to host build documentation,
+# we will use Github repository to serve the markdown time.
+!/docs/_build/markdown
 
 # PyBuilder
 target/

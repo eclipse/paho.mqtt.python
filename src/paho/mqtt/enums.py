@@ -29,8 +29,25 @@ class MQTTProtocolVersion(enum.IntEnum):
 
 
 class CallbackAPIVersion(enum.Enum):
+    """Defined the arguments passed to all user-callback.
+
+    See each callbacks for details: `on_connect`, `on_connect_fail`, `on_disconnect`, `on_message`, `on_publish`,
+    `on_subscribe`, `on_unsubscribe`, `on_log`, `on_socket_open`, `on_socket_close`,
+    `on_socket_register_write`, `on_socket_unregister_write`
+    """
     VERSION1 = 1
+    """The version used with paho-mqtt 1.x before introducing CallbackAPIVersion.
+
+    This version had different arguments depending if MQTTv5 or MQTTv3 was used. `Properties` & `ReasonCode` were missing
+    on some callback (apply only to MQTTv5).
+
+    This version is deprecated and will be removed in version 3.0.
+    """
     VERSION2 = 2
+    """ This version fix some of the shortcoming of previous version.
+
+    Callback have the same signature if using MQTTv5 or MQTTv3. `ReasonCode` are used in MQTTv3.
+    """
 
 
 class MessageType(enum.IntEnum):

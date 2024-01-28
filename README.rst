@@ -11,8 +11,6 @@ The MQTT protocol is a machine-to-machine (M2M)/"Internet of Things" connectivit
 
 Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ project.
 
-Warning: the README currently cover version 1.x of the library. For the 2.0 (currently in release candidate) look at PR #804 which will be merged before final release of 2.0.
-
 Contents
 --------
 
@@ -92,9 +90,9 @@ The following part of the client session is lost:
 * QoS 1 and QoS 2 messages which have been sent to the server, but have not been completely acknowledged.
 
   This means that messages passed to ``publish()`` may be lost. This could be mitigated by taking care
-  that all messages passed to ``publish()`` have a corresponding on_publish() call.
+  that all messages passed to ``publish()`` have a corresponding ``on_publish()`` call or use `wait_for_publish`.
 
-  It also means that the broker may have the Qos2 message in the session. Since the client starts
+  It also means that the broker may have the QoS2 message in the session. Since the client starts
   with an empty session it don't know it and will reuse the mid. This is not yet fixed.
 
 Also, when ``clean_session`` is True, this library will republish QoS > 0 message across network
@@ -107,9 +105,9 @@ You should set ``clean_session = False`` if you need the QoS 2 guarantee of only
 Usage and API
 -------------
 
-Detailed API documentation is available through **pydoc**. Samples are available in the examples_ directory.
+Detailed API documentation is available through pydoc_. Samples are available in the examples_ directory.
 
-The package provides two modules, a full client and a helper for simple publishing.
+The package provides two modules, a full `Client` and few `helpers` for simple publishing or subscribing.
 
 Getting Started
 ***************
@@ -166,6 +164,42 @@ will not be sent. There are four options for managing the
 network loop. Three are described here, the fourth in "External event loop
 support" below. Do not mix the different loop functions.
 
+loop_start() / loop_stop()
+''''''''''''''''''''''''''
+
+.. code:: python
+
+    mqttc.loop_start()
+
+    while True:
+        temperature = sensor.blocking_read()
+        mqttc.publish("paho/temperature", temperature)
+
+    mqttc.loop_stop()
+
+These functions implement a threaded interface to the network loop. Calling
+`loop_start()` once, before or after ``connect*()``, runs a thread in the
+background to call `loop()` automatically. This frees up the main thread for
+other work that may be blocking. This call also handles reconnecting to the
+broker. Call `loop_stop()` to stop the background thread.
+The loop is also stopped if you call `disconnect()`.
+
+loop_forever()
+''''''''''''''
+
+.. code:: python
+
+    mqttc.loop_forever(retry_first_connection=False)
+
+This is a blocking form of the network loop and will not return until the
+client calls `disconnect()`. It automatically handles reconnecting.
+
+Except for the first connection attempt when using `connect_async`, use
+``retry_first_connection=True`` to make it retry the first connection.
+
+*Warning*: This might lead to situations where the client keeps connecting to an
+non existing host without failing.
+
 loop()
 ''''''
 
@@ -184,42 +218,6 @@ seconds. ``timeout`` must not exceed the ``keepalive`` value for the client or
 your client will be regularly disconnected by the broker.
 
 Using this kind of loop, require you to handle reconnection strategie.
-
-
-loop_start() / loop_stop()
-''''''''''''''''''''''''''
-
-.. code:: python
-
-    mqttc.loop_start()
-
-    while True:
-        temperature = sensor.blocking_read()
-        mqttc.publish("paho/temperature", temperature)
-
-    mqttc.loop_stop()
-
-These functions implement a threaded interface to the network loop. Calling
-``loop_start()`` once, before or after ``connect*()``, runs a thread in the
-background to call ``loop()`` automatically. This frees up the main thread for
-other work that may be blocking. This call also handles reconnecting to the
-broker. Call ``loop_stop()`` to stop the background thread.
-The loop is also stopped if you call ``disconnect()``.
-
-loop_forever()
-''''''''''''''
-
-.. code:: python
-
-    mqttc.loop_forever(retry_first_connection=False)
-
-This is a blocking form of the network loop and will not return until the
-client calls ``disconnect()``. It automatically handles reconnecting.
-
-Except for the first connection attempt when using connect_async, use
-``retry_first_connection=True`` to make it retry the first connection.
-Warning: This might lead to situations where the client keeps connecting to an
-non existing host without failing.
 
 
 Callbacks
@@ -243,23 +241,23 @@ constructor. Currently two version are supported:
 
 The following callbacks exists:
 
-* ``on_connect()``: called when the CONNACK from the broker is received. The call could be for a refused connection,
+* `on_connect()`: called when the CONNACK from the broker is received. The call could be for a refused connection,
   check the reason_code to see if the connection is successful or rejected.
-* ``on_connect_fail()``: called by ``loop_forever()`` and ``loop_start()`` when the TCP connection failed to establish.
-  This callback is not called when using ``connect()`` or ``reconnect()`` directly. It's only called following
-  an automatic (re)connection made by ``loop_start()`` and ``loop_forever()``
-* ``on_disconnect()``: called when the connection is closed.
-* ``on_message()``: called when a MQTT message is received from the broker.
-* ``on_publish()``: called when an MQTT message was sent to the broker. Depending on QoS level the callback is called
+* `on_connect_fail()`: called by `loop_forever()` and `loop_start()` when the TCP connection failed to establish.
+  This callback is not called when using `connect()` or `reconnect()` directly. It's only called following
+  an automatic (re)connection made by `loop_start()` and `loop_forever()`
+* `on_disconnect()`: called when the connection is closed.
+* `on_message()`: called when a MQTT message is received from the broker.
+* `on_publish()`: called when an MQTT message was sent to the broker. Depending on QoS level the callback is called
   at different moment:
 
-  * For QoS == 0, it's called as soon as the message is sent over the network. This could be before the corresponding `publish()` return.
+  * For QoS == 0, it's called as soon as the message is sent over the network. This could be before the corresponding ``publish()`` return.
   * For QoS == 1, it's called when the corresponding PUBACK is received from the broker
   * For QoS == 2, it's called when the corresponding PUBCOMP is received from the broker
-* ``on_subscribe()``: called when the SUBACK is received from the broker
-* ``on_unsubscribe()``: called when the UNSUBACK is received from the broker
-* ``on_log()``: called when the library log a message
-* ``on_socket_open``, ``on_socket_close``, ``on_socket_register_write``, ``on_socket_unregister_write``: callbacks used for external loop support. See below for details.
+* `on_subscribe()`: called when the SUBACK is received from the broker
+* `on_unsubscribe()`: called when the UNSUBACK is received from the broker
+* `on_log()`: called when the library log a message
+* `on_socket_open`, `on_socket_close`, `on_socket_register_write`, `on_socket_unregister_write`: callbacks used for external loop support. See below for details.
 
 For the signature of each callback, see the **pydoc** documentation.
 
@@ -430,9 +428,10 @@ To support other network loop like asyncio (see examples_), the library expose s
 method and callback to support those use-case.
 
 The following loop method exists:
-* loop_read: should be called when the socket is ready for reading.
-* loop_write: should be called when the socket is ready for writing AND the library want to write data.
-* loop_misc: should be called every few seconds to handle message retrying and pings.
+
+* `loop_read`: should be called when the socket is ready for reading.
+* `loop_write`: should be called when the socket is ready for writing AND the library want to write data.
+* `loop_misc`: should be called every few seconds to handle message retrying and pings.
 
 In pseudo code, it give the following:
 
@@ -453,15 +452,17 @@ In pseudo code, it give the following:
 The tricky part is implementing the update of need_read / need_write and wait for condition change. To support
 this, the following method exists:
 
-* ``socket()``: which return the socket object when the TCP connection is open.
+* `socket()`: which return the socket object when the TCP connection is open.
   This call is particularly useful for select_ based loops. See ``examples/loop_select.py``.
-* ``want_write()``: return true if there is data  waiting to be written. This is close to the
-  `need_write` of above pseudo-code, but you should also check whether the socket is ready for writing.
+* `want_write()`: return true if there is data  waiting to be written. This is close to the
+  ``need_writew`` of above pseudo-code, but you should also check whether the socket is ready for writing.
 * callbacks ``on_socket_*``:
-    * on_socket_open: called when the socket is opened.
-    * on_socket_close: called when the socket is about to be closed.
-    * on_socket_register_write: called when there is data the client want to write on the socket
-    * on_socket_unregister_write: called when there is no more data to write on the socket.
+
+    * `on_socket_open`: called when the socket is opened.
+    * `on_socket_close`: called when the socket is about to be closed.
+    * `on_socket_register_write`: called when there is data the client want to write on the socket
+    * `on_socket_unregister_write`: called when there is no more data to write on the socket.
+
   Callbacks are particularly useful for event loops where you register or unregister a socket
   for reading+writing. See ``examples/loop_asyncio.py`` for an example.
 
@@ -469,13 +470,13 @@ this, the following method exists:
 
 The callbacks are always called in this order:
 
-- ``on_socket_open``
+- `on_socket_open`
 - Zero or more times:
 
-  - ``on_socket_register_write``
-  - ``on_socket_unregister_write``
+  - `on_socket_register_write`
+  - `on_socket_unregister_write`
 
-- ``on_socket_close``
+- `on_socket_close`
 
 Global helper functions
 ```````````````````````
@@ -500,7 +501,7 @@ of messages in a one-shot manner. In other words, they are useful for the
 situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect with nothing else required.
 
-The two functions provided are ``single()`` and ``multiple()``.
+The two functions provided are `single()` and `multiple()`.
 
 Both functions include support for MQTT v5.0, but do not currently let you
 set any properties on connection or when sending messages.
@@ -541,7 +542,7 @@ Subscribe
 This module provides some helper functions to allow straightforward subscribing
 and processing of messages.
 
-The two functions provided are ``simple()`` and ``callback()``.
+The two functions provided are `simple()` and `callback()`.
 
 Both functions include support for MQTT v5.0, but do not currently let you
 set any properties on connection or when subscribing.
@@ -598,3 +599,4 @@ General questions about the MQTT protocol itself (not this library) are discusse
 There is much more information available via the `MQTT community site <http://mqtt.org/>`_.
 
 .. _examples: ./examples/
+.. _pydoc: ./docs/_build/markdown/index.md
