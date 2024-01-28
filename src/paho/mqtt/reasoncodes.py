@@ -17,15 +17,17 @@
 """
 
 import functools
+import warnings
+from typing import Any
 
 from .packettypes import PacketTypes
 
 
 @functools.total_ordering
-class ReasonCodes:
+class ReasonCode:
     """MQTT version 5.0 reason codes class.
 
-    See ReasonCodes.names for a list of possible numeric values along with their
+    See ReasonCode.names for a list of possible numeric values along with their
     names and the packets to which they apply.
 
     """
@@ -176,14 +178,14 @@ class ReasonCodes:
             return self.value == other
         if isinstance(other, str):
             return other == str(self)
-        if isinstance(other, ReasonCodes):
+        if isinstance(other, ReasonCode):
             return self.value == other.value
         return False
 
     def __lt__(self, other):
         if isinstance(other, int):
             return self.value < other
-        if isinstance(other, ReasonCodes):
+        if isinstance(other, ReasonCode):
             return self.value < other.value
         return NotImplemented
 
@@ -195,3 +197,17 @@ class ReasonCodes:
 
     def pack(self):
         return bytearray([self.value])
+
+
+class _CompatibilityIsInstance(type):
+    def __instancecheck__(self, other: Any) -> bool:
+        return isinstance(other, ReasonCode)
+
+
+class ReasonCodes(ReasonCode, metaclass=_CompatibilityIsInstance):
+    def __init__(self, *args, **kwargs):
+        warnings.warn("ReasonCodes is deprecated, use ReasonCode (singular) instead",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)

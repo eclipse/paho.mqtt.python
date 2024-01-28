@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any, List, Tuple, Union
 
 from paho.mqtt.enums import CallbackAPIVersion
 from paho.mqtt.properties import Properties
-from paho.mqtt.reasoncodes import ReasonCodes
+from paho.mqtt.reasoncodes import ReasonCode
 
 from .. import mqtt
 from . import client as paho
@@ -92,7 +92,7 @@ def _on_connect(client: paho.Client, userdata: MessagesList, flags, reason_code,
 
 
 def _on_publish(
-    client: paho.Client, userdata: collections.deque[MessagesList], mid: int, reason_codes: ReasonCodes, properties: Properties,
+    client: paho.Client, userdata: collections.deque[MessagesList], mid: int, reason_codes: ReasonCode, properties: Properties,
 ) -> None:
     """Internal callback"""
     #pylint: disable=unused-argument

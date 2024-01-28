@@ -7,7 +7,7 @@ import pytest
 from paho.mqtt.enums import CallbackAPIVersion, MQTTErrorCode, MQTTProtocolVersion
 from paho.mqtt.packettypes import PacketTypes
 from paho.mqtt.properties import Properties
-from paho.mqtt.reasoncodes import ReasonCodes
+from paho.mqtt.reasoncodes import ReasonCode
 
 import tests.paho_test as paho_test
 
@@ -78,7 +78,7 @@ class Test_connect:
             if callback_version == CallbackAPIVersion.VERSION1:
                 assert rc_or_reason_code == 1
             else:
-                assert rc_or_reason_code == ReasonCodes(PacketTypes.CONNACK, "Unsupported protocol version")
+                assert rc_or_reason_code == ReasonCode(PacketTypes.CONNACK, "Unsupported protocol version")
 
         mqttc.on_connect = on_connect
 
@@ -221,7 +221,7 @@ class Test_connect_v5:
 
         def on_connect(mqttc, obj, flags, reason, properties):
             assert reason == 132
-            assert reason == ReasonCodes(client.CONNACK >> 4, aName="Unsupported protocol version")
+            assert reason == ReasonCode(client.CONNACK >> 4, aName="Unsupported protocol version")
             mqttc.disconnect()
 
         mqttc.on_connect = on_connect
@@ -828,7 +828,7 @@ class TestCompatibility:
         def on_connect(cl, userdata, flags, reason, properties):
             assert isinstance(cl, client.Client)
             assert isinstance(flags, client.ConnectFlags)
-            assert isinstance(reason, ReasonCodes)
+            assert isinstance(reason, ReasonCode)
             assert isinstance(properties, Properties)
             assert reason == 0
             assert properties.isEmpty()
@@ -839,7 +839,7 @@ class TestCompatibility:
             assert isinstance(cl, client.Client)
             assert isinstance(mid, int)
             assert isinstance(reason_code_list, list)
-            assert isinstance(reason_code_list[0], ReasonCodes)
+            assert isinstance(reason_code_list[0], ReasonCode)
             assert isinstance(properties, Properties)
             assert properties.isEmpty()
             userdata.append("on_subscribe")
@@ -848,7 +848,7 @@ class TestCompatibility:
         def on_publish(cl, userdata, mid, reason_code, properties):
             assert isinstance(cl, client.Client)
             assert isinstance(mid, int)
-            assert isinstance(reason_code, ReasonCodes)
+            assert isinstance(reason_code, ReasonCode)
             assert isinstance(properties, Properties)
             assert properties.isEmpty()
             userdata.append("on_publish")
@@ -872,7 +872,7 @@ class TestCompatibility:
         def on_disconnect(cl, userdata, flags, reason_code, properties):
             assert isinstance(cl, client.Client)
             assert isinstance(flags, client.DisconnectFlags)
-            assert isinstance(reason_code, ReasonCodes)
+            assert isinstance(reason_code, ReasonCode)
             assert isinstance(properties, Properties)
             assert properties.isEmpty()
             userdata.append("on_disconnect")
