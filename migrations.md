@@ -211,9 +211,10 @@ They were not used in previous version, so you can just remove them if you used 
 
 ### Stop exposing private function/class
 
-Some private function or class are not longer exposed. The removed functions are:
-* base62
-* WebsocketWrapper
+Some private function or class are not longer exposed. The following are removed:
+* function base62
+* class WebsocketWrapper
+* enum ConnectionState
 
 ### Renamed ReasonCodes to ReasonCode
 

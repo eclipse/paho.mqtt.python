@@ -68,7 +68,7 @@ class ConnackCode(enum.IntEnum):
     CONNACK_REFUSED_NOT_AUTHORIZED = 5
 
 
-class ConnectionState(enum.Enum):
+class _ConnectionState(enum.Enum):
     MQTT_CS_NEW = enum.auto()
     MQTT_CS_CONNECT_ASYNC = enum.auto()
     MQTT_CS_CONNECTING = enum.auto()

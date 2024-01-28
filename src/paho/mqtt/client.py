@@ -39,7 +39,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, NamedTupl
 
 from paho.mqtt.packettypes import PacketTypes
 
-from .enums import CallbackAPIVersion, ConnackCode, ConnectionState, LogLevel, MessageState, MessageType, MQTTErrorCode, MQTTProtocolVersion, PahoClientMode
+from .enums import CallbackAPIVersion, ConnackCode, LogLevel, MessageState, MessageType, MQTTErrorCode, MQTTProtocolVersion, PahoClientMode, _ConnectionState
 from .matcher import MQTTMatcher
 from .properties import Properties
 from .reasoncodes import ReasonCode, ReasonCodes
@@ -805,7 +805,7 @@ class Client:
         self._reconnect_on_failure = reconnect_on_failure
         self._ping_t = 0.0
         self._last_mid = 0
-        self._state = ConnectionState.MQTT_CS_NEW
+        self._state = _ConnectionState.MQTT_CS_NEW
         self._out_messages: collections.OrderedDict[
             int, MQTTMessage
         ] = collections.OrderedDict()
@@ -1456,7 +1456,7 @@ class Client:
 
         # Switch to state NEW to allow update of host, port & co.
         self._sock_close()
-        self._state = ConnectionState.MQTT_CS_NEW
+        self._state = _ConnectionState.MQTT_CS_NEW
 
         self.host = host
         self.port = port
@@ -1465,7 +1465,7 @@ class Client:
         self._bind_port = bind_port
         self._clean_start = clean_start
         self._connect_properties = properties
-        self._state = ConnectionState.MQTT_CS_CONNECT_ASYNC
+        self._state = _ConnectionState.MQTT_CS_CONNECT_ASYNC
 
     def reconnect_delay_set(self, min_delay: int = 1, max_delay: int = 120) -> None:
         """ Configure the exponential reconnect delay
@@ -1500,7 +1500,7 @@ class Client:
         }
 
         self._ping_t = 0.0
-        self._state = ConnectionState.MQTT_CS_CONNECTING
+        self._state = _ConnectionState.MQTT_CS_CONNECTING
 
         self._sock_close()
 
@@ -1605,14 +1605,14 @@ class Client:
             # call _loop(). We still want to break that loop by returning an
             # rc != MQTT_ERR_SUCCESS and we don't want state to change from
             # mqtt_cs_disconnecting.
-            if self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+            if self._state not in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except ValueError:
             # Can occur if we just reconnected but rlist/wlist contain a -1 for
             # some reason.
-            if self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+            if self._state not in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except Exception:
             # Note that KeyboardInterrupt, etc. can still terminate since they
@@ -1797,8 +1797,8 @@ class Client:
         Return true if the connection is closed (and not trying to be opened).
         """
         return (
-            self._state == ConnectionState.MQTT_CS_NEW
-            or (self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED) and self._sock is None))
+            self._state == _ConnectionState.MQTT_CS_NEW
+            or (self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED) and self._sock is None))
 
     def is_connected(self) -> bool:
         """Returns the current status of the connection
@@ -1806,7 +1806,7 @@ class Client:
         True if connection exists
         False if connection is closed
         """
-        return self._state == ConnectionState.MQTT_CS_CONNECTED
+        return self._state == _ConnectionState.MQTT_CS_CONNECTED
 
     def disconnect(
         self,
@@ -1821,10 +1821,10 @@ class Client:
         to be included. Optional - if not set, no properties are sent.
         """
         if self._sock is None:
-            self._state = ConnectionState.MQTT_CS_DISCONNECTED
+            self._state = _ConnectionState.MQTT_CS_DISCONNECTED
             return MQTT_ERR_NO_CONN
         else:
-            self._state = ConnectionState.MQTT_CS_DISCONNECTING
+            self._state = _ConnectionState.MQTT_CS_DISCONNECTING
 
         return self._send_disconnect(reasoncode, properties)
 
@@ -2090,11 +2090,11 @@ class Client:
             # This hasn't happened in the keepalive time so we should disconnect.
             self._sock_close()
 
-            if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_DISCONNECTED
+            if self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
             else:
-                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+                self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
                 rc = MQTTErrorCode.MQTT_ERR_KEEPALIVE
 
             self._do_on_disconnect(
@@ -2213,7 +2213,7 @@ class Client:
             if self._thread_terminate is True:
                 break
 
-            if self._state == ConnectionState.MQTT_CS_CONNECT_ASYNC:
+            if self._state == _ConnectionState.MQTT_CS_CONNECT_ASYNC:
                 try:
                     self.reconnect()
                 except OSError:
@@ -2242,7 +2242,7 @@ class Client:
 
             def should_exit() -> bool:
                 return (
-                    self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED) or
+                    self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED) or
                     run is False or  # noqa: B023 (uses the run variable from the outer scope on purpose)
                     self._thread_terminate is True
                 )
@@ -2957,14 +2957,14 @@ class Client:
         if rc:
             self._sock_close()
 
-            if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_DISCONNECTED
+            if self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
 
             self._do_on_disconnect(packet_from_broker=False, v1_rc=rc)
 
         if rc == MQTT_ERR_CONN_LOST:
-            self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+            self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
 
         return rc
 
@@ -3148,8 +3148,8 @@ class Client:
                         # Only change to disconnected if the disconnection was wanted
                         # by the client (== state was disconnecting). If the broker disconnected
                         # use unilaterally don't change the state and client may reconnect.
-                        if self._state == ConnectionState.MQTT_CS_DISCONNECTING:
-                            self._state = ConnectionState.MQTT_CS_DISCONNECTED
+                        if self._state == _ConnectionState.MQTT_CS_DISCONNECTING:
+                            self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
                 else:
@@ -3186,7 +3186,7 @@ class Client:
             last_msg_in = self._last_msg_in
 
         if self._sock is not None and (now - last_msg_out >= self._keepalive or now - last_msg_in >= self._keepalive):
-            if self._state == ConnectionState.MQTT_CS_CONNECTED and self._ping_t == 0:
+            if self._state == _ConnectionState.MQTT_CS_CONNECTED and self._ping_t == 0:
                 try:
                     self._send_pingreq()
                 except Exception:
@@ -3202,8 +3202,8 @@ class Client:
             else:
                 self._sock_close()
 
-                if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                    self._state = ConnectionState.MQTT_CS_DISCONNECTED
+                if self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                    self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                     rc = MQTTErrorCode.MQTT_ERR_SUCCESS
                 else:
                     rc = MQTTErrorCode.MQTT_ERR_KEEPALIVE
@@ -3806,7 +3806,7 @@ class Client:
                 return self.reconnect()
 
         if result == 0:
-            self._state = ConnectionState.MQTT_CS_CONNECTED
+            self._state = _ConnectionState.MQTT_CS_CONNECTED
             self._reconnect_delay = None
 
         if self._protocol == MQTTv5:
@@ -4453,7 +4453,7 @@ class Client:
             target_time = now + self._reconnect_delay
 
         remaining = target_time - now
-        while (self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED)
+        while (self._state not in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED)
                 and not self._thread_terminate
                 and remaining > 0):
 
