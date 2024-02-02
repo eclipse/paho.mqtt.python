@@ -2274,7 +2274,7 @@ class Client:
         self._thread_terminate = True
         if threading.current_thread() != self._thread:
             self._thread.join()
-            self._thread = None
+        self._thread = None
 
         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
