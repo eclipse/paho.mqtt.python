@@ -1,7 +1,7 @@
 v2.0.0rc2 - 2024-01-21
 ======================
 
-This release include breaking change. See migrations.md for more details on how to upgrade.
+This release include breaking change. See `migrations <https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html>`_ for more details on how to upgrade.
 
 - **BREAKING** Added callback_api_version. This break *ALL* users of paho-mqtt Client class.
   See migrations.md for details on how to upgrade.
@@ -13,9 +13,10 @@ This release include breaking change. See migrations.md for more details on how 
   This is a breaking change, but in previous version connect_srv was broken anyway.
   Closes #493.
 - **BREAKING** Remove some deprecated argument and method:
-  * `max_packets` argument in loop(), loop_write() and loop_forever() is removed
-  * `force` argument in loop_stop() is removed
-  * method `message_retry_set()` is removed
+
+  * ``max_packets`` argument in loop(), loop_write() and loop_forever() is removed
+  * ``force`` argument in loop_stop() is removed
+  * method ``message_retry_set()`` is removed
 - **BREAKING** Remove the base62, WebsocketWrapper and ConnectionState, as user shouldn't directly use them.
 - Possible breaking change: Add properties to access most Client attribute. Closes #764.
   Since this add new properties like `logger`, if a sub-class defined `logger`, the two `logger`
@@ -25,6 +26,7 @@ This release include breaking change. See migrations.md for more details on how 
   MQTTv3 and MQTTv5.
 - Add types to Client class, which caused few change which should be compatible.
   Known risk of breaking changes:
+
   - Use enum for returned error code (like MQTT_ERR_SUCCESS). It use an IntEnum
     which should be a drop-in replacement. Excepted if someone is doing "rc is 0" instead of "rc == 0".
   - reason in on_connect callback when using MQTTv5 is now always a ReasonCode object. It used to possibly be
@@ -47,8 +49,8 @@ This release include breaking change. See migrations.md for more details on how 
   Closes #750.
 - Fix handling of MQTT v5.0 PUBREL messages with remaining length not equal to
   2. Closes #696.
-- Raise error on `subscribe()` when `topic` is an empty list. Closes #690.
-- Raise error on `publish.multiple()` when `msgs` is an empty list. Closes #684.
+- Raise error on ``subscribe()`` when `topic` is an empty list. Closes #690.
+- Raise error on `publish.multiple()` when ``msgs`` is an empty list. Closes #684.
 - Don't add port to Host: header for websockets connections when the port if the default port. Closes #666.
 
 
@@ -108,7 +110,7 @@ v1.5.1 - 2020-09-22
 ===================
 
 - Exceptions that occur in callbacks are no longer suppressed by default. They
-  can optionally be suppressed by setting `client.suppress_exceptions = True`.
+  can optionally be suppressed by setting ``client.suppress_exceptions = True``.
   Closes #365.
 - Fix PUBREL remaining length of > 2 not being accepted for MQTT v5 message
   flows. Closes #481.

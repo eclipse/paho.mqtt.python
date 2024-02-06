@@ -12,4 +12,5 @@
    client
    helpers
    types
+   changelog
    migrations
