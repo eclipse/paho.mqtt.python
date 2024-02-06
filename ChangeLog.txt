@@ -16,6 +16,7 @@ This release include breaking change. See migrations.md for more details on how 
   * `max_packets` argument in loop(), loop_write() and loop_forever() is removed
   * `force` argument in loop_stop() is removed
   * method `message_retry_set()` is removed
+- **BREAKING** Remove the base62, WebsocketWrapper and ConnectionState, as user shouldn't directly use them.
 - Possible breaking change: Add properties to access most Client attribute. Closes #764.
   Since this add new properties like `logger`, if a sub-class defined `logger`, the two `logger`
   will conflict.

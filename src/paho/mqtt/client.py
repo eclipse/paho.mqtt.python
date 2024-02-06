@@ -39,10 +39,10 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, NamedTupl
 
 from paho.mqtt.packettypes import PacketTypes
 
-from .enums import CallbackAPIVersion, ConnackCode, ConnectionState, LogLevel, MessageState, MessageType, MQTTErrorCode, MQTTProtocolVersion, PahoClientMode
+from .enums import CallbackAPIVersion, ConnackCode, LogLevel, MessageState, MessageType, MQTTErrorCode, MQTTProtocolVersion, PahoClientMode, _ConnectionState
 from .matcher import MQTTMatcher
 from .properties import Properties
-from .reasoncodes import ReasonCodes
+from .reasoncodes import ReasonCode, ReasonCodes
 from .subscribeoptions import SubscribeOptions
 
 try:
@@ -55,6 +55,11 @@ if TYPE_CHECKING:
         from typing import TypedDict  # type: ignore
     except ImportError:
         from typing_extensions import TypedDict
+
+    try:
+        from typing import Protocol  # type: ignore
+    except ImportError:
+        from typing_extensions import Protocol  # type: ignore
 
     class _InPacket(TypedDict):
         command: int
@@ -75,6 +80,18 @@ if TYPE_CHECKING:
         to_process: int
         packet: bytes
         info: MQTTMessageInfo | None
+
+    class SocketLike(Protocol):
+        def recv(self, buffer_size: int) -> bytes:
+            ...
+        def send(self, buffer: bytes) -> int:
+            ...
+        def close(self) -> None:
+            ...
+        def fileno(self) -> int:
+            ...
+        def setblocking(self, flag: bool) -> None:
+            ...
 
 
 try:
@@ -108,6 +125,8 @@ if platform.system() == 'Windows':
 else:
     EAGAIN = errno.EAGAIN
 
+# Avoid linter complain. We kept importing it as ReasonCodes (plural) for compatibility
+_ = ReasonCodes
 
 # Keep copy of enums values for compatibility.
 CONNECT = MessageType.CONNECT
@@ -200,8 +219,6 @@ PayloadType = Union[str, bytes, bytearray, int, float, None]
 HTTPHeader = Dict[str, str]
 WebSocketHeaders = Union[Callable[[HTTPHeader], HTTPHeader], HTTPHeader]
 
-SocketLike = Union[socket.socket, "ssl.SSLSocket", "WebsocketWrapper"]
-
 CleanStartOption = Union[bool, Literal[3]]
 
 
@@ -231,32 +248,32 @@ class DisconnectFlags(NamedTuple):
 
 
 CallbackOnConnect_v1_mqtt3 = Callable[["Client", Any, Dict[str, Any], MQTTErrorCode], None]
-CallbackOnConnect_v1_mqtt5 = Callable[["Client", Any, Dict[str, Any], ReasonCodes, Union[Properties, None]], None]
+CallbackOnConnect_v1_mqtt5 = Callable[["Client", Any, Dict[str, Any], ReasonCode, Union[Properties, None]], None]
 CallbackOnConnect_v1 = Union[CallbackOnConnect_v1_mqtt5, CallbackOnConnect_v1_mqtt3]
-CallbackOnConnect_v2 = Callable[["Client", Any, ConnectFlags, ReasonCodes, Union[Properties, None]], None]
+CallbackOnConnect_v2 = Callable[["Client", Any, ConnectFlags, ReasonCode, Union[Properties, None]], None]
 CallbackOnConnect = Union[CallbackOnConnect_v1, CallbackOnConnect_v2]
 CallbackOnConnectFail = Callable[["Client", Any], None]
 CallbackOnDisconnect_v1_mqtt3 = Callable[["Client", Any, MQTTErrorCode], None]
-CallbackOnDisconnect_v1_mqtt5 = Callable[["Client", Any, Union[ReasonCodes, int, None], Union[Properties, None]], None]
+CallbackOnDisconnect_v1_mqtt5 = Callable[["Client", Any, Union[ReasonCode, int, None], Union[Properties, None]], None]
 CallbackOnDisconnect_v1 = Union[CallbackOnDisconnect_v1_mqtt3, CallbackOnDisconnect_v1_mqtt5]
-CallbackOnDisconnect_v2 = Callable[["Client", Any, DisconnectFlags, ReasonCodes, Union[Properties, None]], None]
+CallbackOnDisconnect_v2 = Callable[["Client", Any, DisconnectFlags, ReasonCode, Union[Properties, None]], None]
 CallbackOnDisconnect = Union[CallbackOnDisconnect_v1, CallbackOnDisconnect_v2]
 CallbackOnLog = Callable[["Client", Any, int, str], None]
 CallbackOnMessage = Callable[["Client", Any, "MQTTMessage"], None]
 CallbackOnPreConnect = Callable[["Client", Any], None]
 CallbackOnPublish_v1 = Callable[["Client", Any, int], None]
-CallbackOnPublish_v2 = Callable[["Client", Any, int, ReasonCodes, Properties], None]
+CallbackOnPublish_v2 = Callable[["Client", Any, int, ReasonCode, Properties], None]
 CallbackOnPublish = Union[CallbackOnPublish_v1, CallbackOnPublish_v2]
-CallbackOnSocket = Callable[["Client", Any, SocketLike], None]
+CallbackOnSocket = Callable[["Client", Any, "SocketLike"], None]
 CallbackOnSubscribe_v1_mqtt3 = Callable[["Client", Any, int, Tuple[int, ...]], None]
-CallbackOnSubscribe_v1_mqtt5 = Callable[["Client", Any, int, List[ReasonCodes], Properties], None]
+CallbackOnSubscribe_v1_mqtt5 = Callable[["Client", Any, int, List[ReasonCode], Properties], None]
 CallbackOnSubscribe_v1 = Union[CallbackOnSubscribe_v1_mqtt3, CallbackOnSubscribe_v1_mqtt5]
-CallbackOnSubscribe_v2 = Callable[["Client", Any, int, List[ReasonCodes], Union[Properties, None]], None]
+CallbackOnSubscribe_v2 = Callable[["Client", Any, int, List[ReasonCode], Union[Properties, None]], None]
 CallbackOnSubscribe = Union[CallbackOnSubscribe_v1, CallbackOnSubscribe_v2]
 CallbackOnUnsubscribe_v1_mqtt3 = Callable[["Client", Any, int], None]
-CallbackOnUnsubscribe_v1_mqtt5 = Callable[["Client", Any, int, Properties, Union[ReasonCodes, List[ReasonCodes]]], None]
+CallbackOnUnsubscribe_v1_mqtt5 = Callable[["Client", Any, int, Properties, Union[ReasonCode, List[ReasonCode]]], None]
 CallbackOnUnsubscribe_v1 = Union[CallbackOnUnsubscribe_v1_mqtt3, CallbackOnUnsubscribe_v1_mqtt5]
-CallbackOnUnsubscribe_v2 = Callable[["Client", Any, int, List[ReasonCodes], Union[Properties, None]], None]
+CallbackOnUnsubscribe_v2 = Callable[["Client", Any, int, List[ReasonCode], Union[Properties, None]], None]
 CallbackOnUnsubscribe = Union[CallbackOnUnsubscribe_v1, CallbackOnUnsubscribe_v2]
 
 # This is needed for typing because class Client redefined the name "socket"
@@ -307,9 +324,9 @@ def error_string(mqtt_errno: MQTTErrorCode) -> str:
         return "Unknown error."
 
 
-def connack_string(connack_code: int|ReasonCodes) -> str:
+def connack_string(connack_code: int|ReasonCode) -> str:
     """Return the string associated with a CONNACK result or CONNACK reason code."""
-    if isinstance(connack_code, ReasonCodes):
+    if isinstance(connack_code, ReasonCode):
         return str(connack_code)
 
     if connack_code == CONNACK_ACCEPTED:
@@ -328,7 +345,7 @@ def connack_string(connack_code: int|ReasonCodes) -> str:
         return "Connection Refused: unknown reason."
 
 
-def convert_connack_rc_to_reason_code(connack_code: ConnackCode) -> ReasonCodes:
+def convert_connack_rc_to_reason_code(connack_code: ConnackCode) -> ReasonCode:
     """Convert a MQTTv3 / MQTTv3.1.1 connack result to Reason code.
 
     Be careful that the numeric value isn't the same, for example:
@@ -336,26 +353,26 @@ def convert_connack_rc_to_reason_code(connack_code: ConnackCode) -> ReasonCodes:
     >>> convert_connack_rc_to_reason_code(ConnackCode.CONNACK_REFUSED_SERVER_UNAVAILABLE) == 136
 
     It's recommended to compare by names
-    >>> code_to_test = ReasonCodes(PacketTypes.CONNACK, "Server unavailable")
+    >>> code_to_test = ReasonCode(PacketTypes.CONNACK, "Server unavailable")
     >>> convert_connack_rc_to_reason_code(ConnackCode.CONNACK_REFUSED_SERVER_UNAVAILABLE) == code_to_test
     """
     if connack_code == ConnackCode.CONNACK_ACCEPTED:
-        return ReasonCodes(PacketTypes.CONNACK, "Success")
+        return ReasonCode(PacketTypes.CONNACK, "Success")
     if connack_code == ConnackCode.CONNACK_REFUSED_PROTOCOL_VERSION:
-        return ReasonCodes(PacketTypes.CONNACK, "Unsupported protocol version")
+        return ReasonCode(PacketTypes.CONNACK, "Unsupported protocol version")
     if connack_code == ConnackCode.CONNACK_REFUSED_IDENTIFIER_REJECTED:
-        return ReasonCodes(PacketTypes.CONNACK, "Client identifier not valid")
+        return ReasonCode(PacketTypes.CONNACK, "Client identifier not valid")
     if connack_code == ConnackCode.CONNACK_REFUSED_SERVER_UNAVAILABLE:
-        return ReasonCodes(PacketTypes.CONNACK, "Server unavailable")
+        return ReasonCode(PacketTypes.CONNACK, "Server unavailable")
     if connack_code == ConnackCode.CONNACK_REFUSED_BAD_USERNAME_PASSWORD:
-        return ReasonCodes(PacketTypes.CONNACK, "Bad user name or password")
+        return ReasonCode(PacketTypes.CONNACK, "Bad user name or password")
     if connack_code == ConnackCode.CONNACK_REFUSED_NOT_AUTHORIZED:
-        return ReasonCodes(PacketTypes.CONNACK, "Not authorized")
+        return ReasonCode(PacketTypes.CONNACK, "Not authorized")
 
-    return ReasonCodes(PacketTypes.CONNACK, "Unspecified error")
+    return ReasonCode(PacketTypes.CONNACK, "Unspecified error")
 
 
-def convert_disconnect_error_code_to_reason_code(rc: MQTTErrorCode) -> ReasonCodes:
+def convert_disconnect_error_code_to_reason_code(rc: MQTTErrorCode) -> ReasonCode:
     """Convert an MQTTErrorCode to Reason code.
 
     This is used in on_disconnect callback to have a consistent API.
@@ -365,19 +382,19 @@ def convert_disconnect_error_code_to_reason_code(rc: MQTTErrorCode) -> ReasonCod
     >>> convert_disconnect_error_code_to_reason_code(MQTTErrorCode.MQTT_ERR_PROTOCOL) == 130
 
     It's recommended to compare by names
-    >>> code_to_test = ReasonCodes(PacketTypes.DISCONNECT, "Protocol error")
+    >>> code_to_test = ReasonCode(PacketTypes.DISCONNECT, "Protocol error")
     >>> convert_disconnect_error_code_to_reason_code(MQTTErrorCode.MQTT_ERR_PROTOCOL) == code_to_test
     """
     if rc == MQTTErrorCode.MQTT_ERR_SUCCESS:
-        return ReasonCodes(PacketTypes.DISCONNECT, "Success")
+        return ReasonCode(PacketTypes.DISCONNECT, "Success")
     if rc == MQTTErrorCode.MQTT_ERR_KEEPALIVE:
-        return ReasonCodes(PacketTypes.DISCONNECT, "Keep alive timeout")
+        return ReasonCode(PacketTypes.DISCONNECT, "Keep alive timeout")
     if rc == MQTTErrorCode.MQTT_ERR_CONN_LOST:
-        return ReasonCodes(PacketTypes.DISCONNECT, "Unspecified error")
-    return ReasonCodes(PacketTypes.DISCONNECT, "Unspecified error")
+        return ReasonCode(PacketTypes.DISCONNECT, "Unspecified error")
+    return ReasonCode(PacketTypes.DISCONNECT, "Unspecified error")
 
 
-def base62(
+def _base62(
     num: int,
     base: str = string.digits + string.ascii_letters,
     padding: int = 1,
@@ -761,7 +778,7 @@ class Client:
         # [MQTT-3.1.3-4] Client Id must be UTF-8 encoded string.
         if client_id == "" or client_id is None:
             if protocol == MQTTv31:
-                self._client_id = base62(uuid.uuid4().int, padding=22).encode("utf8")
+                self._client_id = _base62(uuid.uuid4().int, padding=22).encode("utf8")
             else:
                 self._client_id = b""
         else:
@@ -788,7 +805,7 @@ class Client:
         self._reconnect_on_failure = reconnect_on_failure
         self._ping_t = 0.0
         self._last_mid = 0
-        self._state = ConnectionState.MQTT_CS_NEW
+        self._state = _ConnectionState.MQTT_CS_NEW
         self._out_messages: collections.OrderedDict[
             int, MQTTMessage
         ] = collections.OrderedDict()
@@ -1439,7 +1456,7 @@ class Client:
 
         # Switch to state NEW to allow update of host, port & co.
         self._sock_close()
-        self._state = ConnectionState.MQTT_CS_NEW
+        self._state = _ConnectionState.MQTT_CS_NEW
 
         self.host = host
         self.port = port
@@ -1448,7 +1465,7 @@ class Client:
         self._bind_port = bind_port
         self._clean_start = clean_start
         self._connect_properties = properties
-        self._state = ConnectionState.MQTT_CS_CONNECT_ASYNC
+        self._state = _ConnectionState.MQTT_CS_CONNECT_ASYNC
 
     def reconnect_delay_set(self, min_delay: int = 1, max_delay: int = 120) -> None:
         """ Configure the exponential reconnect delay
@@ -1483,7 +1500,7 @@ class Client:
         }
 
         self._ping_t = 0.0
-        self._state = ConnectionState.MQTT_CS_CONNECTING
+        self._state = _ConnectionState.MQTT_CS_CONNECTING
 
         self._sock_close()
 
@@ -1588,14 +1605,14 @@ class Client:
             # call _loop(). We still want to break that loop by returning an
             # rc != MQTT_ERR_SUCCESS and we don't want state to change from
             # mqtt_cs_disconnecting.
-            if self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+            if self._state not in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except ValueError:
             # Can occur if we just reconnected but rlist/wlist contain a -1 for
             # some reason.
-            if self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+            if self._state not in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
             return MQTTErrorCode.MQTT_ERR_CONN_LOST
         except Exception:
             # Note that KeyboardInterrupt, etc. can still terminate since they
@@ -1780,8 +1797,8 @@ class Client:
         Return true if the connection is closed (and not trying to be opened).
         """
         return (
-            self._state == ConnectionState.MQTT_CS_NEW
-            or (self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED) and self._sock is None))
+            self._state == _ConnectionState.MQTT_CS_NEW
+            or (self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED) and self._sock is None))
 
     def is_connected(self) -> bool:
         """Returns the current status of the connection
@@ -1789,25 +1806,25 @@ class Client:
         True if connection exists
         False if connection is closed
         """
-        return self._state == ConnectionState.MQTT_CS_CONNECTED
+        return self._state == _ConnectionState.MQTT_CS_CONNECTED
 
     def disconnect(
         self,
-        reasoncode: ReasonCodes | None = None,
+        reasoncode: ReasonCode | None = None,
         properties: Properties | None = None,
     ) -> MQTTErrorCode:
         """Disconnect a connected client from the broker.
-        reasoncode: (MQTT v5.0 only) a ReasonCodes instance setting the MQTT v5.0
+        reasoncode: (MQTT v5.0 only) a ReasonCode instance setting the MQTT v5.0
         reasoncode to be sent with the disconnect.  It is optional, the receiver
         then assuming that 0 (success) is the value.
         properties: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
         to be included. Optional - if not set, no properties are sent.
         """
         if self._sock is None:
-            self._state = ConnectionState.MQTT_CS_DISCONNECTED
+            self._state = _ConnectionState.MQTT_CS_DISCONNECTED
             return MQTT_ERR_NO_CONN
         else:
-            self._state = ConnectionState.MQTT_CS_DISCONNECTING
+            self._state = _ConnectionState.MQTT_CS_DISCONNECTING
 
         return self._send_disconnect(reasoncode, properties)
 
@@ -2073,11 +2090,11 @@ class Client:
             # This hasn't happened in the keepalive time so we should disconnect.
             self._sock_close()
 
-            if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_DISCONNECTED
+            if self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
             else:
-                self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+                self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
                 rc = MQTTErrorCode.MQTT_ERR_KEEPALIVE
 
             self._do_on_disconnect(
@@ -2196,7 +2213,7 @@ class Client:
             if self._thread_terminate is True:
                 break
 
-            if self._state == ConnectionState.MQTT_CS_CONNECT_ASYNC:
+            if self._state == _ConnectionState.MQTT_CS_CONNECT_ASYNC:
                 try:
                     self.reconnect()
                 except OSError:
@@ -2225,7 +2242,7 @@ class Client:
 
             def should_exit() -> bool:
                 return (
-                    self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED) or
+                    self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED) or
                     run is False or  # noqa: B023 (uses the run variable from the outer scope on purpose)
                     self._thread_terminate is True
                 )
@@ -2473,7 +2490,7 @@ class Client:
         reason_code_list: reason codes received from the broker for each subscription.
                           In MQTT v5.0 it's the reason code defined by the standard.
                           In MQTT v3, we convert granted QoS to a reason code.
-                          It's a list of ReasonCodes instances.
+                          It's a list of ReasonCode instances.
         properties:       the MQTT v5.0 properties received from the broker.  An instance
                           of the Properties class.
                           For MQTT v3.1 and v3.1.1 properties is not provided and an empty Properties
@@ -2619,8 +2636,8 @@ class Client:
                           For MQTT v3.1 and v3.1.1 properties is not provided and an empty Properties
                           object is always used.
         v1_reason_codes:  the MQTT v5.0 reason codes received from the broker for each
-                          unsubscribe topic.  A list of ReasonCodes instances OR a single
-                          ReasonCodes when we unsubscribe from a single topic.
+                          unsubscribe topic.  A list of ReasonCode instances OR a single
+                          ReasonCode when we unsubscribe from a single topic.
 
         Decorator: @client.unsubscribe_callback() (```client``` is the name of the
             instance which this callback is being attached to)
@@ -2940,14 +2957,14 @@ class Client:
         if rc:
             self._sock_close()
 
-            if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                self._state = ConnectionState.MQTT_CS_DISCONNECTED
+            if self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                 rc = MQTTErrorCode.MQTT_ERR_SUCCESS
 
             self._do_on_disconnect(packet_from_broker=False, v1_rc=rc)
 
         if rc == MQTT_ERR_CONN_LOST:
-            self._state = ConnectionState.MQTT_CS_CONNECTION_LOST
+            self._state = _ConnectionState.MQTT_CS_CONNECTION_LOST
 
         return rc
 
@@ -3102,7 +3119,7 @@ class Client:
                                             self,
                                             self._userdata,
                                             packet["mid"],
-                                            ReasonCodes(PacketTypes.PUBACK),
+                                            ReasonCode(PacketTypes.PUBACK),
                                             Properties(PacketTypes.PUBACK),
                                         )
                                     else:
@@ -3131,8 +3148,8 @@ class Client:
                         # Only change to disconnected if the disconnection was wanted
                         # by the client (== state was disconnecting). If the broker disconnected
                         # use unilaterally don't change the state and client may reconnect.
-                        if self._state == ConnectionState.MQTT_CS_DISCONNECTING:
-                            self._state = ConnectionState.MQTT_CS_DISCONNECTED
+                        if self._state == _ConnectionState.MQTT_CS_DISCONNECTING:
+                            self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                         return MQTTErrorCode.MQTT_ERR_SUCCESS
 
                 else:
@@ -3169,7 +3186,7 @@ class Client:
             last_msg_in = self._last_msg_in
 
         if self._sock is not None and (now - last_msg_out >= self._keepalive or now - last_msg_in >= self._keepalive):
-            if self._state == ConnectionState.MQTT_CS_CONNECTED and self._ping_t == 0:
+            if self._state == _ConnectionState.MQTT_CS_CONNECTED and self._ping_t == 0:
                 try:
                     self._send_pingreq()
                 except Exception:
@@ -3185,8 +3202,8 @@ class Client:
             else:
                 self._sock_close()
 
-                if self._state in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED):
-                    self._state = ConnectionState.MQTT_CS_DISCONNECTED
+                if self._state in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED):
+                    self._state = _ConnectionState.MQTT_CS_DISCONNECTED
                     rc = MQTTErrorCode.MQTT_ERR_SUCCESS
                 else:
                     rc = MQTTErrorCode.MQTT_ERR_KEEPALIVE
@@ -3473,7 +3490,7 @@ class Client:
 
     def _send_disconnect(
         self,
-        reasoncode: ReasonCodes | None = None,
+        reasoncode: ReasonCode | None = None,
         properties: Properties | None = None,
     ) -> MQTTErrorCode:
         if self._protocol == MQTTv5:
@@ -3493,7 +3510,7 @@ class Client:
         if self._protocol == MQTTv5:
             if properties is not None or reasoncode is not None:
                 if reasoncode is None:
-                    reasoncode = ReasonCodes(DISCONNECT >> 4, identifier=0)
+                    reasoncode = ReasonCode(DISCONNECT >> 4, identifier=0)
                 remaining_length += 1
                 if properties is not None:
                     packed_props = properties.pack()
@@ -3754,10 +3771,10 @@ class Client:
             if result == 1:
                 # This is probably a failure from a broker that doesn't support
                 # MQTT v5.
-                reason = ReasonCodes(CONNACK >> 4, aName="Unsupported protocol version")
+                reason = ReasonCode(CONNACK >> 4, aName="Unsupported protocol version")
                 properties = None
             else:
-                reason = ReasonCodes(CONNACK >> 4, identifier=result)
+                reason = ReasonCode(CONNACK >> 4, identifier=result)
                 properties = Properties(CONNACK >> 4)
                 properties.unpack(self._in_packet['packet'][2:])
         else:
@@ -3785,11 +3802,11 @@ class Client:
                     "Received CONNACK (%s, %s), attempting to use non-empty CID",
                     flags, result,
                 )
-                self._client_id = base62(uuid.uuid4().int, padding=22).encode("utf8")
+                self._client_id = _base62(uuid.uuid4().int, padding=22).encode("utf8")
                 return self.reconnect()
 
         if result == 0:
-            self._state = ConnectionState.MQTT_CS_CONNECTED
+            self._state = _ConnectionState.MQTT_CS_CONNECTED
             self._reconnect_delay = None
 
         if self._protocol == MQTTv5:
@@ -3919,7 +3936,7 @@ class Client:
         packet_type = DISCONNECT >> 4
         reasonCode = properties = None
         if self._in_packet['remaining_length'] > 2:
-            reasonCode = ReasonCodes(packet_type)
+            reasonCode = ReasonCode(packet_type)
             reasonCode.unpack(self._in_packet['packet'])
             if self._in_packet['remaining_length'] > 3:
                 properties = Properties(packet_type)
@@ -3946,11 +3963,11 @@ class Client:
         if self._protocol == MQTTv5:
             properties = Properties(SUBACK >> 4)
             props, props_len = properties.unpack(packet)
-            reasoncodes = [ReasonCodes(SUBACK >> 4, identifier=c) for c in packet[props_len:]]
+            reasoncodes = [ReasonCode(SUBACK >> 4, identifier=c) for c in packet[props_len:]]
         else:
             pack_format = f"!{'B' * len(packet)}"
             granted_qos = struct.unpack(pack_format, packet)
-            reasoncodes = [ReasonCodes(SUBACK >> 4, identifier=c) for c in granted_qos]
+            reasoncodes = [ReasonCode(SUBACK >> 4, identifier=c) for c in granted_qos]
             properties = Properties(SUBACK >> 4)
 
         with self._callback_mutex:
@@ -4094,7 +4111,7 @@ class Client:
         mid, = struct.unpack("!H", self._in_packet['packet'][:2])
         if self._protocol == MQTTv5:
             if self._in_packet['remaining_length'] > 2:
-                reasonCode = ReasonCodes(PUBREL >> 4)
+                reasonCode = ReasonCode(PUBREL >> 4)
                 reasonCode.unpack(self._in_packet['packet'][2:])
                 if self._in_packet['remaining_length'] > 3:
                     properties = Properties(PUBREL >> 4)
@@ -4161,7 +4178,7 @@ class Client:
         mid, = struct.unpack("!H", self._in_packet['packet'][:2])
         if self._protocol == MQTTv5:
             if self._in_packet['remaining_length'] > 2:
-                reasonCode = ReasonCodes(PUBREC >> 4)
+                reasonCode = ReasonCode(PUBREC >> 4)
                 reasonCode.unpack(self._in_packet['packet'][2:])
                 if self._in_packet['remaining_length'] > 3:
                     properties = Properties(PUBREC >> 4)
@@ -4191,7 +4208,7 @@ class Client:
             properties = Properties(UNSUBACK >> 4)
             props, props_len = properties.unpack(packet)
             reasoncodes_list = [
-                ReasonCodes(UNSUBACK >> 4, identifier=c)
+                ReasonCode(UNSUBACK >> 4, identifier=c)
                 for c in packet[props_len:]
             ]
         else:
@@ -4209,7 +4226,7 @@ class Client:
                         if self._protocol == MQTTv5:
                             on_unsubscribe = cast(CallbackOnUnsubscribe_v1_mqtt5, on_unsubscribe)
 
-                            reasoncodes: ReasonCodes | list[ReasonCodes] = reasoncodes_list
+                            reasoncodes: ReasonCode | list[ReasonCode] = reasoncodes_list
                             if len(reasoncodes_list) == 1:
                                 reasoncodes = reasoncodes_list[0]
 
@@ -4246,7 +4263,7 @@ class Client:
         self,
         packet_from_broker: bool,
         v1_rc: MQTTErrorCode,
-        reason: ReasonCodes | None = None,
+        reason: ReasonCode | None = None,
         properties: Properties | None = None,
     ) -> None:
         with self._callback_mutex:
@@ -4295,7 +4312,7 @@ class Client:
                     if not self.suppress_exceptions:
                         raise
 
-    def _do_on_publish(self, mid: int, reason_code: ReasonCodes, properties: Properties) -> MQTTErrorCode:
+    def _do_on_publish(self, mid: int, reason_code: ReasonCode, properties: Properties) -> MQTTErrorCode:
         with self._callback_mutex:
             on_publish = self.on_publish
 
@@ -4346,7 +4363,7 @@ class Client:
         packet_type_enum = PUBACK if cmd == "PUBACK" else PUBCOMP
         packet_type = packet_type_enum.value >> 4
         mid, = struct.unpack("!H", self._in_packet['packet'][:2])
-        reasonCode = ReasonCodes(packet_type)
+        reasonCode = ReasonCode(packet_type)
         properties = Properties(packet_type)
         if self._protocol == MQTTv5:
             if self._in_packet['remaining_length'] > 2:
@@ -4436,7 +4453,7 @@ class Client:
             target_time = now + self._reconnect_delay
 
         remaining = target_time - now
-        while (self._state not in (ConnectionState.MQTT_CS_DISCONNECTING, ConnectionState.MQTT_CS_DISCONNECTED)
+        while (self._state not in (_ConnectionState.MQTT_CS_DISCONNECTING, _ConnectionState.MQTT_CS_DISCONNECTED)
                 and not self._thread_terminate
                 and remaining > 0):
 
@@ -4506,7 +4523,7 @@ class Client:
 
         if self._transport == "websockets":
             sock.settimeout(self._keepalive)
-            return WebsocketWrapper(
+            return _WebsocketWrapper(
                 socket=sock,
                 host=self._host,
                 port=self._port,
@@ -4566,7 +4583,7 @@ class Client:
 
         return ssl_sock
 
-class WebsocketWrapper:
+class _WebsocketWrapper:
     OPCODE_CONTINUATION = 0x0
     OPCODE_TEXT = 0x1
     OPCODE_BINARY = 0x2
@@ -4814,19 +4831,19 @@ class WebsocketWrapper:
                 self._payload_head = 0
 
                 # respond to non-binary opcodes, their arrival is not guaranteed because of non-blocking sockets
-                if opcode == WebsocketWrapper.OPCODE_CONNCLOSE:
+                if opcode == _WebsocketWrapper.OPCODE_CONNCLOSE:
                     frame = self._create_frame(
-                        WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)
+                        _WebsocketWrapper.OPCODE_CONNCLOSE, payload, 0)
                     self._socket.send(frame)
 
-                if opcode == WebsocketWrapper.OPCODE_PING:
+                if opcode == _WebsocketWrapper.OPCODE_PING:
                     frame = self._create_frame(
-                        WebsocketWrapper.OPCODE_PONG, payload, 0)
+                        _WebsocketWrapper.OPCODE_PONG, payload, 0)
                     self._socket.send(frame)
 
             # This isn't *proper* handling of continuation frames, but given
             # that we only support binary frames, it is *probably* good enough.
-            if (opcode == WebsocketWrapper.OPCODE_BINARY or opcode == WebsocketWrapper.OPCODE_CONTINUATION) \
+            if (opcode == _WebsocketWrapper.OPCODE_BINARY or opcode == _WebsocketWrapper.OPCODE_CONTINUATION) \
                     and payload_length > 0:
                 return result
             else:
@@ -4842,7 +4859,7 @@ class WebsocketWrapper:
         if len(self._sendbuffer) == 0:
             # create websocket frame
             frame = self._create_frame(
-                WebsocketWrapper.OPCODE_BINARY, bytearray(data))
+                _WebsocketWrapper.OPCODE_BINARY, bytearray(data))
             self._sendbuffer.extend(frame)
             self._requested_size = len(data)
 

@@ -2,7 +2,7 @@ import socket
 from unittest.mock import Mock
 
 import pytest
-from paho.mqtt.client import WebsocketConnectionError, WebsocketWrapper
+from paho.mqtt.client import WebsocketConnectionError, _WebsocketWrapper
 
 
 class TestHeaders:
@@ -121,7 +121,7 @@ class TestHeaders:
         wargs_with_socket["socket"] = mocksock
 
         with pytest.raises(WebsocketConnectionError) as exc:
-            WebsocketWrapper(**wargs_with_socket)
+            _WebsocketWrapper(**wargs_with_socket)
 
         # We're not creating the response hash properly so it should raise this
         # error
