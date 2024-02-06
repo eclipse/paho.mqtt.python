@@ -1,6 +1,8 @@
 Eclipse Paho™ MQTT Python Client
 ================================
 
+The `full documentation is available here <documentation_>`_.
+
 This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 5.0, 3.1.1, and 3.1 of the MQTT protocol.
 
 This code provides a client class which enables applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
@@ -105,7 +107,7 @@ You should set ``clean_session = False`` if you need the QoS 2 guarantee of only
 Usage and API
 -------------
 
-Detailed API documentation is available through pydoc_. Samples are available in the examples_ directory.
+Detailed API documentation `is available online <documentation_>`_ or could be build from ``docs/`` and samples are available in the `examples`_ directory.
 
 The package provides two modules, a full `Client` and few `helpers` for simple publishing or subscribing.
 
@@ -259,7 +261,7 @@ The following callbacks exists:
 * `on_log()`: called when the library log a message
 * `on_socket_open`, `on_socket_close`, `on_socket_register_write`, `on_socket_unregister_write`: callbacks used for external loop support. See below for details.
 
-For the signature of each callback, see the **pydoc** documentation.
+For the signature of each callback, see the `online documentation <documentation_>`_.
 
 Subscriber example
 ''''''''''''''''''
@@ -598,5 +600,5 @@ General questions about the MQTT protocol itself (not this library) are discusse
 
 There is much more information available via the `MQTT community site <http://mqtt.org/>`_.
 
-.. _examples: ./examples/
-.. _pydoc: ./docs/_build/markdown/index.md
+.. _examples: https://github.com/eclipse/paho.mqtt.python/tree/master/examples
+.. _documentation: https://eclipse.dev/paho/files/paho.mqtt.python/html/client.html
