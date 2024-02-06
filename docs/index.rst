@@ -12,3 +12,4 @@
    client
    helpers
    types
+   migrations
