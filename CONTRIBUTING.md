@@ -106,5 +106,8 @@ The process to make a release is the following:
 * Then upload the dist file, you can follow instruction on https://packaging.python.org/en/latest/tutorials/packaging-projects/#uploading-the-distribution-archives
   It should mostly be ``python -m twine upload dist/*``
 * Create a release on Github, copy-pasting the release note from Changelog.
+* Build and publish the documentation
+   * To build the documentation, run `make clean html` in `docs` folder
+   * Copy `_build/html/` to https://github.com/eclipse/paho-website/tree/master/files/paho.mqtt.python/html
 * Announce the release on the Mailing list.
 * To allow installing from a git clone, update the version in ``paho/mqtt/__init__.py`` to next number WITH .dev0 (example ``1.2.3.dev0``)
