@@ -107,7 +107,7 @@ You should set ``clean_session = False`` if you need the QoS 2 guarantee of only
 Usage and API
 -------------
 
-Detailed API documentation `is available online <documentation_>`_ or could be build from ``docs/`` and samples are available in the `examples`_ directory.
+Detailed API documentation `is available online <documentation_>`_ or could be built from ``docs/`` and samples are available in the `examples`_ directory.
 
 The package provides two modules, a full `Client` and few `helpers` for simple publishing or subscribing.
 
