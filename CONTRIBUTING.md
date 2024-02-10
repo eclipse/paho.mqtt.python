@@ -92,11 +92,11 @@ Making a release
 The process to make a release is the following:
 * Update the Changelog with the release version and date. Ensure it's up-to-date with latest fixes & PRs merged.
 * Make sure test pass, check that Github actions are green.
+* Bump the version number in ``paho/mqtt/__init__.py``, commit the change.
 * Make a dry-run of build:
    * Build using hatch: ``python -m hatch build``
    * Check with twine for common errors: ``python -m twine check dist/*``
    * Try uploading it to testpypi: ``python3 -m twine upload --repository testpypi dist/*``
-* Bump the version number in ``paho/mqtt/__init__.py``, commit the change.
 * Do a GPG signed tag (assuming your GPG is correctly configured, it's ``git tag -s -m "Version 1.2.3" v1.2.3``)
 * Push the commit and it's tag to Github
 * Make sure your git is clean, especially the ``dist/`` folder.

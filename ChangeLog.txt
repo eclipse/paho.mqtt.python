@@ -1,5 +1,5 @@
-v2.0.0rc2 - 2024-01-21
-======================
+v2.0.0 - 2024-02-10
+===================
 
 This release include breaking change. See `migrations <https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html>`_ for more details on how to upgrade.
 
