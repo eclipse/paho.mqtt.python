@@ -4746,7 +4746,10 @@ class _WebsocketWrapper:
 
         while True:
             # read HTTP response header as lines
-            byte = self._socket.recv(1)
+            try:
+                byte = self._socket.recv(1)
+            except ConnectionResetError:
+                byte = b""
 
             self._readbuffer.extend(byte)
 
