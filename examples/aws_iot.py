@@ -6,7 +6,7 @@ import hmac
 import os
 import uuid
 
-from paho.mqtt.client import Client
+from paho.mqtt.client import Client, CallbackAPIVersion
 
 
 def get_amazon_auth_headers(access_key, secret_key, region, host, port, headers=None):
@@ -122,7 +122,7 @@ def example_use():
         port,
     )
 
-    client = Client(transport="websockets")
+    client = Client(CallbackAPIVersion.VERSION2, transport="websockets")
 
     client.ws_set_options(headers=extra_headers)
 

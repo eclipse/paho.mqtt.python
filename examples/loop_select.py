@@ -16,7 +16,7 @@ class SelectMqttExample:
     def __init__(self):
         pass
 
-    def on_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, userdata, flags, reason_code, properties):
         print("Subscribing")
         client.subscribe(topic)
 
@@ -29,8 +29,8 @@ class SelectMqttExample:
         self.state += 1
         self.t = time()
 
-    def on_disconnect(self, client, userdata, rc):
-        self.disconnected = True, rc
+    def on_disconnect(self, client, userdata, flags, reason_code, properties):
+        self.disconnected = True, reason_code
 
     def do_select(self):
         sock = self.client.socket()
@@ -60,7 +60,7 @@ class SelectMqttExample:
         self.t = time()
         self.state = 0
 
-        self.client = mqtt.Client(client_id=client_id)
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect

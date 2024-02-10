@@ -122,7 +122,7 @@ def multiple(
     list of messages. Once the messages have been delivered, it disconnects
     cleanly from the broker.
 
-    msgs : a list of messages to publish. Each message is either a dict or a
+    :param msgs: a list of messages to publish. Each message is either a dict or a
            tuple.
 
            If a dict, only the topic must be present. Default values will be
@@ -139,30 +139,30 @@ def multiple(
            If a tuple, then it must be of the form:
            ("<topic>", "<payload>", qos, retain)
 
-    hostname : a string containing the address of the broker to connect to.
+    :param str hostname: the address of the broker to connect to.
                Defaults to localhost.
 
-    port : the port to connect to the broker on. Defaults to 1883.
+    :param int port: the port to connect to the broker on. Defaults to 1883.
 
-    client_id : the MQTT client id to use. If "" or None, the Paho library will
+    :param str client_id: the MQTT client id to use. If "" or None, the Paho library will
                 generate a client id automatically.
 
-    keepalive : the keepalive timeout value for the client. Defaults to 60
+    :param int keepalive: the keepalive timeout value for the client. Defaults to 60
                 seconds.
 
-    will : a dict containing will parameters for the client: will = {'topic':
+    :param will: a dict containing will parameters for the client: will = {'topic':
            "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
            Topic is required, all other parameters are optional and will
            default to None, 0 and False respectively.
            Defaults to None, which indicates no will should be used.
 
-    auth : a dict containing authentication parameters for the client:
+    :param auth: a dict containing authentication parameters for the client:
            auth = {'username':"<username>", 'password':"<password>"}
            Username is required, password is optional and will default to None
            if not provided.
            Defaults to None, which indicates no authentication is to be used.
 
-    tls : a dict containing TLS configuration parameters for the client:
+    :param tls: a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
           'ciphers':"<ciphers">, 'insecure':"<bool>"}
@@ -173,9 +173,10 @@ def multiple(
           processed using the tls_set_context method.
           Defaults to None, which indicates that TLS should not be used.
 
-    transport : set to "tcp" to use the default setting of transport which is
+    :param str transport: set to "tcp" to use the default setting of transport which is
           raw TCP. Set to "websockets" to use WebSockets as the transport.
-    proxy_args: a dictionary that will be given to the client.
+
+    :param proxy_args: a dictionary that will be given to the client.
     """
 
     if not isinstance(msgs, Iterable):
@@ -191,6 +192,7 @@ def multiple(
         transport=transport,
     )
 
+    client.enable_logger()
     client.on_publish = _on_publish
     client.on_connect = _on_connect  # type: ignore
 
@@ -248,40 +250,40 @@ def single(
     single message. Once the message has been delivered, it disconnects cleanly
     from the broker.
 
-    topic : the only required argument must be the topic string to which the
+    :param str topic: the only required argument must be the topic string to which the
             payload will be published.
 
-    payload : the payload to be published. If "" or None, a zero length payload
+    :param payload: the payload to be published. If "" or None, a zero length payload
               will be published.
 
-    qos : the qos to use when publishing,  default to 0.
+    :param int qos: the qos to use when publishing,  default to 0.
 
-    retain : set the message to be retained (True) or not (False).
+    :param bool retain: set the message to be retained (True) or not (False).
 
-    hostname : a string containing the address of the broker to connect to.
+    :param str hostname: the address of the broker to connect to.
                Defaults to localhost.
 
-    port : the port to connect to the broker on. Defaults to 1883.
+    :param int port: the port to connect to the broker on. Defaults to 1883.
 
-    client_id : the MQTT client id to use. If "" or None, the Paho library will
+    :param str client_id: the MQTT client id to use. If "" or None, the Paho library will
                 generate a client id automatically.
 
-    keepalive : the keepalive timeout value for the client. Defaults to 60
+    :param int keepalive: the keepalive timeout value for the client. Defaults to 60
                 seconds.
 
-    will : a dict containing will parameters for the client: will = {'topic':
+    :param will: a dict containing will parameters for the client: will = {'topic':
            "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
            Topic is required, all other parameters are optional and will
            default to None, 0 and False respectively.
            Defaults to None, which indicates no will should be used.
 
-    auth : a dict containing authentication parameters for the client:
-           auth = {'username':"<username>", 'password':"<password>"}
+    :param auth: a dict containing authentication parameters for the client:
            Username is required, password is optional and will default to None
+           auth = {'username':"<username>", 'password':"<password>"}
            if not provided.
            Defaults to None, which indicates no authentication is to be used.
 
-    tls : a dict containing TLS configuration parameters for the client:
+    :param tls: a dict containing TLS configuration parameters for the client:
           dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>",
           'keyfile':"<keyfile>", 'tls_version':"<tls_version>",
           'ciphers':"<ciphers">, 'insecure':"<bool>"}
@@ -292,9 +294,10 @@ def single(
           Alternatively, tls input can be an SSLContext object, which will be
           processed using the tls_set_context method.
 
-    transport : set to "tcp" to use the default setting of transport which is
+    :param transport: set to "tcp" to use the default setting of transport which is
           raw TCP. Set to "websockets" to use WebSockets as the transport.
-    proxy_args: a dictionary that will be given to the client.
+
+    :param proxy_args: a dictionary that will be given to the client.
     """
 
     msg: MessageDict = {'topic':topic, 'payload':payload, 'qos':qos, 'retain':retain}

@@ -1,20 +1,18 @@
-"""
-*******************************************************************
-  Copyright (c) 2017, 2019 IBM Corp.
-
-  All rights reserved. This program and the accompanying materials
-  are made available under the terms of the Eclipse Public License v2.0
-  and Eclipse Distribution License v1.0 which accompany this distribution.
-
-  The Eclipse Public License is available at
-     http://www.eclipse.org/legal/epl-v20.html
-  and the Eclipse Distribution License is available at
-    http://www.eclipse.org/org/documents/edl-v10.php.
-
-  Contributors:
-     Ian Craggs - initial implementation and/or documentation
-*******************************************************************
-"""
+# *******************************************************************
+#   Copyright (c) 2017, 2019 IBM Corp.
+#
+#   All rights reserved. This program and the accompanying materials
+#   are made available under the terms of the Eclipse Public License v2.0
+#   and Eclipse Distribution License v1.0 which accompany this distribution.
+#
+#   The Eclipse Public License is available at
+#      http://www.eclipse.org/legal/epl-v20.html
+#   and the Eclipse Distribution License is available at
+#     http://www.eclipse.org/org/documents/edl-v10.php.
+#
+#   Contributors:
+#      Ian Craggs - initial implementation and/or documentation
+# *******************************************************************
 
 import struct
 
@@ -141,14 +139,14 @@ class Properties:
 
     See Properties.properties for the data type of each property.
 
-    Example of use:
+    Example of use::
 
         publish_properties = Properties(PacketTypes.PUBLISH)
         publish_properties.UserProperty = ("a", "2")
         publish_properties.UserProperty = ("c", "3")
 
     First the object is created with packet type as argument, no properties will be present at
-    this point.  Then properties are added as attributes, the name of which is the string property
+    this point. Then properties are added as attributes, the name of which is the string property
     name without the spaces.
 
     """

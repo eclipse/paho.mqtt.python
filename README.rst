@@ -1,6 +1,8 @@
 Eclipse Paho™ MQTT Python Client
 ================================
 
+The `full documentation is available here <documentation_>`_.
+
 This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 5.0, 3.1.1, and 3.1 of the MQTT protocol.
 
 This code provides a client class which enables applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
@@ -11,22 +13,17 @@ The MQTT protocol is a machine-to-machine (M2M)/"Internet of Things" connectivit
 
 Paho is an `Eclipse Foundation <https://www.eclipse.org/org/foundation/>`_ project.
 
-Warning: the README currently cover version 1.x of the library. For the 2.0 (currently in release candidate) look at PR #804 which will be merged before final release of 2.0.
-
 Contents
 --------
 
 * Installation_
 * `Known limitations`_
 * `Usage and API`_
+    * `Getting Started`_
     * `Client`_
-        * `Constructor / reinitialise`_
-        * `Option functions`_
-        * `Connect / reconnect / disconnect`_
         * `Network loop`_
-        * `Publishing`_
-        * `Subscribe / Unsubscribe`_
         * `Callbacks`_
+        * `Logger`_
         * `External event loop support`_
         * `Global helper functions`_
     * `Publish`_
@@ -95,9 +92,9 @@ The following part of the client session is lost:
 * QoS 1 and QoS 2 messages which have been sent to the server, but have not been completely acknowledged.
 
   This means that messages passed to ``publish()`` may be lost. This could be mitigated by taking care
-  that all messages passed to ``publish()`` have a corresponding on_publish() call.
+  that all messages passed to ``publish()`` have a corresponding ``on_publish()`` call or use `wait_for_publish`.
 
-  It also means that the broker may have the Qos2 message in the session. Since the client starts
+  It also means that the broker may have the QoS2 message in the session. Since the client starts
   with an empty session it don't know it and will reuse the mid. This is not yet fixed.
 
 Also, when ``clean_session`` is True, this library will republish QoS > 0 message across network
@@ -110,9 +107,9 @@ You should set ``clean_session = False`` if you need the QoS 2 guarantee of only
 Usage and API
 -------------
 
-Detailed API documentation is available through **pydoc**. Samples are available in the **examples** directory.
+Detailed API documentation `is available online <documentation_>`_ or could be built from ``docs/`` and samples are available in the `examples`_ directory.
 
-The package provides two modules, a full client and a helper for simple publishing.
+The package provides two modules, a full `Client` and few `helpers` for simple publishing or subscribing.
 
 Getting Started
 ***************
@@ -124,9 +121,8 @@ Here is a very simple example that subscribes to the broker $SYS topic tree and 
     import paho.mqtt.client as mqtt
 
     # The callback for when the client receives a CONNACK response from the server.
-    def on_connect(client, userdata, flags, rc):
-        print("Connected with result code "+str(rc))
-
+    def on_connect(client, userdata, flags, reason_code, properties):
+        print(f"Connected with result code {reason_code}")
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
         client.subscribe("$SYS/#")
@@ -135,17 +131,17 @@ Here is a very simple example that subscribes to the broker $SYS topic tree and 
     def on_message(client, userdata, msg):
         print(msg.topic+" "+str(msg.payload))
 
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqttc.on_connect = on_connect
+    mqttc.on_message = on_message
 
-    client.connect("mqtt.eclipseprojects.io", 1883, 60)
+    mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
     # Other loop*() functions are available that give a threaded interface and a
     # manual interface.
-    client.loop_forever()
+    mqttc.loop_forever()
 
 Client
 ******
@@ -161,205 +157,260 @@ You can use the client class as an instance, within a class or by subclassing. T
 
 Callbacks will be called to allow the application to process events as necessary. These callbacks are described below.
 
-Constructor / reinitialise
-``````````````````````````
+Network loop
+````````````
 
-Client()
-''''''''
+These functions are the driving force behind the client. If they are not
+called, incoming network data will not be processed and outgoing network data
+will not be sent. There are four options for managing the
+network loop. Three are described here, the fourth in "External event loop
+support" below. Do not mix the different loop functions.
+
+loop_start() / loop_stop()
+''''''''''''''''''''''''''
 
 .. code:: python
 
-    Client(client_id="", clean_session=True, userdata=None, protocol=MQTTv311, transport="tcp")
+    mqttc.loop_start()
 
-The ``Client()`` constructor takes the following arguments:
+    while True:
+        temperature = sensor.blocking_read()
+        mqttc.publish("paho/temperature", temperature)
 
-client_id
-    the unique client id string used when connecting to the broker. If
-    ``client_id`` is zero length or ``None``, then one will be randomly
-    generated. In this case the ``clean_session`` parameter must be ``True``.
+    mqttc.loop_stop()
 
-clean_session
-    a boolean that determines the client type. If ``True``, the broker will
-    remove all information about this client when it disconnects. If ``False``,
-    the client is a durable client and subscription information and queued
-    messages will be retained when the client disconnects.
+These functions implement a threaded interface to the network loop. Calling
+`loop_start()` once, before or after ``connect*()``, runs a thread in the
+background to call `loop()` automatically. This frees up the main thread for
+other work that may be blocking. This call also handles reconnecting to the
+broker. Call `loop_stop()` to stop the background thread.
+The loop is also stopped if you call `disconnect()`.
 
-    Note that a client will never discard its own outgoing messages on
-    disconnect. Calling connect() or reconnect() will cause the messages to be
-    resent. Use reinitialise() to reset a client to its original state.
+loop_forever()
+''''''''''''''
 
-userdata
-    user defined data of any type that is passed as the ``userdata`` parameter
-    to callbacks. It may be updated at a later point with the
-    ``user_data_set()`` function.
+.. code:: python
 
-protocol
-    the version of the MQTT protocol to use for this client. Can be either
-    ``MQTTv31``, ``MQTTv311`` or ``MQTTv5``
+    mqttc.loop_forever(retry_first_connection=False)
 
-transport
-    set to "websockets" to send MQTT over WebSockets. Leave at the default of
-    "tcp" to use raw TCP.
+This is a blocking form of the network loop and will not return until the
+client calls `disconnect()`. It automatically handles reconnecting.
 
-manual_ack
-    defaults to False, allowing the library to acknowledge messages automatically after on_message callback return
-    passing them to on_message callback.  When set to True, every message
-    must be manually acknowledged by application call to 
-    client.ack( *message.mid* , *message.qos* )
+Except for the first connection attempt when using `connect_async`, use
+``retry_first_connection=True`` to make it retry the first connection.
+
+*Warning*: This might lead to situations where the client keeps connecting to an
+non existing host without failing.
+
+loop()
+''''''
+
+.. code:: python
+
+    run = True
+    while run:
+        rc = mqttc.loop(timeout=1.0)
+        if rc != 0:
+            # need to handle error, possible reconnecting or stopping the application
+
+Call regularly to process network events. This call waits in ``select()`` until
+the network socket is available for reading or writing, if appropriate, then
+handles the incoming/outgoing data. This function blocks for up to ``timeout``
+seconds. ``timeout`` must not exceed the ``keepalive`` value for the client or
+your client will be regularly disconnected by the broker.
+
+Using this kind of loop, require you to handle reconnection strategie.
 
 
-Constructor Example
-...................
+Callbacks
+`````````
+
+The interface to interact with paho-mqtt include various callback that are called by
+the library when some events occur.
+
+The callbacks are functions defined in your code, to implement the require action on those events. This could
+be simply printing received message or much more complex behaviour.
+
+Callbacks API is versioned, and the selected version is the `CallbackAPIVersion` you provided to `Client`
+constructor. Currently two version are supported:
+
+* ``CallbackAPIVersion.VERSION1``: it's the historical version used in paho-mqtt before version 2.0.
+  It's the API used before the introduction of `CallbackAPIVersion`.
+  This version is deprecated and will be removed in paho-mqtt version 3.0.
+* ``CallbackAPIVersion.VERSION2``: This version is more consistent between protocol MQTT 3.x and MQTT 5.x. It's also
+  much more usable with MQTT 5.x since reason code and properties are always provided when available.
+  It's recommended for all user to upgrade to this version. It's highly recommended for MQTT 5.x user.
+
+The following callbacks exists:
+
+* `on_connect()`: called when the CONNACK from the broker is received. The call could be for a refused connection,
+  check the reason_code to see if the connection is successful or rejected.
+* `on_connect_fail()`: called by `loop_forever()` and `loop_start()` when the TCP connection failed to establish.
+  This callback is not called when using `connect()` or `reconnect()` directly. It's only called following
+  an automatic (re)connection made by `loop_start()` and `loop_forever()`
+* `on_disconnect()`: called when the connection is closed.
+* `on_message()`: called when a MQTT message is received from the broker.
+* `on_publish()`: called when an MQTT message was sent to the broker. Depending on QoS level the callback is called
+  at different moment:
+
+  * For QoS == 0, it's called as soon as the message is sent over the network. This could be before the corresponding ``publish()`` return.
+  * For QoS == 1, it's called when the corresponding PUBACK is received from the broker
+  * For QoS == 2, it's called when the corresponding PUBCOMP is received from the broker
+* `on_subscribe()`: called when the SUBACK is received from the broker
+* `on_unsubscribe()`: called when the UNSUBACK is received from the broker
+* `on_log()`: called when the library log a message
+* `on_socket_open`, `on_socket_close`, `on_socket_register_write`, `on_socket_unregister_write`: callbacks used for external loop support. See below for details.
+
+For the signature of each callback, see the `online documentation <documentation_>`_.
+
+Subscriber example
+''''''''''''''''''
 
 .. code:: python
 
     import paho.mqtt.client as mqtt
 
-    mqttc = mqtt.Client()
+    def on_subscribe(client, userdata, mid, reason_code_list, properties):
+        # Since we subscribed only for a single channel, reason_code_list contains
+        # a single entry
+        if reason_code_list[0].is_failure:
+            print(f"Broker rejected you subscription: {reason_code_list[0]}")
+        else:
+            print(f"Broker granted the following QoS: {reason_code_list[0].value}")
 
+    def on_unsubscribe(client, userdata, mid, reason_code_list, properties):
+        # Be careful, the reason_code_list is only present in MQTTv5.
+        # In MQTTv3 it will always be empty
+        if len(reason_code_list) == 0 or not reason_code_list[0].is_failure:
+            print("unsubscribe succeeded (if SUBACK is received in MQTTv3 it success)")
+        else:
+            print(f"Broker replied with failure: {reason_code_list[0]}")
+        client.disconnect()
 
-reinitialise()
-''''''''''''''
+    def on_message(client, userdata, message):
+        # userdata is the structure we choose to provide, here it's a list()
+        userdata.append(message.payload)
+        # We only want to process 10 messages
+        if len(userdata) >= 10:
+            client.unsubscribe("$SYS/#")
 
-.. code:: python
+    def on_connect(client, userdata, flags, reason_code, properties):
+        if reason_code.is_failure:
+            print(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
+        else:
+            # we should always subscribe from on_connect callback to be sure
+            # our subscribed is persisted across reconnections.
+            client.subscribe("$SYS/#")
 
-    reinitialise(client_id="", clean_session=True, userdata=None)
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqttc.on_connect = on_connect
+    mqttc.on_message = on_message
+    mqttc.on_subscribe = on_subscribe
+    mqttc.on_unsubscribe = on_unsubscribe
+    
+    mqttc.user_data_set([])
+    mqttc.connect("mqtt.eclipseprojects.io")
+    mqttc.loop_forever()
+    print(f"Received the following message: {mqttc.user_data_get()}")
 
-The ``reinitialise()`` function resets the client to its starting state as if it had just been created. It takes the same arguments as the ``Client()`` constructor.
-
-Reinitialise Example
-....................
-
-.. code:: python
-
-    mqttc.reinitialise()
-
-Option functions
-````````````````
-
-These functions represent options that can be set on the client to modify its behaviour. In the majority of cases this must be done *before* connecting to a broker.
-
-max_inflight_messages_set()
-'''''''''''''''''''''''''''
-
-.. code:: python
-
-    max_inflight_messages_set(self, inflight)
-
-Set the maximum number of messages with QoS>0 that can be part way through their network flow at once.
-
-Defaults to 20. Increasing this value will consume more memory but can increase throughput.
-
-max_queued_messages_set()
-'''''''''''''''''''''''''
-
-.. code:: python
-
-    max_queued_messages_set(self, queue_size)
-
-Set the maximum number of outgoing messages with QoS>0 that can be pending in the outgoing message queue.
-
-Defaults to 0. 0 means unlimited, but due to implementation currently limited to 65555 (65535 messages in queue + 20 in flight). When the queue is full, any further outgoing messages would be dropped.
-
-message_retry_set()
-'''''''''''''''''''
-
-.. code:: python
-
-    message_retry_set(retry)
-
-Set the time in seconds before a message with QoS>0 is retried, if the broker does not respond.
-
-This is set to 5 seconds by default and should not normally need changing.
-
-ws_set_options()
-''''''''''''''''
-
-.. code:: python
-
-    ws_set_options(self, path="/mqtt", headers=None)
-
-Set websocket connection options. These options will only be used if ``transport="websockets"`` was passed into the ``Client()`` constructor.
-
-path
-    The mqtt path to use on the broker.
-
-headers
-    Either a dictionary specifying a list of extra headers which should be appended to the standard websocket headers, or a callable that takes the normal websocket headers and returns a new dictionary with a set of headers to connect to the broker.
-
-Must be called before ``connect*()``. An example of how this can be used with the AWS IoT platform is in the **examples** folder.
-
-
-tls_set()
-'''''''''
-
-.. code:: python
-
-    tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED,
-        tls_version=ssl.PROTOCOL_TLS_CLIENT, ciphers=None)
-
-Configure network encryption and authentication options. Enables SSL/TLS support.
-
-ca_certs
-    a string path to the Certificate Authority certificate files that are to be treated as trusted by this client. If this is the only option given then the client will operate in a similar manner to a web browser. That is to say it will require the broker to have a certificate signed by the Certificate Authorities in ``ca_certs`` and will communicate using TLS v1.2, but will not attempt any form of authentication. This provides basic network encryption but may not be sufficient depending on how the broker is configured. By default, on Python 2.7.9+ or 3.4+, the default certification authority of the system is used. On older Python version this parameter is mandatory.
-
-certfile, keyfile
-    strings pointing to the PEM encoded client certificate and private keys respectively. If these arguments are not ``None`` then they will be used as client information for TLS based authentication. Support for this feature is broker dependent. Note that if either of these files in encrypted and needs a password to decrypt it, Python will ask for the password at the command line. It is not currently possible to define a callback to provide the password.
-
-cert_reqs
-    defines the certificate requirements that the client imposes on the broker. By default this is ``ssl.CERT_REQUIRED``, which means that the broker must provide a certificate. See the ssl pydoc for more information on this parameter.
-
-tls_version
-    specifies the version of the SSL/TLS protocol to be used. By default (if the python version supports it) the highest TLS version is detected. If unavailable, TLS v1.2 is used. Previous versions (all versions beginning with SSL) are possible but not recommended due to possible security problems.
-
-ciphers
-    a string specifying which encryption ciphers are allowable for this connection, or ``None`` to use the defaults. See the ssl pydoc for more information.
-
-Must be called before ``connect*()``.
-
-tls_set_context()
+publisher example
 '''''''''''''''''
 
 .. code:: python
 
-    tls_set_context(context=None)
+    import time
+    import paho.mqtt.client as mqtt
 
-Configure network encryption and authentication context. Enables SSL/TLS support.
+    def on_publish(client, userdata, mid, reason_code, properties):
+        # reason_code and properties will only be present in MQTTv5. It's always unset in MQTTv3
+        try:
+            userdata.remove(mid)
+        except KeyError:
+            print("on_publish() is called with a mid not present in unacked_publish")
+            print("This is due to an unavoidable race-condition:")
+            print("* publish() return the mid of the message sent.")
+            print("* mid from publish() is added to unacked_publish by the main thread")
+            print("* on_publish() is called by the loop_start thread")
+            print("While unlikely (because on_publish() will be called after a network round-trip),")
+            print(" this is a race-condition that COULD happen")
+            print("")
+            print("The best solution to avoid race-condition is using the msg_info from publish()")
+            print("We could also try using a list of acknowledged mid rather than removing from pending list,")
+            print("but remember that mid could be re-used !")
 
-context
-    an ssl.SSLContext object. By default, this is given by ``ssl.create_default_context()``, if available (added in Python 3.4).
+    unacked_publish = set()
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqttc.on_publish = on_publish
+    
+    mqttc.user_data_set(unacked_publish)
+    mqttc.connect("mqtt.eclipseprojects.io")
+    mqttc.loop_start()
 
-If you're unsure about using this method, then either use the default context, or use the ``tls_set`` method. See the ssl module documentation section about `security considerations <https://docs.python.org/3/library/ssl.html#ssl-security>`_ for more information.
+    # Our application produce some messages
+    msg_info = mqttc.publish("paho/test/topic", "my message", qos=1)
+    unacked_publish.add(msg_info.mid)
 
-Must be called before ``connect*()``.
+    msg_info2 = mqttc.publish("paho/test/topic", "my message2", qos=1)
+    unacked_publish.add(msg_info2.mid)
+    
+    # Wait for all message to be published
+    while len(unacked_publish):
+        time.sleep(0.1)
 
-tls_insecure_set()
-''''''''''''''''''
+    # Due to race-condition described above, the following way to wait for all publish is safer
+    msg_info.wait_for_publish()
+    msg_info2.wait_for_publish()
+
+    mqttc.disconnect()
+    mqttc.loop_stop()
+
+
+Logger
+``````
+
+The Client emit some log message that could be useful during troubleshooting. The easiest way to
+enable logs is the call `enable_logger()`. It's possible to provide a custom logger or let the
+default logger being used.
+
+Example:
 
 .. code:: python
 
-    tls_insecure_set(value)
+    import logging
+    import paho.mqtt.client as mqtt
 
-Configure verification of the server hostname in the server certificate.
+    logging.basicConfig(level=logging.DEBUG)
 
-If ``value`` is set to ``True``, it is impossible to guarantee that the host you are connecting to is not impersonating your server. This can be useful in initial server testing, but makes it possible for a malicious third party to impersonate your server through DNS spoofing, for example.
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqttc.enable_logger()
 
-Do not use this function in a real system. Setting value to True means there is no point using encryption.
+    mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
+    mqttc.loop_start()
 
-Must be called before ``connect*()`` and after ``tls_set()`` or ``tls_set_context()``.
+    # Do additional action needed, publish, subscribe, ...
+    [...]
 
-enable_logger()
-'''''''''''''''
+It's also possible to define a on_log callback that will receive a copy of all log messages. Example:
 
 .. code:: python
 
-    enable_logger(logger=None)
+    import paho.mqtt.client as mqtt
 
-Enable logging using the standard python logging package (See PEP 282). This may be used at the same time as the ``on_log`` callback method.
+    def on_log(client, userdata, paho_log_level, messages):
+        if paho_log_level == mqtt.LogLevel.MQTT_LOG_ERR:
+            print(message)
 
-If ``logger`` is specified, then that ``logging.Logger`` object will be used, otherwise one will be created automatically.
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqttc.on_log = on_log
 
-Paho logging levels are converted to standard ones according to the following mapping:
+    mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
+    mqttc.loop_start()
+
+    # Do additional action needed, publish, subscribe, ...
+    [...]
+
+
+The correspondence with Paho logging levels and standard ones is the following:
 
 ====================  ===============
 Paho                  logging
@@ -371,803 +422,63 @@ Paho                  logging
 ``MQTT_LOG_DEBUG``    ``logging.DEBUG``
 ====================  ===============
 
-disable_logger()
-''''''''''''''''
-
-.. code:: python
-
-    disable_logger()
-
-Disable logging using standard python logging package. This has no effect on the ``on_log`` callback.
-
-username_pw_set()
-'''''''''''''''''
-
-.. code:: python
-
-    username_pw_set(username, password=None)
-
-Set a username and optionally a password for broker authentication. Must be called before ``connect*()``.
-
-user_data_set()
-'''''''''''''''
-
-.. code:: python
-
-    user_data_set(userdata)
-
-Set the private user data that will be passed to callbacks when events are generated. Use this for your own purpose to support your application.
-
-will_set()
-''''''''''
-
-.. code:: python
-
-    will_set(topic, payload=None, qos=0, retain=False)
-
-Set a Will to be sent to the broker. If the client disconnects without calling
-``disconnect()``, the broker will publish the message on its behalf.
-
-topic
-    the topic that the will message should be published on.
-
-payload
-    the message to send as a will. If not given, or set to ``None`` a zero
-    length message will be used as the will. Passing an int or float will
-    result in the payload being converted to a string representing that number.
-    If you wish to send a true int/float, use ``struct.pack()`` to create the
-    payload you require.
-
-qos
-    the quality of service level to use for the will.
-
-retain
-    if set to ``True``, the will message will be set as the "last known
-    good"/retained message for the topic.
-
-Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if ``topic`` is
-``None`` or has zero string length.
-
-reconnect_delay_set
-'''''''''''''''''''
-
-.. code:: python
-
-    reconnect_delay_set(min_delay=1, max_delay=120)
-
-The client will automatically retry connection. Between each attempt
-it will wait a number of seconds between ``min_delay`` and ``max_delay``.
-
-When the connection is lost, initially the reconnection attempt is delayed of
-``min_delay`` seconds. It's doubled between subsequent attempt up to ``max_delay``.
-
-The delay is reset to ``min_delay`` when the connection complete (e.g. the CONNACK is
-received, not just the TCP connection is established).
-
-
-Connect / reconnect / disconnect
-````````````````````````````````
-
-connect()
-'''''''''
-
-.. code:: python
-
-    connect(host, port=1883, keepalive=60, bind_address="")
-
-The ``connect()`` function connects the client to a broker. ``connect()`` blocks until
-the underlying connection is established and a CONNECT packet transmitted.
-Note that the connection status will not be updated until a CONNACK is received and
-processed (this requires a ``loop*()`` function).
-
-host
-    the hostname or IP address of the remote broker
-
-port
-    the network port of the server host to connect to. Defaults to 1883. Note
-    that the default port for MQTT over SSL/TLS is 8883 so if you are using
-    ``tls_set()`` or ``tls_set_context()``, the port may need providing manually
-
-keepalive
-    maximum period in seconds allowed between communications with the broker.
-    If no other messages are being exchanged, this controls the rate at which
-    the client will send ping messages to the broker
-
-bind_address
-    the IP address of a local network interface to bind this client to,
-    assuming multiple interfaces exist
-
-Returns MQTT_ERR_SUCCESS if the underlying connection was successfully established
-and an MQTT CONNECT packet sent.
-
-Callback
-........
-
-Immediately prior to the connection attempt, the `on_pre_connect()` callback
-will be called. This is a useful callback to set information that must be done
-before the connection starts, e.g., calling `will_set()`.
-
-When the client receives a CONNACK message from the broker in response to the
-connect it generates an ``on_connect()`` callback.
-When the client ``loop*()`` function receives a CONNACK packet from the broker in
-response to the CONNECT packet it generates an ``on_connect()`` callback.
-
-In most cases the connection should not be used prior to the ``on_connect()`` call
-because the broker may reject the CONNECT packet.
-
-Connect Example
-...............
-
-.. code:: python
-
-    mqttc.connect("mqtt.eclipseprojects.io")
-
-connect_async()
-'''''''''''''''
-
-.. code:: python
-
-    connect_async(host, port=1883, keepalive=60, bind_address="")
-
-Use in conjunction with ``loop_start()`` to connect in a non-blocking manner.
-The connection will not complete until ``loop_start()`` is called.
-
-Callback (connect)
-..................
-
-When the client receives a CONNACK message from the broker in response to the
-connect it generates an ``on_connect()`` callback.
-
-connect_srv()
-'''''''''''''
-
-.. code:: python
-
-    connect_srv(domain, keepalive=60, bind_address="")
-
-Connect to a broker using an SRV DNS lookup to obtain the broker address. Takes
-the following arguments:
-
-domain
-    the DNS domain to search for SRV records. If ``None``, try to determine the
-    local domain name.
-
-See ``connect()`` for a description of the ``keepalive`` and ``bind_address``
-arguments.
-
-Callback (connect_srv)
-......................
-
-When the client receives a CONNACK message from the broker in response to the
-connect it generates an ``on_connect()`` callback.
-
-SRV Connect Example
-...................
-
-.. code:: python
-
-    mqttc.connect_srv("eclipse.org")
-
-reconnect()
-'''''''''''
-
-.. code:: python
-
-    reconnect()
-
-Reconnect to a broker using the previously provided details. You must have
-called ``connect*()`` before calling this function.
-
-Callback (reconnect)
-....................
-
-When the client receives a CONNACK message from the broker in response to the
-connect it generates an ``on_connect()`` callback.
-
-disconnect()
-''''''''''''
-
-.. code:: python
-
-    disconnect()
-
-Disconnect from the broker cleanly. Using ``disconnect()`` will not result in a
-will message being sent by the broker.
-
-Disconnect will not wait for all queued message to be sent, to ensure all messages
-are delivered, ``wait_for_publish()`` from ``MQTTMessageInfo`` should be used.
-See ``publish()`` for details.
-
-Callback (disconnect)
-.....................
-
-When the client has sent the disconnect message it generates an
-``on_disconnect()`` callback.
-
-Network loop
-````````````
-
-These functions are the driving force behind the client. If they are not
-called, incoming network data will not be processed and outgoing network data
-may not be sent in a timely fashion. There are four options for managing the
-network loop. Three are described here, the fourth in "External event loop
-support" below. Do not mix the different loop functions.
-
-loop()
-''''''
-
-.. code:: python
-
-    loop(timeout=1.0, max_packets=1)
-
-Call regularly to process network events. This call waits in ``select()`` until
-the network socket is available for reading or writing, if appropriate, then
-handles the incoming/outgoing data. This function blocks for up to ``timeout``
-seconds. ``timeout`` must not exceed the ``keepalive`` value for the client or
-your client will be regularly disconnected by the broker.
-
-The ``max_packets`` argument is obsolete and should be left unset.
-
-Loop Example
-............
-
-.. code:: python
-
-    run = True
-    while run:
-        mqttc.loop()
-
-loop_start() / loop_stop()
-''''''''''''''''''''''''''
-
-.. code:: python
-
-    loop_start()
-    loop_stop(force=False)
-
-These functions implement a threaded interface to the network loop. Calling
-``loop_start()`` once, before or after ``connect*()``, runs a thread in the
-background to call ``loop()`` automatically. This frees up the main thread for
-other work that may be blocking. This call also handles reconnecting to the
-broker. Call ``loop_stop()`` to stop the background thread. The ``force``
-argument is currently ignored.
-
-Loop Start/Stop Example
-.......................
-
-.. code:: python
-
-    mqttc.connect("mqtt.eclipseprojects.io")
-    mqttc.loop_start()
-
-    while True:
-        temperature = sensor.blocking_read()
-        mqttc.publish("paho/temperature", temperature)
-
-loop_forever()
-''''''''''''''
-
-.. code:: python
-
-    loop_forever(timeout=1.0, max_packets=1, retry_first_connection=False)
-
-This is a blocking form of the network loop and will not return until the
-client calls ``disconnect()``. It automatically handles reconnecting.
-
-Except for the first connection attempt when using connect_async, use
-``retry_first_connection=True`` to make it retry the first connection.
-Warning: This might lead to situations where the client keeps connecting to an
-non existing host without failing.
-
-The ``timeout`` and ``max_packets`` arguments are obsolete and should be left
-unset.
-
-Publishing
-``````````
-
-Send a message from the client to the broker.
-
-publish()
-'''''''''
-
-.. code:: python
-
-    publish(topic, payload=None, qos=0, retain=False)
-
-This causes a message to be sent to the broker and subsequently from the broker
-to any clients subscribing to matching topics. It takes the following
-arguments:
-
-topic
-    the topic that the message should be published on
-
-payload
-    the actual message to send. If not given, or set to ``None`` a zero length
-    message will be used. Passing an int or float will result in the payload
-    being converted to a string representing that number. If you wish to send a
-    true int/float, use ``struct.pack()`` to create the payload you require
-
-qos
-    the quality of service level to use
-
-retain
-    if set to ``True``, the message will be set as the "last known
-    good"/retained message for the topic.
-
-Returns a MQTTMessageInfo which expose the following attributes and methods:
-
-* ``rc``, the result of the publishing. It could be ``MQTT_ERR_SUCCESS`` to
-  indicate success, ``MQTT_ERR_NO_CONN`` if the client is not currently connected,
-  or ``MQTT_ERR_QUEUE_SIZE`` when ``max_queued_messages_set`` is used to indicate
-  that message is neither queued nor sent.
-* ``mid`` is the message ID for the publish request. The mid value can be used to
-  track the publish request by checking against the mid argument in the
-  ``on_publish()`` callback if it is defined. ``wait_for_publish`` may be easier
-  depending on your use-case.
-* ``wait_for_publish()`` will block until the message is published. It will
-  raise ValueError if the message is not queued (rc ==
-  ``MQTT_ERR_QUEUE_SIZE``), or a RuntimeError if there was an error when
-  publishing, most likely due to the client not being connected.
-* ``is_published`` returns True if the message has been published. It will
-  raise ValueError if the message is not queued (rc ==
-  ``MQTT_ERR_QUEUE_SIZE``), or a RuntimeError if there was an error when
-  publishing, most likely due to the client not being connected.
-
-A ``ValueError`` will be raised if topic is ``None``, has zero length or is
-invalid (contains a wildcard), if ``qos`` is not one of 0, 1 or 2, or if the
-length of the payload is greater than 268435455 bytes.
-
-Callback (publish)
-..................
-
-When the message has been sent to the broker an ``on_publish()`` callback will
-be generated.
-
-
-Subscribe / Unsubscribe
-```````````````````````
-
-subscribe()
-'''''''''''
-
-.. code:: python
-
-    subscribe(topic, qos=0)
-
-Subscribe the client to one or more topics.
-
-This function may be called in three different ways:
-
-Simple string and integer
-.........................
-
-e.g. ``subscribe("my/topic", 2)``
-
-topic
-    a string specifying the subscription topic to subscribe to.
-
-qos
-    the desired quality of service level for the subscription. Defaults to 0.
-
-String and integer tuple
-........................
-
-e.g. ``subscribe(("my/topic", 1))``
-
-topic
-    a tuple of ``(topic, qos)``. Both topic and qos must be present in the tuple.
-
-qos
-    not used.
-
-List of string and integer tuples
-.................................
-
-e.g. ``subscribe([("my/topic", 0), ("another/topic", 2)])``
-
-This allows multiple topic subscriptions in a single SUBSCRIPTION command,
-which is more efficient than using multiple calls to ``subscribe()``.
-
-topic
-    a list of tuple of format ``(topic, qos)``. Both topic and qos must be
-    present in all of the tuples.
-
-qos
-    not used.
-
-The function returns a tuple ``(result, mid)``, where ``result`` is
-``MQTT_ERR_SUCCESS`` to indicate success or ``(MQTT_ERR_NO_CONN, None)`` if the
-client is not currently connected.  ``mid`` is the message ID for the subscribe
-request. The mid value can be used to track the subscribe request by checking
-against the mid argument in the ``on_subscribe()`` callback if it is defined.
-
-Raises a ``ValueError`` if ``qos`` is not 0, 1 or 2, or if topic is ``None`` or
-has zero string length, or if ``topic`` is not a string, tuple or list.
-
-Callback (subscribe)
-....................
-
-When the broker has acknowledged the subscription, an ``on_subscribe()``
-callback will be generated.
-
-unsubscribe()
-'''''''''''''
-
-.. code:: python
-
-    unsubscribe(topic)
-
-Unsubscribe the client from one or more topics.
-
-topic
-    a single string, or list of strings that are the subscription topics to
-    unsubscribe from.
-
-Returns a tuple ``(result, mid)``, where ``result`` is ``MQTT_ERR_SUCCESS`` to
-indicate success, or ``(MQTT_ERR_NO_CONN, None)`` if the client is not
-currently connected. ``mid`` is the message ID for the unsubscribe request. The
-mid value can be used to track the unsubscribe request by checking against the
-mid argument in the ``on_unsubscribe()`` callback if it is defined.
-
-Raises a ``ValueError`` if ``topic`` is ``None`` or has zero string length, or
-is not a string or list.
-
-Callback (unsubscribe)
-......................
-
-When the broker has acknowledged the unsubscribe, an ``on_unsubscribe()``
-callback will be generated.
-
-Callbacks
-`````````
-
-on_connect()
-''''''''''''
-
-.. code:: python
-
-    on_connect(client, userdata, flags, rc)
-
-Called when the broker responds to our connection request.
-
-client
-    the client instance for this callback
-
-userdata
-    the private user data as set in ``Client()`` or ``user_data_set()``
-
-flags
-    response flags sent by the broker
-rc
-    the connection result
-
-
-flags is a dict that contains response flags from the broker:
-    flags['session present'] - this flag is useful for clients that are
-        using clean session set to 0 only. If a client with clean
-        session=0, that reconnects to a broker that it has previously
-        connected to, this flag indicates whether the broker still has the
-        session information for the client. If 1, the session still exists.
-
-The value of rc indicates success or not:
-
-    0: Connection successful
-    1: Connection refused - incorrect protocol version
-    2: Connection refused - invalid client identifier
-    3: Connection refused - server unavailable
-    4: Connection refused - bad username or password
-    5: Connection refused - not authorised
-    6-255: Currently unused.
-
-On Connect Example
-..................
-
-.. code:: python
-
-    def on_connect(client, userdata, flags, rc):
-        print("Connection returned result: "+connack_string(rc))
-
-    mqttc.on_connect = on_connect
-    ...
-
-on_disconnect()
-'''''''''''''''
-
-.. code:: python
-
-    on_disconnect(client, userdata, rc)
-
-Called when the client disconnects from the broker.
-
-client
-    the client instance for this callback
-
-userdata
-    the private user data as set in ``Client()`` or ``user_data_set()``
-
-rc
-    the disconnection result
-
-The rc parameter indicates the disconnection state. If ``MQTT_ERR_SUCCESS``
-(0), the callback was called in response to a ``disconnect()`` call. If any
-other value the disconnection was unexpected, such as might be caused by a
-network error.
-
-On Disconnect Example
-.....................
-
-.. code:: python
-
-    def on_disconnect(client, userdata, rc):
-        if rc != 0:
-            print("Unexpected disconnection.")
-
-    mqttc.on_disconnect = on_disconnect
-    ...
-
-on_message()
-''''''''''''
-
-.. code:: python
-
-    on_message(client, userdata, message)
-
-Called when a message has been received on a topic that the client subscribes
-to and the message does not match an existing topic filter callback.
-Use ``message_callback_add()`` to define a callback that will be called for
-specific topic filters. ``on_message`` will serve as fallback when none matched.
-
-client
-    the client instance for this callback
-
-userdata
-    the private user data as set in ``Client()`` or ``user_data_set()``
-
-message
-    an instance of MQTTMessage. This is a class with members ``topic``, ``payload``, ``qos``, ``retain``.
-
-On Message Example
-..................
-
-.. code:: python
-
-    def on_message(client, userdata, message):
-        print("Received message '" + str(message.payload) + "' on topic '"
-            + message.topic + "' with QoS " + str(message.qos))
-
-    mqttc.on_message = on_message
-    ...
-
-message_callback_add()
-''''''''''''''''''''''
-
-This function allows you to define callbacks that handle incoming messages for
-specific subscription filters, including with wildcards. This lets you, for
-example, subscribe to ``sensors/#`` and have one callback to handle
-``sensors/temperature`` and another to handle ``sensors/humidity``.
-
-.. code:: python
-
-    message_callback_add(sub, callback)
-
-sub
-    the subscription filter to match against for this callback. Only one
-    callback may be defined per literal sub string
-
-callback
-    the callback to be used. Takes the same form as the ``on_message``
-    callback.
-
-If using ``message_callback_add()`` and ``on_message``, only messages that do
-not match a subscription specific filter will be passed to the ``on_message``
-callback.
-
-If multiple sub match a topic, each callback will be called (e.g. sub ``sensors/#``
-and sub ``+/humidity`` both match a message with a topic ``sensors/humidity``, so both
-callbacks will handle this message).
-
-message_callback_remove()
-'''''''''''''''''''''''''
-
-Remove a topic/subscription specific callback previously registered using
-``message_callback_add()``.
-
-.. code:: python
-
-    message_callback_remove(sub)
-
-sub
-    the subscription filter to remove
-
-on_publish()
-''''''''''''
-
-.. code:: python
-
-    on_publish(client, userdata, mid)
-
-Called when a message that was to be sent using the ``publish()`` call has
-completed transmission to the broker. For messages with QoS levels 1 and 2,
-this means that the appropriate handshakes have completed. For QoS 0, this
-simply means that the message has left the client. The ``mid`` variable matches
-the mid variable returned from the corresponding ``publish()`` call, to allow
-outgoing messages to be tracked.
-
-This callback is important because even if the publish() call returns success,
-it does not always mean that the message has been sent.
-
-on_subscribe()
-''''''''''''''
-
-.. code:: python
-
-    on_subscribe(client, userdata, mid, granted_qos)
-
-Called when the broker responds to a subscribe request. The ``mid`` variable
-matches the mid variable returned from the corresponding ``subscribe()`` call.
-The ``granted_qos`` variable is a list of integers that give the QoS level the
-broker has granted for each of the different subscription requests.
-
-on_unsubscribe()
-''''''''''''''''
-
-.. code:: python
-
-    on_unsubscribe(client, userdata, mid)
-
-Called when the broker responds to an unsubscribe request. The ``mid`` variable
-matches the mid variable returned from the corresponding ``unsubscribe()``
-call.
-
-on_log()
-''''''''
-
-.. code:: python
-
-    on_log(client, userdata, level, buf)
-
-Called when the client has log information. Define to allow debugging. The
-``level`` variable gives the severity of the message and will be one of
-``MQTT_LOG_INFO``, ``MQTT_LOG_NOTICE``, ``MQTT_LOG_WARNING``, ``MQTT_LOG_ERR``,
-and ``MQTT_LOG_DEBUG``. The message itself is in ``buf``.
-
-This may be used at the same time as the standard Python logging, which can be
-enabled via the ``enable_logger`` method.
-
-on_socket_open()
-''''''''''''''''
-
-::
-
-    on_socket_open(client, userdata, sock)
-
-Called when the socket has been opened.
-Use this to register the socket with an external event loop for reading.
-
-on_socket_close()
-'''''''''''''''''
-
-::
-
-    on_socket_close(client, userdata, sock)
-
-Called when the socket is about to be closed.
-Use this to unregister a socket from an external event loop for reading.
-
-on_socket_register_write()
-''''''''''''''''''''''''''
-
-::
-
-    on_socket_register_write(client, userdata, sock)
-
-Called when a write operation to the socket failed because it would have blocked, e.g. output buffer full.
-Use this to register the socket with an external event loop for writing.
-
-on_socket_unregister_write()
-''''''''''''''''''''''''''''
-
-::
-
-    on_socket_unregister_write(client, userdata, sock)
-
-Called when a write operation to the socket succeeded after it had previously failed.
-Use this to unregister the socket from an external event loop for writing.
 
 External event loop support
 ```````````````````````````
 
-loop_read()
-'''''''''''
+To support other network loop like asyncio (see examples_), the library expose some
+method and callback to support those use-case.
+
+The following loop method exists:
+
+* `loop_read`: should be called when the socket is ready for reading.
+* `loop_write`: should be called when the socket is ready for writing AND the library want to write data.
+* `loop_misc`: should be called every few seconds to handle message retrying and pings.
+
+In pseudo code, it give the following:
 
 .. code:: python
 
-    loop_read(max_packets=1)
+    while run:
+        if need_read:
+            mqttc.loop_read()
+        if need_write:
+            mqttc.loop_write()
+        mqttc.loop_misc()
 
-Call when the socket is ready for reading. ``max_packets`` is obsolete and
-should be left unset.
+        if not need_read and not need_write:
+            # But don't wait more than few seconds, loop_misc() need to be called regularly
+            wait_for_change_in_need_read_or_write()
+        updated_need_read_and_write()
 
-loop_write()
-''''''''''''
+The tricky part is implementing the update of need_read / need_write and wait for condition change. To support
+this, the following method exists:
 
-.. code:: python
+* `socket()`: which return the socket object when the TCP connection is open.
+  This call is particularly useful for select_ based loops. See ``examples/loop_select.py``.
+* `want_write()`: return true if there is data  waiting to be written. This is close to the
+  ``need_writew`` of above pseudo-code, but you should also check whether the socket is ready for writing.
+* callbacks ``on_socket_*``:
 
-    loop_write(max_packets=1)
+    * `on_socket_open`: called when the socket is opened.
+    * `on_socket_close`: called when the socket is about to be closed.
+    * `on_socket_register_write`: called when there is data the client want to write on the socket
+    * `on_socket_unregister_write`: called when there is no more data to write on the socket.
 
-Call when the socket is ready for writing. ``max_packets`` is obsolete and
-should be left unset.
-
-loop_misc()
-'''''''''''
-
-.. code:: python
-
-    loop_misc()
-
-Call every few seconds to handle message retrying and pings.
-
-socket()
-''''''''
-
-.. code:: python
-
-    socket()
-
-Returns the socket object in use in the client to allow interfacing with other
-event loops.
-This call is particularly useful for select_ based loops. See ``examples/loop_select.py``.
+  Callbacks are particularly useful for event loops where you register or unregister a socket
+  for reading+writing. See ``examples/loop_asyncio.py`` for an example.
 
 .. _select: https://docs.python.org/3/library/select.html#select.select
-
-want_write()
-''''''''''''
-
-.. code:: python
-
-    want_write()
-
-Returns true if there is data waiting to be written, to allow interfacing the
-client with other event loops.
-This call is particularly useful for select_ based loops. See ``examples/loop_select.py``.
-
-.. _select: https://docs.python.org/3/library/select.html#select.select
-
-state callbacks
-'''''''''''''''
-
-::
-
-    on_socket_open
-    on_socket_close
-    on_socket_register_write
-    on_socket_unregister_write
-
-Use these callbacks to get notified about state changes in the socket.
-This is particularly useful for event loops where you register or unregister a socket
-for reading+writing. See ``examples/loop_asyncio.py`` for an example.
-
-When the socket is opened, ``on_socket_open`` is called.
-Register the socket with your event loop for reading.
-
-When the socket is about to be closed, ``on_socket_close`` is called.
-Unregister the socket from your event loop for reading.
-
-When a write to the socket failed because it would have blocked, e.g. output buffer full,
-``on_socket_register_write`` is called.
-Register the socket with your event loop for writing.
-
-When the next write to the socket succeeded, ``on_socket_unregister_write`` is called.
-Unregister the socket from your event loop for writing.
 
 The callbacks are always called in this order:
 
-- ``on_socket_open``
+- `on_socket_open`
 - Zero or more times:
 
-  - ``on_socket_register_write``
-  - ``on_socket_unregister_write``
+  - `on_socket_register_write`
+  - `on_socket_unregister_write`
 
-- ``on_socket_close``
+- `on_socket_close`
 
 Global helper functions
 ```````````````````````
@@ -1184,13 +495,6 @@ For example:
     the topic ``non/matching`` would not match the subscription ``non/+/+``
 
 
-``connack_string(connack_code)`` returns the error string associated with a
-CONNACK result.
-
-
-``error_string(mqtt_errno)`` returns the error string associated with a Paho
-MQTT error number.
-
 Publish
 *******
 
@@ -1199,7 +503,7 @@ of messages in a one-shot manner. In other words, they are useful for the
 situation where you have a single/multiple messages you want to publish to a
 broker, then disconnect with nothing else required.
 
-The two functions provided are ``single()`` and ``multiple()``.
+The two functions provided are `single()` and `multiple()`.
 
 Both functions include support for MQTT v5.0, but do not currently let you
 set any properties on connection or when sending messages.
@@ -1209,132 +513,29 @@ Single
 
 Publish a single message to a broker, then disconnect cleanly.
 
-.. code:: python
-
-    single(topic, payload=None, qos=0, retain=False, hostname="localhost",
-        port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311, transport="tcp")
-
-
-Publish Single Function arguments
-'''''''''''''''''''''''''''''''''
-
-topic
-    the only required argument must be the topic string to which the payload
-    will be published.
-
-payload
-    the payload to be published. If "" or None, a zero length payload will be
-    published.
-
-qos
-    the qos to use when publishing,  default to 0.
-
-retain
-    set the message to be retained (True) or not (False).
-
-hostname
-    a string containing the address of the broker to connect to. Defaults to
-    localhost.
-
-port
-    the port to connect to the broker on. Defaults to 1883.
-
-client_id
-    the MQTT client id to use. If "" or None, the Paho library will
-    generate a client id automatically.
-
-keepalive
-    the keepalive timeout value for the client. Defaults to 60 seconds.
-
-will
-    a dict containing will parameters for the client:
-
-    will = {'topic': "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
-
-    Topic is required, all other parameters are optional and will default to
-    None, 0 and False respectively.
-
-    Defaults to None, which indicates no will should be used.
-
-auth
-    a dict containing authentication parameters for the client:
-
-    auth = {'username':"<username>", 'password':"<password>"}
-
-    Username is required, password is optional and will default to None if not provided.
-
-    Defaults to None, which indicates no authentication is to be used.
-
-tls
-    a dict containing TLS configuration parameters for the client:
-
-    dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>", 'keyfile':"<keyfile>", 'tls_version':"<tls_version>", 'ciphers':"<ciphers">}
-
-    ca_certs is required, all other parameters are optional and will default to None if not provided, which results in the client using the default behaviour - see the paho.mqtt.client documentation.
-
-    Defaults to None, which indicates that TLS should not be used.
-
-protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
-    ``MQTTv311``, or ``MQTTv5``.
-
-transport
-    set to "websockets" to send MQTT over WebSockets. Leave at the default of
-    "tcp" to use raw TCP.
-
-Publish Single Example
-''''''''''''''''''''''
+Example:
 
 .. code:: python
 
     import paho.mqtt.publish as publish
 
-    publish.single("paho/test/single", "payload", hostname="mqtt.eclipseprojects.io")
+    publish.single("paho/test/topic", "payload", hostname="mqtt.eclipseprojects.io")
 
 Multiple
 ````````
 
 Publish multiple messages to a broker, then disconnect cleanly.
 
-This function includes support for MQTT v5.0, but does not currently let you
-set any properties on connection or when sending messages.
+Example:
 
 .. code:: python
 
-    multiple(msgs, hostname="localhost", port=1883, client_id="", keepalive=60,
-        will=None, auth=None, tls=None, protocol=mqtt.MQTTv311, transport="tcp")
-
-Publish Multiple Function arguments
-'''''''''''''''''''''''''''''''''''
-
-msgs
-    a list of messages to publish. Each message is either a dict or a tuple.
-
-    If a dict, only the topic must be present. Default values will be
-    used for any missing arguments. The dict must be of the form:
-
-    msg = {'topic':"<topic>", 'payload':"<payload>", 'qos':<qos>, 'retain':<retain>}
-
-    topic must be present and may not be empty.
-    If payload is "", None or not present then a zero length payload will be published. If qos is not present, the default of 0 is used. If retain is not present, the default of False is used.
-
-    If a tuple, then it must be of the form:
-
-    ("<topic>", "<payload>", qos, retain)
-
-See ``single()`` for the description of ``hostname``, ``port``, ``client_id``, ``keepalive``, ``will``, ``auth``, ``tls``, ``protocol``, ``transport``.
-
-Publish Multiple Example
-''''''''''''''''''''''''
-
-.. code:: python
-
+    from paho.mqtt.enums import MQTTProtocolVersion
     import paho.mqtt.publish as publish
 
-    msgs = [{'topic':"paho/test/multiple", 'payload':"multiple 1"},
-        ("paho/test/multiple", "multiple 2", 0, False)]
-    publish.multiple(msgs, hostname="mqtt.eclipseprojects.io")
+    msgs = [{'topic':"paho/test/topic", 'payload':"multiple 1"},
+        ("paho/test/topic", "multiple 2", 0, False)]
+    publish.multiple(msgs, hostname="mqtt.eclipseprojects.io", protocol=MQTTProtocolVersion.MQTTv5)
 
 
 Subscribe
@@ -1343,7 +544,7 @@ Subscribe
 This module provides some helper functions to allow straightforward subscribing
 and processing of messages.
 
-The two functions provided are ``simple()`` and ``callback()``.
+The two functions provided are `simple()` and `callback()`.
 
 Both functions include support for MQTT v5.0, but do not currently let you
 set any properties on connection or when subscribing.
@@ -1354,90 +555,13 @@ Simple
 Subscribe to a set of topics and return the messages received. This is a
 blocking function.
 
-.. code:: python
-
-    simple(topics, qos=0, msg_count=1, retained=False, hostname="localhost",
-        port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311)
-
-
-Simple Subscribe Function arguments
-'''''''''''''''''''''''''''''''''''
-
-topics
-    the only required argument is the topic string to which the client will
-    subscribe. This can either be a string or a list of strings if multiple
-    topics should be subscribed to.
-
-qos
-    the qos to use when subscribing, defaults to 0.
-
-msg_count
-    the number of messages to retrieve from the broker. Defaults to 1. If 1, a
-    single MQTTMessage object will be returned. If >1, a list of MQTTMessages
-    will be returned.
-
-retained
-    set to True to consider retained messages, set to False to ignore messages
-    with the retained flag set.
-
-hostname
-    a string containing the address of the broker to connect to. Defaults to localhost.
-
-port
-    the port to connect to the broker on. Defaults to 1883.
-
-client_id
-    the MQTT client id to use. If "" or None, the Paho library will
-    generate a client id automatically.
-
-keepalive
-    the keepalive timeout value for the client. Defaults to 60 seconds.
-
-will
-    a dict containing will parameters for the client:
-
-    will = {'topic': "<topic>", 'payload':"<payload">, 'qos':<qos>, 'retain':<retain>}.
-
-    Topic is required, all other parameters are optional and will default to
-    None, 0 and False respectively.
-
-    Defaults to None, which indicates no will should be used.
-
-auth
-    a dict containing authentication parameters for the client:
-
-    auth = {'username':"<username>", 'password':"<password>"}
-
-    Username is required, password is optional and will default to None if not
-    provided.
-
-    Defaults to None, which indicates no authentication is to be used.
-
-tls
-    a dict containing TLS configuration parameters for the client:
-
-    dict = {'ca_certs':"<ca_certs>", 'certfile':"<certfile>", 'keyfile':"<keyfile>", 'tls_version':"<tls_version>", 'ciphers':"<ciphers">}
-
-    ca_certs is required, all other parameters are optional and will default to
-    None if not provided, which results in the client using the default
-    behaviour - see the paho.mqtt.client documentation.
-
-    Defaults to None, which indicates that TLS should not be used.
-
-protocol
-    choose the version of the MQTT protocol to use. Use either ``MQTTv31``,
-    ``MQTTv311``, or ``MQTTv5``.
-
-
-Simple Example
-''''''''''''''
+Example:
 
 .. code:: python
 
     import paho.mqtt.subscribe as subscribe
 
-    msg = subscribe.simple("paho/test/simple", hostname="mqtt.eclipseprojects.io")
+    msg = subscribe.simple("paho/test/topic", hostname="mqtt.eclipseprojects.io")
     print("%s %s" % (msg.topic, msg.payload))
 
 Using Callback
@@ -1446,38 +570,7 @@ Using Callback
 Subscribe to a set of topics and process the messages received using a user
 provided callback.
 
-.. code:: python
-
-    callback(callback, topics, qos=0, userdata=None, hostname="localhost",
-        port=1883, client_id="", keepalive=60, will=None, auth=None, tls=None,
-        protocol=mqtt.MQTTv311)
-
-Callback Subscribe Function arguments
-'''''''''''''''''''''''''''''''''''''
-
-callback
-    an "on_message" callback that will be used for each message received, and
-    of the form
-
-    .. code:: python
-
-        def on_message(client, userdata, message)
-
-topics
-    the topic string to which the client will subscribe. This can either be a
-    string or a list of strings if multiple topics should be subscribed to.
-
-qos
-    the qos to use when subscribing, defaults to 0.
-
-userdata
-    a user provided object that will be passed to the on_message callback when
-    a message is received.
-
-See ``simple()`` for the description of ``hostname``, ``port``, ``client_id``, ``keepalive``, ``will``, ``auth``, ``tls``, ``protocol``.
-
-Callback Example
-''''''''''''''''
+Example:
 
 .. code:: python
 
@@ -1485,8 +578,12 @@ Callback Example
 
     def on_message_print(client, userdata, message):
         print("%s %s" % (message.topic, message.payload))
+        userdata["message_count"] += 1
+        if userdata["message_count"] >= 5:
+            # it's possible to stop the program by disconnecting
+            client.disconnect()
 
-    subscribe.callback(on_message_print, "paho/test/callback", hostname="mqtt.eclipseprojects.io")
+    subscribe.callback(on_message_print, "paho/test/topic", hostname="mqtt.eclipseprojects.io", userdata={"message_count": 0})
 
 
 Reporting bugs
@@ -1502,3 +599,6 @@ Discussion of the Paho clients takes place on the `Eclipse paho-dev mailing list
 General questions about the MQTT protocol itself (not this library) are discussed in the `MQTT Google Group <https://groups.google.com/forum/?fromgroups#!forum/mqtt>`_.
 
 There is much more information available via the `MQTT community site <http://mqtt.org/>`_.
+
+.. _examples: https://github.com/eclipse/paho.mqtt.python/tree/master/examples
+.. _documentation: https://eclipse.dev/paho/files/paho.mqtt.python/html/client.html

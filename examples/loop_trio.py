@@ -54,15 +54,15 @@ class TrioAsyncHelper:
 
 
 class TrioAsyncMqttExample:
-    def on_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, userdata, flags, reason_code, properties):
         print("Subscribing")
         client.subscribe(topic)
 
     def on_message(self, client, userdata, msg):
         print("Got response with {} bytes".format(len(msg.payload)))
 
-    def on_disconnect(self, client, userdata, rc):
-        print('Disconnect result {}'.format(rc))
+    def on_disconnect(self, client, userdata, flags, reason_code, properties):
+        print('Disconnect result {}'.format(reason_code))
 
     async def test_write(self, cancel_scope: trio.CancelScope):
         for c in range(3):
@@ -72,7 +72,7 @@ class TrioAsyncMqttExample:
         cancel_scope.cancel()
 
     async def main(self):
-        self.client = mqtt.Client(client_id=client_id)
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect

@@ -22,8 +22,8 @@ import paho.mqtt.client as mqtt
 
 class MyMQTTClass(mqtt.Client):
 
-    def on_connect(self, mqttc, obj, flags, rc):
-        print("rc: "+str(rc))
+    def on_connect(self, mqttc, obj, flags, reason_code, properties):
+        print("rc: "+str(reason_code))
 
     def on_connect_fail(self, mqttc, obj):
         print("Connect failed")
@@ -31,11 +31,11 @@ class MyMQTTClass(mqtt.Client):
     def on_message(self, mqttc, obj, msg):
         print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
 
-    def on_publish(self, mqttc, obj, mid):
+    def on_publish(self, mqttc, obj, mid, reason_codes, properties):
         print("mid: "+str(mid))
 
-    def on_subscribe(self, mqttc, obj, mid, granted_qos):
-        print("Subscribed: "+str(mid)+" "+str(granted_qos))
+    def on_subscribe(self, mqttc, obj, mid, reason_code_list, properties):
+        print("Subscribed: "+str(mid)+" "+str(reason_code_list))
 
     def on_log(self, mqttc, obj, level, string):
         print(string)
@@ -54,7 +54,7 @@ class MyMQTTClass(mqtt.Client):
 # mqttc = MyMQTTClass("client-id")
 # but note that the client id must be unique on the broker. Leaving the client
 # id parameter empty will generate a random id for you.
-mqttc = MyMQTTClass()
+mqttc = MyMQTTClass(mqtt.CallbackAPIVersion.VERSION2)
 rc = mqttc.run()
 
 print("rc: "+str(rc))

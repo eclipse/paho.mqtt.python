@@ -41,7 +41,7 @@ def on_message(mosq, obj, msg):
     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 
 
-mqttc = mqtt.Client()
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 # Add message callbacks that will only trigger on a specific subscription match.
 mqttc.message_callback_add("$SYS/broker/messages/#", on_message_msgs)

@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.DEBUG)
 # mqttc = mqtt.Client("client-id")
 # but note that the client id must be unique on the broker. Leaving the client
 # id parameter empty will generate a random id for you.
-mqttc = mqtt.Client()
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 logger = logging.getLogger(__name__)
 mqttc.enable_logger(logger)

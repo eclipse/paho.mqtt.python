@@ -16,6 +16,8 @@
 #
 
 # This shows an example of an MQTTv5 Remote Procedure Call (RPC) client.
+# You should run the server_rpc_math.py before.
+
 
 import json
 import sys
@@ -37,10 +39,10 @@ corr_id = b"1"
 reply = None
 
 # The MQTTv5 callback takes the additional 'props' parameter.
-def on_connect(mqttc, userdata, flags, rc, props):
+def on_connect(mqttc, userdata, flags, reason_code, props):
     global client_id, reply_to
 
-    print("Connected: '"+str(flags)+"', '"+str(rc)+"', '"+str(props))
+    print(f"Connected: '{flags}', '{reason_code}',  '{props}'")
     if hasattr(props, 'AssignedClientIdentifier'):
         client_id = props.AssignedClientIdentifier
     reply_to = "replies/math/" + client_id
@@ -65,11 +67,11 @@ if len(sys.argv) < 3:
     print("USAGE: client_rpc_math.py [add|mult] n1 n2 ...")
     sys.exit(1)
 
-mqttc = mqtt.Client(client_id="", protocol=mqtt.MQTTv5)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="", protocol=mqtt.MQTTv5)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 
-mqttc.connect(host='localhost', clean_start=True)
+mqttc.connect(host="mqtt.eclipseprojects.io", clean_start=True)
 mqttc.loop_start()
 
 # Wait for connection to set `client_id`, etc.

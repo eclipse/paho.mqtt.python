@@ -39,9 +39,9 @@ def mult(nums):
     return prod
 
 # Remember that the MQTTv5 callback takes the additional 'props' parameter.
-def on_connect(mqttc, userdata, flags, rc, props):
-    print("Connected: '"+str(flags)+"', '"+str(rc)+"', '"+str(props))
-    if not flags["session present"]:
+def on_connect(mqttc, userdata, flags, reason_code, props):
+    print(f"Connected: '{flags}', '{reason_code}',  '{props}'")
+    if not flags.session_present:
         print("Subscribing to math requests")
         mqttc.subscribe("requests/math/#")
 
@@ -85,13 +85,12 @@ def on_log(mqttc, obj, level, string):
 # Typically with an RPC service, you want to make sure that you're the only
 # client answering requests for specific topics. Using a known client ID
 # might help.
-mqttc = mqtt.Client(client_id="paho_rpc_math_srvr", protocol=mqtt.MQTTv5)
+mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="paho_rpc_math_srvr", protocol=mqtt.MQTTv5)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 
 # Uncomment to enable debug messages
 #mqttc.on_log = on_log
 
-#mqttc.connect("mqtt.eclipseprojects.io", 1883, 60)
-mqttc.connect(host="localhost", clean_start=False)
+mqttc.connect(host="mqtt.eclipseprojects.io", clean_start=False)
 mqttc.loop_forever()
