@@ -3,6 +3,8 @@ Eclipse Paho™ MQTT Python Client
 
 The `full documentation is available here <documentation_>`_.
 
+**Warning breaking change** - Release 2.0 contains a breaking change; see the `release notes <https://github.com/eclipse/paho.mqtt.python/releases/tag/v2.0.0>`_ and `migration details <https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html>`_.
+
 This document describes the source code for the `Eclipse Paho <http://eclipse.org/paho/>`_ MQTT Python client library, which implements versions 5.0, 3.1.1, and 3.1 of the MQTT protocol.
 
 This code provides a client class which enables applications to connect to an `MQTT <http://mqtt.org/>`_ broker to publish messages, and to subscribe to topics and receive published messages. It also provides some helper functions to make publishing one off messages to an MQTT server very straightforward.
