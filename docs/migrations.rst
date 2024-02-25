@@ -85,9 +85,9 @@ But if you had comparison with other value, you will need to update the code. It
 
     # NEW code
     def on_connect(client, userdata, flags, reason_code, properties):
-        if rc == "Unsupported protocol version":
+        if reason_code == "Unsupported protocol version":
             # handle bad protocol version
-        if rc == "Client identifier not valid":
+        if reason_code == "Client identifier not valid":
             # handle bad identifier
 
 on_disconnect
