@@ -23,22 +23,24 @@ The list of breaking change (detailed below) are:
 Versioned the user callbacks
 ****************************
 
-Version 2.0 of paho-mqtt introduced versioning of user-callback. To fix some inconsistency in callback
-arguments and to provide better support for MQTTv5, version 2.0 changed the arguments passed to user-callback.
+Version 2.0 of paho-mqtt introduced versioning of the user-callback. To fix some inconsistency in callback
+arguments and to provide better support for MQTTv5, version 2.0 changed the arguments passed to the user-callback.
 
-You can still use old version of callback, you are just require to tell paho-mqtt that you opt for this
+You can still use the old version of the callback, you are just required to tell paho-mqtt that you opt for this
 version. For that just change your client creation from::
 
     # OLD code
     >>> mqttc = mqtt.Client()
 
+to::
+
     # NEW code
     >>> mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
 
 
-That it, remaining of the code could stay unchanged.
+That's it, the remaining of the code can stay unchanged.
 
-The version 1 of callback is deprecated, but is still supported in version 2.x. If you want to upgrade to newer version of API callback, you will need to update your callbacks:
+Version 1 of the callback is deprecated, but is still supported in version 2.x. If you want to upgrade to the newer version of the API callback, you will need to update your callbacks:
 
 on_connect
 ``````````
