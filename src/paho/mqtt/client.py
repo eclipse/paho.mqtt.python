@@ -732,7 +732,7 @@ class Client:
         client_id: str | None = "",
         clean_session: bool | None = None,
         userdata: Any = None,
-        protocol: int = MQTTv311,
+        protocol: MQTTProtocolVersion = MQTTv311,
         transport: Literal["tcp", "websockets"] = "tcp",
         reconnect_on_failure: bool = True,
         manual_ack: bool = False,
@@ -3462,7 +3462,7 @@ class Client:
         return self._packet_queue(command, packet, 0, 0)
 
     def _send_connect(self, keepalive: int) -> MQTTErrorCode:
-        proto_ver = self._protocol
+        proto_ver = int(self._protocol)
         # hard-coded UTF-8 encoded string
         protocol = b"MQTT" if proto_ver >= MQTTv311 else b"MQIsdp"
 
