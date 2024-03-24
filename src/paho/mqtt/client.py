@@ -288,7 +288,7 @@ class WebsocketConnectionError(ConnectionError):
     pass
 
 
-def error_string(mqtt_errno: MQTTErrorCode) -> str:
+def error_string(mqtt_errno: MQTTErrorCode | int) -> str:
     """Return the error string associated with an mqtt error number."""
     if mqtt_errno == MQTT_ERR_SUCCESS:
         return "No error."
@@ -729,7 +729,7 @@ class Client:
     def __init__(
         self,
         callback_api_version: CallbackAPIVersion,
-        client_id: str = "",
+        client_id: str | None = "",
         clean_session: bool | None = None,
         userdata: Any = None,
         protocol: int = MQTTv311,
@@ -2032,7 +2032,7 @@ class Client:
         return self._send_subscribe(False, topic_qos_list, properties)
 
     def unsubscribe(
-        self, topic: str, properties: Properties | None = None
+        self, topic: str | list[str], properties: Properties | None = None
     ) -> tuple[MQTTErrorCode, int | None]:
         """Unsubscribe the client from one or more topics.
 
