@@ -953,7 +953,7 @@ class Client:
 
         This property is read-only.
         """
-        return self.protocol
+        return self._protocol
 
     @property
     def connect_timeout(self) -> float:
