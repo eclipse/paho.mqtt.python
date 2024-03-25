@@ -4418,8 +4418,10 @@ class Client:
                         MQTT_LOG_ERR, 'Caught exception in on_connect_fail: %s', err)
 
     def _thread_main(self) -> None:
-        self.loop_forever(retry_first_connection=True)
-        self._thread = None
+        try:
+            self.loop_forever(retry_first_connection=True)
+        finally:
+            self._thread = None
 
     def _reconnect_wait(self) -> None:
         # See reconnect_delay_set for details
