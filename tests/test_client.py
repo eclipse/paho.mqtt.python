@@ -31,6 +31,7 @@ class Test_connect:
             callback_version,
             "01-con-discon-success",
             protocol=proto_ver,
+            transport=fake_broker.transport,
         )
 
         def on_connect(mqttc, obj, flags, rc_or_reason_code, properties_or_none=None):
@@ -70,7 +71,8 @@ class Test_connect:
 
     def test_01_con_failure_rc(self, proto_ver, callback_version, fake_broker):
         mqttc = client.Client(
-            callback_version, "01-con-failure-rc", protocol=proto_ver)
+            callback_version, "01-con-failure-rc",
+            protocol=proto_ver, transport=fake_broker.transport)
 
         def on_connect(mqttc, obj, flags, rc_or_reason_code, properties_or_none=None):
             assert rc_or_reason_code > 0
@@ -107,7 +109,9 @@ class Test_connect:
             mqttc.loop_stop()
 
     def test_connection_properties(self, proto_ver, callback_version, fake_broker):
-        mqttc = client.Client(CallbackAPIVersion.VERSION2, "client-id", protocol=proto_ver)
+        mqttc = client.Client(
+            CallbackAPIVersion.VERSION2, "client-id",
+            protocol=proto_ver, transport=fake_broker.transport)
         mqttc.enable_logger()
 
         is_connected = threading.Event()
@@ -131,7 +135,7 @@ class Test_connect:
         mqttc.keepalive = 7
         mqttc.max_inflight_messages = 7
         mqttc.max_queued_messages = 7
-        mqttc.transport = "tcp"
+        mqttc.transport = fake_broker.transport
         mqttc.username = "username"
         mqttc.password = "password"
 
@@ -184,7 +188,7 @@ class Test_connect:
                 mqttc.max_queued_messages = 7
 
             with pytest.raises(RuntimeError):
-                mqttc.transport = "tcp"
+                mqttc.transport = fake_broker.transport
 
             with pytest.raises(RuntimeError):
                 mqttc.username = "username"
@@ -217,7 +221,9 @@ class Test_connect_v5:
     """
 
     def test_01_broker_no_support(self, fake_broker):
-        mqttc = client.Client(CallbackAPIVersion.VERSION2, "01-broker-no-support", protocol=MQTTProtocolVersion.MQTTv5)
+        mqttc = client.Client(
+            CallbackAPIVersion.VERSION2, "01-broker-no-support",
+            protocol=MQTTProtocolVersion.MQTTv5, transport=fake_broker.transport)
 
         def on_connect(mqttc, obj, flags, reason, properties):
             assert reason == 132
@@ -261,6 +267,7 @@ class TestConnectionLost:
             "test_with_loop_start",
             protocol=MQTTProtocolVersion.MQTTv311,
             reconnect_on_failure=False,
+            transport=fake_broker.transport
         )
 
         on_connect_reached = threading.Event()
@@ -311,6 +318,7 @@ class TestConnectionLost:
             CallbackAPIVersion.VERSION1,
             "test_with_loop",
             clean_session=True,
+            transport=fake_broker.transport,
         )
 
         on_connect_reached = threading.Event()
@@ -367,6 +375,7 @@ class TestPublish:
         mqttc = client.Client(
             CallbackAPIVersion.VERSION1,
             "test_publish_before_connect",
+            transport=fake_broker.transport,
         )
 
         def on_connect(mqttc, obj, flags, rc):
@@ -424,7 +433,7 @@ class TestPublish:
 ])
 class TestPublishBroker2Client:
     def test_invalid_utf8_topic(self, callback_version, fake_broker):
-        mqttc = client.Client(callback_version, "client-id")
+        mqttc = client.Client(callback_version, "client-id", transport=fake_broker.transport)
 
         def on_message(client, userdata, msg):
             with pytest.raises(UnicodeDecodeError):
@@ -466,7 +475,7 @@ class TestPublishBroker2Client:
         assert not packet_in  # Check connection is closed
 
     def test_valid_utf8_topic_recv(self, callback_version, fake_broker):
-        mqttc = client.Client(callback_version, "client-id")
+        mqttc = client.Client(callback_version, "client-id", transport=fake_broker.transport)
 
         # It should be non-ascii multi-bytes character
         topic = unicodedata.lookup('SNOWMAN')
@@ -512,7 +521,7 @@ class TestPublishBroker2Client:
         assert not packet_in  # Check connection is closed
 
     def test_valid_utf8_topic_publish(self, callback_version, fake_broker):
-        mqttc = client.Client(callback_version, "client-id")
+        mqttc = client.Client(callback_version, "client-id", transport=fake_broker.transport)
 
         # It should be non-ascii multi-bytes character
         topic = unicodedata.lookup('SNOWMAN')
@@ -558,7 +567,7 @@ class TestPublishBroker2Client:
         assert not packet_in  # Check connection is closed
 
     def test_message_callback(self, callback_version, fake_broker):
-        mqttc = client.Client(callback_version, "client-id")
+        mqttc = client.Client(callback_version, "client-id", transport=fake_broker.transport)
         userdata = {
             'on_message': 0,
             'callback1': 0,
@@ -698,6 +707,7 @@ class TestCompatibility:
                 CallbackAPIVersion.VERSION1,
                 "client-id",
                 userdata=callback_called,
+                transport=fake_broker.transport,
             )
 
         def on_connect(cl, userdata, flags, rc):
@@ -823,6 +833,7 @@ class TestCompatibility:
             CallbackAPIVersion.VERSION2,
             "client-id",
             userdata=callback_called,
+            transport=fake_broker.transport,
         )
 
         def on_connect(cl, userdata, flags, reason, properties):
