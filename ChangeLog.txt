@@ -4,7 +4,7 @@ v2.0.0 - 2024-02-10
 This release include breaking change. See `migrations <https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html>`_ for more details on how to upgrade.
 
 - **BREAKING** Added callback_api_version. This break *ALL* users of paho-mqtt Client class.
-  See migrations.md for details on how to upgrade.
+  See docs/migrations.rst or `online version <https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html>`_ for details on how to upgrade.
   tl; dr; add CallbackAPIVersion.VERSION1 to first argument of Client()
 - **BREAKING** Drop support for Python 2.7, Python 3.5 and Python 3.6
   Minimum tested version is Python 3.7

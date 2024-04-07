@@ -688,7 +688,7 @@ class TestCompatibility:
         assert rc_ok + 1 == 1
 
     def test_migration_callback_version(self):
-        with pytest.raises(ValueError, match="see migrations.md"):
+        with pytest.raises(ValueError, match="see docs/migrations.rst"):
             _ = client.Client("client-id")
 
     def test_callback_v1_mqtt3(self, fake_broker):
