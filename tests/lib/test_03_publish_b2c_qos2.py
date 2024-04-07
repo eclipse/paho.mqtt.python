@@ -10,19 +10,21 @@
 # The client should then exit with return code==0.
 import tests.paho_test as paho_test
 
-connect_packet = paho_test.gen_connect("publish-qos1-test", keepalive=60)
+connect_packet = paho_test.gen_connect("publish-qos2-test", keepalive=60)
 connack_packet = paho_test.gen_connack(rc=0)
 
 disconnect_packet = paho_test.gen_disconnect()
 
-mid = 123
+mid = 13423
 publish_packet = paho_test.gen_publish(
-    "pub/qos1/receive", qos=1, mid=mid, payload="message")
-puback_packet = paho_test.gen_puback(mid)
+    "pub/qos2/receive", qos=2, mid=mid, payload="message")
+pubrec_packet = paho_test.gen_pubrec(mid=mid)
+pubrel_packet = paho_test.gen_pubrel(mid=mid)
+pubcomp_packet = paho_test.gen_pubcomp(mid)
 
 
-def test_03_publish_b2c_qos1(server_socket, start_client):
-    start_client("03-publish-b2c-qos1.py")
+def test_03_publish_b2c_qos2(server_socket, start_client):
+    start_client("03-publish-b2c-qos2.py")
 
     (conn, address) = server_socket.accept()
     conn.settimeout(10)
@@ -31,6 +33,9 @@ def test_03_publish_b2c_qos1(server_socket, start_client):
     conn.send(connack_packet)
     conn.send(publish_packet)
 
-    paho_test.expect_packet(conn, "puback", puback_packet)
+    paho_test.expect_packet(conn, "pubrec", pubrec_packet)
+    conn.send(pubrel_packet)
+
+    paho_test.expect_packet(conn, "pubcomp", pubcomp_packet)
 
     conn.close()
