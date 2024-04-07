@@ -76,9 +76,9 @@ def expect_packet(sock, name, expected):
 def expect_no_packet(sock, delay=1):
     """ expect that nothing is received within given delay
     """
-    sock.settimeout(delay)
     try:
         previous_timeout = sock.gettimeout()
+        sock.settimeout(delay)
         data = sock.recv(1024)
     except socket.timeout:
         data = None
