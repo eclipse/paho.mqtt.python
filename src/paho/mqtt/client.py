@@ -728,7 +728,7 @@ class Client:
 
     def __init__(
         self,
-        callback_api_version: CallbackAPIVersion,
+        callback_api_version: CallbackAPIVersion = CallbackAPIVersion.VERSION1,
         client_id: str | None = "",
         clean_session: bool | None = None,
         userdata: Any = None,
