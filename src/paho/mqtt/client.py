@@ -2444,7 +2444,7 @@ class Client:
 
                 connect_callback(client, userdata, flags, rc)
 
-            * For MQTT it's v5.0::
+            * For MQTT v5.0 it's::
 
                 connect_callback(client, userdata, flags, reason_code, properties)
 
@@ -2731,7 +2731,7 @@ class Client:
 
                 disconnect_callback(client, userdata, rc)
 
-            * For MQTT it's v5.0::
+            * For MQTT v5.0 it's::
 
                 disconnect_callback(client, userdata, reason_code, properties)
 
