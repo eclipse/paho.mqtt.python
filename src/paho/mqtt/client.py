@@ -648,7 +648,7 @@ class Client:
 
     :param CallbackAPIVersion callback_api_version: define the API version for user-callback (on_connect, on_publish,...).
         This field is required and it's recommended to use the latest version (CallbackAPIVersion.API_VERSION2).
-        See each callback for description of API for each version. The file migrations.md contains details on
+        See each callback for description of API for each version. The file docs/migrations.rst contains details on
         how to migrate between version.
 
     :param str client_id: the unique client id string used when connecting to the
@@ -764,7 +764,7 @@ class Client:
             # Help user to migrate, it probably provided a client id
             # as first arguments
             raise ValueError(
-                "Unsupported callback API version: version 2.0 added a callback_api_version, see migrations.md for details"
+                "Unsupported callback API version: version 2.0 added a callback_api_version, see docs/migrations.rst for details"
             )
         if self._callback_api_version not in CallbackAPIVersion:
             raise ValueError("Unsupported callback API version")
