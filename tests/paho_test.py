@@ -228,7 +228,8 @@ def gen_publish(topic, qos, payload=None, retain=False, dup=False, mid=0, proto_
         pack_format = pack_format + "%ds"%(len(properties))
 
     if payload is not None:
-        payload = payload.encode("utf-8")
+        if isinstance(payload, str):
+            payload = payload.encode("utf-8")
         rl = rl + len(payload)
         pack_format = pack_format + str(len(payload)) + "s"
     else:

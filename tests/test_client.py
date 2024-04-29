@@ -427,6 +427,59 @@ class TestPublish:
         packet_in = fake_broker.receive_packet(1)
         assert not packet_in  # Check connection is closed
 
+    @pytest.mark.parametrize("user_payload,sent_payload", [
+        ("string", b"string"),
+        (b"byte", b"byte"),
+        (bytearray(b"bytearray"), b"bytearray"),
+        (42, b"42"),
+        (4.2, b"4.2"),
+        (None, b""),
+    ])
+    def test_publish_various_payload(self, user_payload: client.PayloadType, sent_payload: bytes, fake_broker: FakeBroker) -> None:
+        mqttc = client.Client(
+            CallbackAPIVersion.VERSION2,
+            "test_publish_various_payload",
+            transport=fake_broker.transport,
+        )
+
+        mqttc.connect("localhost", fake_broker.port)
+        mqttc.loop_start()
+        mqttc.enable_logger()
+
+        try:
+            fake_broker.start()
+
+            connect_packet = paho_test.gen_connect(
+                "test_publish_various_payload", keepalive=60,
+                proto_ver=client.MQTTv311)
+            fake_broker.expect_packet("connect", connect_packet)
+
+            connack_packet = paho_test.gen_connack(rc=0)
+            count = fake_broker.send_packet(connack_packet)
+            assert count  # Check connection was not closed
+            assert count == len(connack_packet)
+
+            mqttc.publish("test", user_payload)
+
+            publish_packet = paho_test.gen_publish(
+                b"test", payload=sent_payload, qos=0
+            )
+            fake_broker.expect_packet("publish", publish_packet)
+
+            mqttc.disconnect()
+
+            disconnect_packet = paho_test.gen_disconnect()
+            packet_in = fake_broker.receive_packet(1000)
+            assert packet_in  # Check connection was not closed
+            assert packet_in == disconnect_packet
+
+        finally:
+            mqttc.loop_stop()
+
+        packet_in = fake_broker.receive_packet(1)
+        assert not packet_in  # Check connection is closed
+
+
 @pytest.mark.parametrize("callback_version", [
     (CallbackAPIVersion.VERSION1),
     (CallbackAPIVersion.VERSION2),

@@ -465,7 +465,7 @@ def _force_bytes(s: str | bytes) -> bytes:
     return s
 
 
-def _encode_payload(payload: str | bytes | bytearray | int | float | None) -> bytes:
+def _encode_payload(payload: str | bytes | bytearray | int | float | None) -> bytes|bytearray:
     if isinstance(payload, str):
         return payload.encode("utf-8")
 
@@ -3368,7 +3368,7 @@ class Client:
         self,
         mid: int,
         topic: bytes,
-        payload: bytes = b"",
+        payload: bytes|bytearray = b"",
         qos: int = 0,
         retain: bool = False,
         dup: bool = False,
@@ -3378,7 +3378,7 @@ class Client:
         # we assume that topic and payload are already properly encoded
         if not isinstance(topic, bytes):
             raise TypeError('topic must be bytes, not str')
-        if payload and not isinstance(payload, bytes):
+        if payload and not isinstance(payload, (bytes, bytearray)):
             raise TypeError('payload must be bytes if set')
 
         if self._sock is None:
