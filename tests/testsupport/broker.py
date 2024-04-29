@@ -1,8 +1,8 @@
 import contextlib
+import os
 import socket
 import socketserver
 import threading
-import os
 
 import pytest
 
