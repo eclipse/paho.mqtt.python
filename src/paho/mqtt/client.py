@@ -682,6 +682,10 @@ class Client:
 
     :param transport: use "websockets" to use WebSockets as the transport
         mechanism. Set to "tcp" to use raw TCP, which is the default.
+        Use "unix" to use Unix sockets as the transport mechanism; note that
+        this option is only available on platforms that support Unix sockets,
+        and the "host" argument is interpreted as the path to the Unix socket
+        file in this case.
 
     :param bool manual_ack: normally, when a message is received, the library automatically
         acknowledges after on_message callback returns.  manual_ack=True allows the application to
@@ -733,14 +737,16 @@ class Client:
         clean_session: bool | None = None,
         userdata: Any = None,
         protocol: MQTTProtocolVersion = MQTTv311,
-        transport: Literal["tcp", "websockets"] = "tcp",
+        transport: Literal["tcp", "websockets", "unix"] = "tcp",
         reconnect_on_failure: bool = True,
         manual_ack: bool = False,
     ) -> None:
         transport = transport.lower()  # type: ignore
-        if transport not in ("websockets", "tcp"):
+        if transport == "unix" and not hasattr(socket, "AF_UNIX"):
+            raise ValueError('"unix" transport not supported')
+        elif transport not in ("websockets", "tcp", "unix"):
             raise ValueError(
-                f'transport must be "websockets" or "tcp", not {transport}')
+                f'transport must be "websockets", "tcp" or "unix", not {transport}')
 
         self._manual_ack = manual_ack
         self._transport = transport
@@ -931,7 +937,7 @@ class Client:
         self._keepalive = value
 
     @property
-    def transport(self) -> Literal["tcp", "websockets"]:
+    def transport(self) -> Literal["tcp", "websockets", "unix"]:
         """
         Transport method used for the connection ("tcp" or "websockets").
 
@@ -4597,7 +4603,11 @@ class Client:
         return None
 
     def _create_socket(self) -> SocketLike:
-        sock = self._create_socket_connection()
+        if self._transport == "unix":
+            sock = self._create_unix_socket_connection()
+        else:
+            sock = self._create_socket_connection()
+
         if self._ssl:
             sock = self._ssl_wrap_socket(sock)
 
@@ -4613,6 +4623,11 @@ class Client:
             )
 
         return sock
+
+    def _create_unix_socket_connection(self) -> _socket.socket:
+        unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        unix_socket.connect(self._host)
+        return unix_socket
 
     def _create_socket_connection(self) -> _socket.socket:
         proxy = self._get_proxy()
