@@ -92,6 +92,7 @@ Making a release
 The process to make a release is the following:
 * Update the Changelog with the release version and date. Ensure it's up-to-date with latest fixes & PRs merged.
 * Make sure test pass, check that Github actions are green.
+* Check that documentation build (`cd docs; make html`)
 * Bump the version number in ``paho/mqtt/__init__.py``, commit the change.
 * Make a dry-run of build:
    * Build using hatch: ``python -m hatch build``

@@ -1,3 +1,16 @@
+v2.1.0 - 2024-04-29
+===================
+
+- Make transition from 1.x to 2.x version smoother (Closes #831)
+- Fix "protocol" property (Closes #820)
+- Fix publish() a bytearray payload (Closes #833)
+- Fix some type annotations (Closes #828)
+- Fix loop_stop() not stopping thread when called from callback (Closes #809)
+- Fix some documentation errors (Closes #817, #823, #832, #838)
+- Add support for Unix socket (Closes #829)
+- Fix flaky test (Closes #789)
+
+
 v2.0.0 - 2024-02-10
 ===================
 
