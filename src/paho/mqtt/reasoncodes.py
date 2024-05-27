@@ -128,7 +128,7 @@ class ReasonCode:
             self.value = identifier
             self.getName()  # check it's good
 
-    def __getName__(self, packetType, identifier):
+    def _getName(self, packetType, identifier):
         """
         Get the reason code string name for a specific identifier.
         The name can vary by packet type for the same identifier, which
@@ -162,14 +162,14 @@ class ReasonCode:
 
     def unpack(self, buffer):
         c = buffer[0]
-        name = self.__getName__(self.packetType, c)
+        name = self._getName(self.packetType, c)
         self.value = self.getId(name)
         return 1
 
     def getName(self):
         """Returns the reason code name corresponding to the numeric value which is set.
         """
-        return self.__getName__(self.packetType, self.value)
+        return self._getName(self.packetType, self.value)
 
     def __eq__(self, other):
         if isinstance(other, int):
