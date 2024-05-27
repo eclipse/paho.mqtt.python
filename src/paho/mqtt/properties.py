@@ -183,6 +183,8 @@ class Properties:
         "Shared Subscription Available": 42
     }
 
+    _idents = {v: k for k, v in names.items()}
+
     properties = {
         # id:  type, packets
         # payload format indicator
@@ -391,11 +393,7 @@ class Properties:
         return value, valuelen
 
     def getNameFromIdent(self, identifier):
-        rc = None
-        for name in self.names:
-            if self.names[name] == identifier:
-                rc = name
-        return rc
+        return self._idents[identifier]
 
     def unpack(self, buffer):
         self.clear()
