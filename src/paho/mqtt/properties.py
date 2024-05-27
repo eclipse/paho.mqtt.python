@@ -233,6 +233,8 @@ class Properties:
         42: (types.index("Byte"), [PacketTypes.CONNACK]),
     }
 
+    privateVars = ["packetType", "types", "names", "properties"]
+
     def __init__(self, packetType):
         self.packetType = packetType
 
@@ -250,8 +252,7 @@ class Properties:
 
     def __setattr__(self, name, value):
         name = name.replace(' ', '')
-        privateVars = ["packetType", "types", "names", "properties"]
-        if name in privateVars:
+        if name in self.privateVars:
             object.__setattr__(self, name, value)
         else:
             # the name could have spaces in, or not.  Remove spaces before assignment
